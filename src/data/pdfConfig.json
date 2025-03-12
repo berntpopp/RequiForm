@@ -61,6 +61,7 @@
               "content": "Patient*In",
               "style": {
                 "font": "Helvetica",
+                "fontStyle": "bold",
                 "fontSize": 12,
                 "color": "#000000"
               }

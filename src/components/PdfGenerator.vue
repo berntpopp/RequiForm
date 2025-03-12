@@ -80,7 +80,9 @@ function mapTemplateString(template, mapping) {
 function renderText(doc, element, mapping) {
   const text = mapTemplateString(element.content, mapping);
   if (element.style) {
-    doc.setFont(element.style.font || "Helvetica", "normal");
+    const fontName = element.style.font || "Helvetica";
+    const fontStyle = element.style.fontStyle || "normal";
+    doc.setFont(fontName, fontStyle);
     doc.setFontSize(element.style.fontSize || 12);
     doc.setTextColor(element.style.color || "#000000");
   }
@@ -156,15 +158,19 @@ async function generatePdf() {
   const offsetX = (pdfConfig.panels && pdfConfig.panels.offsetX) || 60;
   
   selectedPanelDetails.value.forEach(panel => {
-    // Render panel name in bold.
-    doc.setFont("Helvetica", "bold");
-    doc.setFontSize(12);
+    // Render panel name using configuration if provided, defaulting to bold style.
+    const panelNameStyle = panel.style || { font: "Helvetica", fontStyle: "bold", fontSize: 12, color: "#000000" };
+    doc.setFont(panelNameStyle.font || "Helvetica", panelNameStyle.fontStyle || "bold");
+    doc.setFontSize(panelNameStyle.fontSize || 12);
+    doc.setTextColor(panelNameStyle.color || "#000000");
     doc.text(panel.name, offsetX, y);
     y += spacing;
     // Render panel genes in italic if available with sensible line breaks.
     if (panel.genes && panel.genes.length > 0) {
-      doc.setFont("Helvetica", "italic");
-      doc.setFontSize(10);
+      const panelGeneStyle = panel.geneStyle || { font: "Helvetica", fontStyle: "italic", fontSize: 10, color: "#000000" };
+      doc.setFont(panelGeneStyle.font || "Helvetica", panelGeneStyle.fontStyle || "italic");
+      doc.setFontSize(panelGeneStyle.fontSize || 10);
+      doc.setTextColor(panelGeneStyle.color || "#000000");
       const geneText = panel.genes.join(", ");
       const pageWidth = doc.internal.pageSize.getWidth();
       const maxWidth = pageWidth - offsetX - 40; // right margin of 40 pts
@@ -172,7 +178,7 @@ async function generatePdf() {
       doc.text(splitGenes, offsetX, y);
       y += spacing * splitGenes.length;
     }
-    // Reset font.
+    // Reset font to default.
     doc.setFont("Helvetica", "normal");
     doc.setFontSize(12);
   });

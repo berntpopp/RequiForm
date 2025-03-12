@@ -84,7 +84,7 @@
         {
           "type": "text",
           "position": { "x": 40, "y": 202 },
-          "content": "Kostenübernahme: {{insurance}}",
+          "content": "Geschlecht: {{sex}}",
           "style": {
             "font": "Helvetica",
             "fontSize": 12,
@@ -94,7 +94,7 @@
         {
           "type": "text",
           "position": { "x": 40, "y": 216 },
-          "content": "Geschlecht: {{sex}}",
+          "content": "Kostenübernahme: {{insurance}}",
           "style": {
             "font": "Helvetica",
             "fontSize": 12,

@@ -58,13 +58,16 @@ const selectedPanelDetails = computed(() => {
 
 /**
  * Replaces placeholders in a template string with values from the mapping object.
+ * If a variable is missing, an empty string is returned.
  *
  * @param {string} template - The template string with placeholders, e.g., "Hello, {{name}}".
  * @param {Object} mapping - The key-value mapping for replacement.
  * @returns {string} - The processed string.
  */
 function mapTemplateString(template, mapping) {
-  return template.replace(/{{\s*([\w]+)\s*}}/g, (match, key) => mapping[key] || match);
+  return template.replace(/{{\s*([\w]+)\s*}}/g, (match, key) =>
+    key in mapping ? mapping[key] : ""
+  );
 }
 
 /**
@@ -158,12 +161,16 @@ async function generatePdf() {
     doc.setFontSize(12);
     doc.text(panel.name, offsetX, y);
     y += spacing;
-    // Render panel genes in italic if available.
+    // Render panel genes in italic if available with sensible line breaks.
     if (panel.genes && panel.genes.length > 0) {
       doc.setFont("Helvetica", "italic");
       doc.setFontSize(10);
-      doc.text(panel.genes.join(", "), offsetX, y);
-      y += spacing;
+      const geneText = panel.genes.join(", ");
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const maxWidth = pageWidth - offsetX - 40; // right margin of 40 pts
+      const splitGenes = doc.splitTextToSize(geneText, maxWidth);
+      doc.text(splitGenes, offsetX, y);
+      y += spacing * splitGenes.length;
     }
     // Reset font.
     doc.setFont("Helvetica", "normal");

@@ -233,8 +233,6 @@ function renderPanel(doc, panel, offsetX, y, spacing) {
  */
 async function generatePdf() {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'A4' });
-  const pageHeight = doc.internal.pageSize.getHeight();
-  const marginBottom = 50;
 
   // Merge placeholders.
   const mapping = {

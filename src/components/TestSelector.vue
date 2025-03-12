@@ -91,12 +91,6 @@
 import { ref, onMounted, watch, computed } from 'vue'
 import testsData from '../data/tests.json'
 
-// Utility: Compare two arrays (order-insensitive)
-function arraysEqual(a, b) {
-  if (a.length !== b.length) return false;
-  return a.every(item => b.includes(item));
-}
-
 // Custom filter function for autocomplete.
 // Expected signature: (itemTitle, queryText, item)
 const customFilter = (itemTitle, queryText, item) => {
@@ -149,12 +143,6 @@ watch(selectedTests, (newVal) => {
 const filteredTests = computed(() => {
   const cat = categories.value.find(c => c.id === selectedCategory.value);
   return cat ? cat.tests : [];
-});
-
-// Computed: current category title for display.
-const currentCategoryTitle = computed(() => {
-  const cat = categories.value.find(c => c.id === selectedCategory.value);
-  return cat ? cat.title : '';
 });
 
 // Computed: Build search items as one object per panel with combined searchText.

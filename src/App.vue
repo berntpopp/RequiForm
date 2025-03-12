@@ -12,17 +12,20 @@
           <PdfGenerator ref="pdfGen" :patientData="patientData" :selectedTests="selectedTests" />
         </div>
 
-        <!-- Formatted display of selected panels -->
+        <!-- Formatted display of selected panels grouped by category -->
         <div class="mt-4">
           <h2>Selected Panels:</h2>
-          <ul>
-            <li v-for="panel in selectedPanelDetails" :key="panel.id" class="panel-item">
-              <div class="panel-name"><strong>{{ panel.name }}</strong></div>
-              <div class="panel-genes" v-if="panel.genes && panel.genes.length">
-                <em>{{ panel.genes.join(', ') }}</em>
-              </div>
-            </li>
-          </ul>
+          <div v-for="group in groupedPanelDetails" :key="group.categoryTitle">
+            <h3 class="category-header">{{ group.categoryTitle }}</h3>
+            <ul>
+              <li v-for="panel in group.tests" :key="panel.id" class="panel-item">
+                <div class="panel-name"><strong>{{ panel.name }}</strong></div>
+                <div class="panel-genes" v-if="panel.genes && panel.genes.length">
+                  <em>{{ panel.genes.join(', ') }}</em>
+                </div>
+              </li>
+            </ul>
+          </div>
         </div>
       </v-container>
     </v-main>
@@ -30,13 +33,13 @@
 </template>
 
 <script setup>
-import { reactive, ref, onMounted, computed } from 'vue'
-import PatientForm from './components/PatientForm.vue'
-import TestSelector from './components/TestSelector.vue'
-import TopBar from './components/TopBar.vue'
-import PdfGenerator from './components/PdfGenerator.vue'
+import { reactive, ref, onMounted, computed } from 'vue';
+import PatientForm from './components/PatientForm.vue';
+import TestSelector from './components/TestSelector.vue';
+import TopBar from './components/TopBar.vue';
+import PdfGenerator from './components/PdfGenerator.vue';
 // Import tests data to look up panel details.
-import testsData from './data/tests.json'
+import testsData from './data/tests.json';
 
 // Patient data object
 const patientData = reactive({
@@ -68,20 +71,14 @@ onMounted(() => {
   patientData.diagnosis = params.get('diagnosis') || '';
 });
 
-// Create a flattened list of all panels from all categories
-const allPanels = computed(() => {
-  const panels = [];
-  testsData.categories.forEach(cat => {
-    cat.tests.forEach(test => {
-      panels.push(test);
-    });
-  });
-  return panels;
-});
-
-// Compute details for the selected panels by matching selectedTests array with allPanels
-const selectedPanelDetails = computed(() => {
-  return allPanels.value.filter(panel => selectedTests.value.includes(panel.id));
+// Compute details for the selected panels grouped by category.
+const groupedPanelDetails = computed(() => {
+  return testsData.categories
+    .map(category => ({
+      categoryTitle: category.title,
+      tests: category.tests.filter(test => selectedTests.value.includes(test.id))
+    }))
+    .filter(group => group.tests.length > 0);
 });
 
 // Ref for PdfGenerator component (to trigger PDF generation)
@@ -96,6 +93,13 @@ const handleGeneratePdf = () => {
 <style>
 .mt-4 {
   margin-top: 1rem;
+}
+
+.category-header {
+  font-size: 1.1rem;
+  margin: 1rem 0 0.5rem;
+  border-bottom: 2px solid #000;
+  font-weight: bold;
 }
 
 .panel-item {

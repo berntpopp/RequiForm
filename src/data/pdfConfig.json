@@ -220,8 +220,10 @@
     },
     "panels": {
       "baseY": 350,
+      "maxHeight": 700,
       "spacing": 14,
-      "offsetX": 60
+      "offsetX": 60,
+      "secondPageBaseY": 50
     },
     "qr": {
       "position": { "x": 450, "y": 700 },
@@ -263,6 +265,14 @@
           }
         }
       ]
+    },
+    "pageNumber": {
+      "enabled": true,
+      "position": { "x": 500, "y": 820 },
+      "font": "Helvetica",
+      "fontStyle": "normal",
+      "fontSize": 10,
+      "color": "#000000"
     }
   }
   

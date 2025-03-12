@@ -1,18 +1,18 @@
-<!-- App.vue -->
 <template>
   <v-app>
+    <!-- Top menu bar with the app name and Generate PDF button -->
+    <TopBar @generate-pdf="handleGeneratePdf" />
     <v-main>
       <v-container>
         <PatientForm :patientData="patientData" />
-
-        <!-- v-model binds to selectedTests in App.vue -->
         <TestSelector v-model="selectedTests" />
 
-        <PdfGenerator 
-          :patientData="patientData" 
-          :selectedTests="selectedTests" 
-        />
+        <!-- PdfGenerator is kept hidden; its method is invoked from TopBar -->
+        <div style="display: none;">
+          <PdfGenerator ref="pdfGen" :patientData="patientData" :selectedTests="selectedTests" />
+        </div>
 
+        <!-- For debugging -->
         <div class="mt-4">
           <h2>Selected Tests:</h2>
           <ul>
@@ -28,6 +28,7 @@
 import { reactive, ref, onMounted } from 'vue'
 import PatientForm from './components/PatientForm.vue'
 import TestSelector from './components/TestSelector.vue'
+import TopBar from './components/TopBar.vue'
 import PdfGenerator from './components/PdfGenerator.vue'
 
 const patientData = reactive({
@@ -46,4 +47,12 @@ onMounted(() => {
   patientData.birthdate = params.get('birthdate') || ''
   patientData.insurance = params.get('insurance') || ''
 })
+
+// Get a ref to PdfGenerator so we can call generatePdf()
+const pdfGen = ref(null)
+const handleGeneratePdf = () => {
+  if (pdfGen.value && typeof pdfGen.value.generatePdf === 'function') {
+    pdfGen.value.generatePdf();
+  }
+}
 </script>

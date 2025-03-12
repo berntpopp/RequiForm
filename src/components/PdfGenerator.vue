@@ -4,7 +4,7 @@
     <v-btn @click="generatePdf" color="primary" dark>
       Generate PDF
     </v-btn>
-    <!-- Wrap the QR code in a div with a ref (hidden) -->
+    <!-- Wrap the QR code in a hidden container -->
     <div ref="qrContainer" style="display: none;">
       <qrcode-vue :value="qrContent" :size="128" />
     </div>
@@ -27,33 +27,35 @@ const props = defineProps({
   }
 });
 
-// Create a reference to the container that wraps the QR code.
+// Create a ref for the container that wraps the QR code.
 const qrContainer = ref(null);
 
-// Compute the content to encode in the QR code.
+// Compute the content for the QR code.
 const qrContent = computed(() => {
-  return `Name: ${props.patientData.name}, Birthdate: ${props.patientData.birthdate}, Insurance: ${props.patientData.insurance}, Tests: ${props.selectedTests.join(", ")}`;
+  return `Given Name: ${props.patientData.givenName}, Family Name: ${props.patientData.familyName}, Birthdate: ${props.patientData.birthdate}, Insurance: ${props.patientData.insurance}, Tests: ${props.selectedTests.join(", ")}`;
 });
 
 function generatePdf() {
   const doc = new jsPDF();
   let y = 10;
 
-  // Add title.
+  // Title
   doc.setFontSize(16);
   doc.text("Genetic Test Requisition", 10, y);
   y += 10;
 
-  // Add patient details.
+  // Patient details: add given and family names separately.
   doc.setFontSize(12);
-  doc.text(`Name: ${props.patientData.name}`, 10, y);
+  doc.text(`Given Name: ${props.patientData.givenName}`, 10, y);
+  y += 10;
+  doc.text(`Family Name: ${props.patientData.familyName}`, 10, y);
   y += 10;
   doc.text(`Birthdate: ${props.patientData.birthdate}`, 10, y);
   y += 10;
   doc.text(`Insurance: ${props.patientData.insurance}`, 10, y);
   y += 10;
 
-  // Add selected tests.
+  // Selected tests
   doc.text("Selected Tests:", 10, y);
   y += 10;
   props.selectedTests.forEach((testId) => {
@@ -61,15 +63,14 @@ function generatePdf() {
     y += 10;
   });
 
-  // Wait for the QR code to render.
+  // Wait for QR code rendering.
   nextTick(() => {
-    // Use the container ref to query for the canvas element.
     const canvas = qrContainer.value.querySelector("canvas");
     if (canvas) {
       const qrDataUrl = canvas.toDataURL("image/png");
-      // Add the QR code image to the PDF.
+      // Add QR code image to the PDF.
       doc.addImage(qrDataUrl, "PNG", 150, 10, 50, 50);
-      // Save the PDF.
+      // Save/download PDF.
       doc.save("genetic_test_requisition.pdf");
     } else {
       console.error("QR code canvas not found.");

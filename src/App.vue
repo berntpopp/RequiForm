@@ -3,12 +3,19 @@
   <v-app>
     <v-main>
       <v-container>
+        <!-- Patient Form with separate given and family names -->
         <PatientForm :patientData="patientData" />
+        
+        <!-- Test Selector -->
         <TestSelector v-model="selectedTests" />
+        
+        <!-- PDF Generator Button -->
         <PdfGenerator 
           :patientData="patientData" 
           :selectedTests="selectedTests" 
         />
+        
+        <!-- Debug: List Selected Tests -->
         <div class="mt-4">
           <h2>Selected Tests:</h2>
           <ul>
@@ -26,8 +33,10 @@ import PatientForm from './components/PatientForm.vue'
 import TestSelector from './components/TestSelector.vue'
 import PdfGenerator from './components/PdfGenerator.vue'
 
+// Update the patient data structure to include givenName and familyName
 const patientData = reactive({
-  name: '',
+  givenName: '',
+  familyName: '',
   birthdate: '',
   insurance: ''
 })
@@ -36,7 +45,9 @@ const selectedTests = ref([])
 
 onMounted(() => {
   const params = new URLSearchParams(window.location.search)
-  patientData.name = params.get('name') || ''
+  // Expect URL parameters "givenName" and "familyName"
+  patientData.givenName = params.get('givenName') || ''
+  patientData.familyName = params.get('familyName') || ''
   patientData.birthdate = params.get('birthdate') || ''
   patientData.insurance = params.get('insurance') || ''
 })

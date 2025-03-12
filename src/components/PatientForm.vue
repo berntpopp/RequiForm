@@ -2,7 +2,8 @@
 <template>
   <div>
     <h2>Patient Details</h2>
-    <v-text-field label="Name" v-model="patientData.name" />
+    <v-text-field label="Given Name" v-model="patientData.givenName" />
+    <v-text-field label="Family Name" v-model="patientData.familyName" />
     <v-text-field label="Birthdate" v-model="patientData.birthdate" />
     <v-text-field label="Insurance" v-model="patientData.insurance" />
   </div>

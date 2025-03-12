@@ -6,7 +6,7 @@
     <v-row dense>
       <v-col cols="12" sm="6">
         <v-text-field
-          dense
+          density="compact"
           outlined
           label="Given Name"
           v-model="patientData.givenName"
@@ -14,7 +14,7 @@
       </v-col>
       <v-col cols="12" sm="6">
         <v-text-field
-          dense
+          density="compact"
           outlined
           label="Family Name"
           v-model="patientData.familyName"
@@ -22,7 +22,7 @@
       </v-col>
       <v-col cols="12" sm="6">
         <v-text-field
-          dense
+          density="compact"
           outlined
           label="Birthdate"
           v-model="patientData.birthdate"
@@ -30,7 +30,7 @@
       </v-col>
       <v-col cols="12" sm="6">
         <v-select
-          dense
+          density="compact"
           outlined
           label="Sex"
           :items="sexOptions"
@@ -39,13 +39,13 @@
       </v-col>
     </v-row>
     
-    <v-divider class="my-4"></v-divider>
+    <v-divider class="my-1"></v-divider>
     
     <!-- Group 2: Insurance & Physician -->
     <v-row dense>
       <v-col cols="12" sm="6">
         <v-text-field
-          dense
+          density="compact"
           outlined
           label="Insurance"
           v-model="patientData.insurance"
@@ -53,7 +53,7 @@
       </v-col>
       <v-col cols="12" sm="6">
         <v-text-field
-          dense
+          density="compact"
           outlined
           label="Physician Name"
           v-model="patientData.physicianName"
@@ -61,13 +61,13 @@
       </v-col>
     </v-row>
     
-    <v-divider class="my-4"></v-divider>
+    <v-divider class="my-1"></v-divider>
     
     <!-- Group 3: Clinical Details -->
     <v-row dense>
       <v-col cols="12" sm="4">
         <v-select
-          dense
+          density="compact"
           outlined
           label="Family History"
           :items="familyHistoryOptions"
@@ -76,7 +76,7 @@
       </v-col>
       <v-col cols="12" sm="4">
         <v-select
-          dense
+          density="compact"
           outlined
           label="Parental Consanguinity"
           :items="consanguinityOptions"
@@ -85,7 +85,7 @@
       </v-col>
       <v-col cols="12" sm="4">
         <v-text-field
-          dense
+          density="compact"
           outlined
           label="Diagnosis / Suspicion"
           v-model="patientData.diagnosis"
@@ -114,4 +114,5 @@ const consanguinityOptions = ["yes", "no"];
   margin-top: 1rem;
   margin-bottom: 1rem;
 }
+
 </style>

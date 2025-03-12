@@ -1,7 +1,22 @@
-import { defineConfig } from 'vite'
-import vue from '@vitejs/plugin-vue'
+// vite.config.js
+import { defineConfig } from 'vite';
+import vue from '@vitejs/plugin-vue';
+import path from 'path';
+import vuetify from 'vite-plugin-vuetify'; // Optional: helps with Vuetify support in Vite
 
-// https://vite.dev/config/
 export default defineConfig({
-  plugins: [vue()],
-})
+  plugins: [
+    vue(),
+    vuetify({ autoImport: true }), // This plugin is optional but can help with Vuetify’s auto-imports
+  ],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, 'src'),
+    },
+  },
+  server: {
+    watch: {
+      usePolling: true,
+    },
+  },
+});

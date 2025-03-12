@@ -17,6 +17,7 @@ import QrcodeVue from "qrcode.vue";
 import pdfConfig from "../data/pdfConfig.json";
 import testsData from "../data/tests.json";
 
+// Define props for patient data and selected tests.
 const props = defineProps({
   patientData: {
     type: Object,
@@ -55,93 +56,131 @@ const selectedPanelDetails = computed(() => {
   return allPanels.value.filter(panel => props.selectedTests.includes(panel.id));
 });
 
+/**
+ * Replaces placeholders in a template string with values from the mapping object.
+ *
+ * @param {string} template - The template string with placeholders, e.g., "Hello, {{name}}".
+ * @param {Object} mapping - The key-value mapping for replacement.
+ * @returns {string} - The processed string.
+ */
+function mapTemplateString(template, mapping) {
+  return template.replace(/{{\s*([\w]+)\s*}}/g, (match, key) => mapping[key] || match);
+}
+
+/**
+ * Renders a text element onto the jsPDF document.
+ *
+ * @param {jsPDF} doc - The jsPDF instance.
+ * @param {Object} element - The text element configuration.
+ * @param {Object} mapping - The dynamic mapping for placeholders.
+ */
+function renderText(doc, element, mapping) {
+  const text = mapTemplateString(element.content, mapping);
+  if (element.style) {
+    doc.setFont(element.style.font || "Helvetica", "normal");
+    doc.setFontSize(element.style.fontSize || 12);
+    doc.setTextColor(element.style.color || "#000000");
+  }
+  doc.text(text, element.position.x, element.position.y);
+}
+
+/**
+ * Renders an image element onto the jsPDF document.
+ *
+ * @param {jsPDF} doc - The jsPDF instance.
+ * @param {Object} element - The image element configuration.
+ * @param {Object} mapping - The dynamic mapping for placeholders.
+ */
+function renderImage(doc, element, mapping) {
+  const imageData = mapTemplateString(element.source, mapping);
+  doc.addImage(
+    imageData,
+    "PNG",
+    element.position.x,
+    element.position.y,
+    element.size.width,
+    element.size.height
+  );
+}
+
+/**
+ * Iterates over a section’s elements and renders them on the PDF.
+ *
+ * @param {jsPDF} doc - The jsPDF instance.
+ * @param {Object} section - The section configuration (header, body, or footer).
+ * @param {Object} mapping - The mapping for placeholder replacement.
+ */
+function renderSection(doc, section, mapping) {
+  if (!section || !section.elements) return;
+  section.elements.forEach(element => {
+    if (element.type === "text") {
+      renderText(doc, element, mapping);
+    } else if (element.type === "image") {
+      renderImage(doc, element, mapping);
+    }
+  });
+}
+
+/**
+ * Generates the PDF document by combining configurable sections with
+ * dynamic patient details, selected panels, and a QR code.
+ */
 async function generatePdf() {
   const doc = new jsPDF({
     orientation: "portrait",
-    unit: "pt",  // Using points for precise placement.
+    unit: "pt", // Use points for precise placement.
     format: "A4"
   });
-  
-  // --- Render Header ---
-  doc.setFontSize(12);
-  const clinicName = String(pdfConfig.header?.clinicName || "");
-  const department = String(pdfConfig.header?.department || "");
-  const addressLine = String(pdfConfig.header?.addressLine || "");
-  const headerTitle = String(pdfConfig.header?.headerTitle || "");
-  
-  doc.text(clinicName, 40, 40);
-  doc.text(department, 40, 60);
-  doc.text(addressLine, 40, 80);
-  
-  // Render the logo from config.
-  if (pdfConfig.header.logoBase64 && pdfConfig.header.logoBase64.length > 0) {
-    // Adjust coordinates (x, y) and size as needed.
-    doc.addImage(pdfConfig.header.logoBase64, "PNG", 300, 30, 225, 47);
+
+  // Build the mapping object by merging patient data with config values.
+  const mapping = {
+    ...props.patientData,
+    ...pdfConfig.header,
+    ...pdfConfig.footer
+  };
+
+  // --- Render Configurable Sections ---
+  if (pdfConfig.header) {
+    renderSection(doc, pdfConfig.header, mapping);
   }
+  if (pdfConfig.body) {
+    renderSection(doc, pdfConfig.body, mapping);
+  }
+
+  // --- Render Selected Panels (iterative rendering) ---
+  let y = (pdfConfig.panels && pdfConfig.panels.baseY) || 304;
+  const spacing = (pdfConfig.panels && pdfConfig.panels.spacing) || 14;
+  const offsetX = (pdfConfig.panels && pdfConfig.panels.offsetX) || 60;
   
-  doc.setFontSize(14);
-  doc.setFont("helvetica", "bold");
-  doc.text(headerTitle, 40, 120);
-  doc.setFont("helvetica", "normal");
-  
-  let y = 160;
-  
-  // --- Render Patient Details ---
-  doc.setFontSize(12);
-  doc.text(`Given Name: ${props.patientData.givenName || ""}`, 40, y);
-  y += 14;
-  doc.text(`Family Name: ${props.patientData.familyName || ""}`, 40, y);
-  y += 14;
-  doc.text(`Birthdate: ${props.patientData.birthdate || ""}`, 40, y);
-  y += 14;
-  doc.text(`Insurance: ${props.patientData.insurance || ""}`, 40, y);
-  y += 14;
-  doc.text(`Sex: ${props.patientData.sex || ""}`, 40, y);
-  y += 14;
-  doc.text(`Physician: ${props.patientData.physicianName || ""}`, 40, y);
-  y += 14;
-  doc.text(`Family History: ${props.patientData.familyHistory || ""}`, 40, y);
-  y += 14;
-  doc.text(`Parental Consanguinity: ${props.patientData.parentalConsanguinity || ""}`, 40, y);
-  y += 14;
-  doc.text(`Diagnosis: ${props.patientData.diagnosis || ""}`, 40, y);
-  y += 20;
-  
-  // --- Render Selected Panels ---
-  doc.setFontSize(12);
-  doc.text("Selected Panels:", 40, y);
-  y += 14;
-  
-  // For each selected panel, render its name (bold) and genes (italic).
   selectedPanelDetails.value.forEach(panel => {
-    // Panel name in bold.
-    doc.setFont("helvetica", "bold");
-    doc.text(panel.name, 60, y);
-    y += 14;
-    // If genes exist, render them in italic with a smaller font.
+    // Render panel name in bold.
+    doc.setFont("Helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text(panel.name, offsetX, y);
+    y += spacing;
+    // Render panel genes in italic if available.
     if (panel.genes && panel.genes.length > 0) {
-      doc.setFont("helvetica", "italic");
+      doc.setFont("Helvetica", "italic");
       doc.setFontSize(10);
-      doc.text(panel.genes.join(', '), 60, y);
-      y += 14;
+      doc.text(panel.genes.join(", "), offsetX, y);
+      y += spacing;
     }
-    // Reset font settings.
-    doc.setFont("helvetica", "normal");
+    // Reset font.
+    doc.setFont("Helvetica", "normal");
     doc.setFontSize(12);
   });
-  
+
   // --- Render Footer ---
-  const footerY = 780;
-  doc.setFontSize(10);
-  doc.text(String(pdfConfig.footer?.contactLine1 || ""), 40, footerY);
-  doc.text(String(pdfConfig.footer?.contactLine2 || ""), 40, footerY + 14);
-  doc.text(String(pdfConfig.footer?.website || ""), 40, footerY + 28);
-  
+  if (pdfConfig.footer) {
+    renderSection(doc, pdfConfig.footer, mapping);
+  }
+
   // --- Add QR Code ---
   nextTick(() => {
     const canvas = qrContainer.value.querySelector("canvas");
     if (canvas) {
       const qrDataUrl = canvas.toDataURL("image/png");
+      // Place QR code at specified coordinates.
       doc.addImage(qrDataUrl, "PNG", 450, 700, 100, 100);
       doc.save("genetic_test_requisition.pdf");
     } else {
@@ -150,3 +189,7 @@ async function generatePdf() {
   });
 }
 </script>
+
+<style scoped>
+/* Scoped styles for PdfGenerator (if needed) */
+</style>

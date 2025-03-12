@@ -33,7 +33,21 @@
             multiple
             chips
             closable-chips
-          />
+          >
+            <!-- Custom chip slot for v-select -->
+            <template #chip="{ props, item }">
+              <v-chip
+                variant="flat"
+                v-bind="{ ...props, color: getChipColor(item) }"
+                @click="props.onClick"
+                @keydown="props.onKeydown"
+                close
+                @click:close="props.onClose"
+              >
+                {{ item.title }}
+              </v-chip>
+            </template>
+          </v-select>
         </div>
       </v-tabs-window-item>
       
@@ -53,7 +67,21 @@
           closable-chips
           hide-selected
           class="mt-2"
-        />
+        >
+          <!-- Custom chip slot for v-select -->
+          <template #chip="{ props, item }">
+            <v-chip
+                variant="flat"
+              v-bind="{ ...props, color: getChipColor(item) }"
+              @click="props.onClick"
+              @keydown="props.onKeydown"
+              close
+              @click:close="props.onClose"
+            >
+              {{ item.title }}
+            </v-chip>
+          </template>
+        </v-autocomplete>
       </v-tabs-window-item>
     </v-tabs-window>
   </div>
@@ -147,6 +175,42 @@ const searchItems = computed(() => {
   }
   return items;
 });
+
+// Define a palette of Vuetify color names.
+const palette = ['primary', 'secondary', 'success', 'info', 'warning', 'error'];
+
+// Computed: Map each category id to a color.
+const categoryColorMapping = computed(() => {
+  const mapping = {};
+  testsData.categories.forEach((category, index) => {
+    mapping[category.id] = palette[index % palette.length];
+  });
+  return mapping;
+});
+
+
+// Computed: Map each test id to its category id.
+const testToCategory = computed(() => {
+  const mapping = {};
+  testsData.categories.forEach(category => {
+    category.tests.forEach(test => {
+      mapping[test.id] = category.id;
+    });
+  });
+  return mapping;
+});
+
+/**
+ * Returns the chip color based on the test item.
+ *
+ * @param {Object} item - The test object.
+ * @return {string} - The chip color (e.g. "primary").
+ */
+function getChipColor(item) {
+  const testId = item.id || item.value;
+  const catId = testToCategory.value[testId];
+  return categoryColorMapping.value[catId] || 'default';
+};
 </script>
 
 <style scoped>

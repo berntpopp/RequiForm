@@ -54,120 +54,169 @@
       ]
     },
     "body": {
-        "elements": [
-            {
-              "type": "text",
-              "position": { "x": 40, "y": 146 },
-              "content": "Patient*In",
-              "style": {
-                "font": "Helvetica",
-                "fontStyle": "bold",
-                "fontSize": 12,
-                "color": "#000000"
-              }
-            },
-          {
-            "type": "text",
-            "position": { "x": 40, "y": 160 },
-            "content": "Vorname: {{givenName}}",
-            "style": {
-              "font": "Helvetica",
-              "fontSize": 12,
-              "color": "#000000"
-            }
-          },
-          {
-            "type": "text",
-            "position": { "x": 40, "y": 174 },
-            "content": "Name: {{familyName}}",
-            "style": {
-              "font": "Helvetica",
-              "fontSize": 12,
-              "color": "#000000"
-            }
-          },
-          {
-            "type": "text",
-            "position": { "x": 40, "y": 188 },
-            "content": "Geburtsdatum: {{birthdate}}",
-            "style": {
-              "font": "Helvetica",
-              "fontSize": 12,
-              "color": "#000000"
-            }
-          },
-          {
-            "type": "text",
-            "position": { "x": 40, "y": 202 },
-            "content": "Geschlecht: {{sex}}",
-            "style": {
-              "font": "Helvetica",
-              "fontSize": 12,
-              "color": "#000000"
-            }
-          },
-          {
-            "type": "text",
-            "position": { "x": 40, "y": 230 },
-            "content": "Kostenübernahme: {{insurance}}",
-            "style": {
-              "font": "Helvetica",
-              "fontSize": 12,
-              "color": "#000000"
-            }
-          },
-          {
-            "type": "text",
-            "position": { "x": 40, "y": 246 },
-            "content": "Ärzt*In: {{physicianName}}",
-            "style": {
-              "font": "Helvetica",
-              "fontSize": 12,
-              "color": "#000000"
-            }
-          },
-          {
-            "type": "text",
-            "position": { "x": 40, "y": 270 },
-            "content": "Familienanamnese: {{familyHistory}}",
-            "style": {
-              "font": "Helvetica",
-              "fontSize": 12,
-              "color": "#000000"
-            }
-          },
-          {
-            "type": "text",
-            "position": { "x": 40, "y": 284 },
-            "content": "Elterliche Blutsverwandtschaft: {{parentalConsanguinity}}",
-            "style": {
-              "font": "Helvetica",
-              "fontSize": 12,
-              "color": "#000000"
-            }
-          },
-          {
-            "type": "text",
-            "position": { "x": 40, "y": 298 },
-            "content": "Diagnose / Verdacht: {{diagnosis}}",
-            "style": {
-              "font": "Helvetica",
-              "fontSize": 12,
-              "color": "#000000"
-            }
-          },
-          {
-            "type": "text",
-            "position": { "x": 40, "y": 330 },
-            "content": "Angeforderte Analyse(n):",
-            "style": {
-              "font": "Helvetica",
-              "fontStyle": "bold",
-              "fontSize": 12,
-              "color": "#000000"
-            }
+      "elements": [
+        {
+          "type": "text",
+          "position": { "x": 40, "y": 140 },
+          "content": "Patient*In",
+          "style": {
+            "font": "Helvetica",
+            "fontStyle": "bold",
+            "fontSize": 12,
+            "color": "#000000"
           }
-        ]
+        },
+        {
+          "type": "text",
+          "position": { "x": 380, "y": 200 },
+          "content": "- Praxisstempel -",
+          "style": {
+            "font": "Helvetica",
+            "fontStyle": "italic",
+            "fontSize": 12,
+            "color": "#A9A9A9"
+          }
+        },
+        {
+          "type": "text",
+          "position": { "x": 40, "y": 160 },
+          "content": "Vorname: {{givenName}}",
+          "style": {
+            "font": "Helvetica",
+            "fontStyle": "normal",
+            "fontSize": 12,
+            "color": "#000000"
+          }
+        },
+        {
+          "type": "text",
+          "position": { "x": 40, "y": 180 },
+          "content": "Name: {{familyName}}",
+          "style": {
+            "font": "Helvetica",
+            "fontStyle": "normal",
+            "fontSize": 12,
+            "color": "#000000"
+          }
+        },
+        {
+          "type": "text",
+          "position": { "x": 40, "y": 200 },
+          "content": "Geburtsdatum: {{birthdate}}",
+          "style": {
+            "font": "Helvetica",
+            "fontStyle": "normal",
+            "fontSize": 12,
+            "color": "#000000"
+          }
+        },
+        {
+          "type": "text",
+          "position": { "x": 40, "y": 220 },
+          "content": "Geschlecht: {{sex}}",
+          "style": {
+            "font": "Helvetica",
+            "fontStyle": "normal",
+            "fontSize": 12,
+            "color": "#000000"
+          }
+        },
+        {
+          "type": "text",
+          "position": { "x": 40, "y": 260 },
+          "content": "Kostenübernahme: {{insurance}}",
+          "style": {
+            "font": "Helvetica",
+            "fontStyle": "normal",
+            "fontSize": 12,
+            "color": "#000000"
+          }
+        },
+        {
+          "type": "text",
+          "position": { "x": 300, "y": 260 },
+          "content": "Ärzt*In: {{physicianName}}",
+          "style": {
+            "font": "Helvetica",
+            "fontStyle": "normal",
+            "fontSize": 12,
+            "color": "#000000"
+          }
+        },
+        {
+          "type": "text",
+          "position": { "x": 300, "y": 290 },
+          "content": "Unterschrift: ______________________",
+          "style": {
+            "font": "Helvetica",
+            "fontStyle": "normal",
+            "fontSize": 12,
+            "color": "#000000"
+          }
+        },
+        {
+          "type": "text",
+          "position": { "x": 40, "y": 270 },
+          "content": "Familienanamnese: {{familyHistory}}",
+          "style": {
+            "font": "Helvetica",
+            "fontStyle": "normal",
+            "fontSize": 12,
+            "color": "#000000"
+          }
+        },
+        {
+          "type": "text",
+          "position": { "x": 40, "y": 284 },
+          "content": "Elterliche Blutsverwandtschaft: {{parentalConsanguinity}}",
+          "style": {
+            "font": "Helvetica",
+            "fontStyle": "normal",
+            "fontSize": 12,
+            "color": "#000000"
+          }
+        },
+        {
+          "type": "text",
+          "position": { "x": 40, "y": 298 },
+          "content": "Diagnose / Verdacht: {{diagnosis}}",
+          "style": {
+            "font": "Helvetica",
+            "fontStyle": "normal",
+            "fontSize": 12,
+            "color": "#000000"
+          }
+        },
+        {
+          "type": "text",
+          "position": { "x": 40, "y": 330 },
+          "content": "Angeforderte Analyse(n):",
+          "style": {
+            "font": "Helvetica",
+            "fontStyle": "bold",
+            "fontSize": 12,
+            "color": "#000000"
+          }
+        },
+        {
+          "type": "rectangle",
+          "position": { "x": 320, "y": 130 },
+          "size": { "width": 220, "height": 100 },
+          "style": {
+            "borderColor": "#000000",
+            "borderWidth": 0.7
+          }
+        },
+        {
+          "type": "line",
+          "start": { "x": 40, "y": 310 },
+          "end": { "x": 540, "y": 310 },
+          "style": {
+            "lineWidth": 1,
+            "color": "#000000"
+          }
+        }
+      ]
     },
     "panels": {
       "baseY": 350,

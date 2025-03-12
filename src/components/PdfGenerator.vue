@@ -109,6 +109,54 @@ function renderImage(doc, element, mapping) {
 }
 
 /**
+ * Renders a rectangle element on the PDF.
+ *
+ * @param {jsPDF} doc - The jsPDF instance.
+ * @param {Object} element - The rectangle configuration.
+ * @param {Object} mapping - The dynamic mapping (unused in this example).
+ */
+function renderRectangle(doc, element, mapping) {
+  const x = element.position.x;
+  const y = element.position.y;
+  const width = element.size.width;
+  const height = element.size.height;
+  const style = element.style || {};
+  if (style.fill && style.fillColor) {
+    doc.setFillColor(style.fillColor);
+  }
+  if (style.borderColor) {
+    doc.setDrawColor(style.borderColor);
+  }
+  doc.setLineWidth(style.borderWidth || 1);
+  // Determine drawing style: "S" (stroke), "F" (fill), or "DF" (both)
+  let rectStyle = "S";
+  if (style.fill && style.fillColor) {
+    rectStyle = style.borderWidth ? "DF" : "F";
+  }
+  doc.rect(x, y, width, height, rectStyle);
+}
+
+/**
+ * Renders a line element on the PDF.
+ *
+ * @param {jsPDF} doc - The jsPDF instance.
+ * @param {Object} element - The line configuration.
+ * @param {Object} mapping - The dynamic mapping (unused in this example).
+ */
+function renderLine(doc, element, mapping) {
+  const startX = element.start.x;
+  const startY = element.start.y;
+  const endX = element.end.x;
+  const endY = element.end.y;
+  const style = element.style || {};
+  doc.setLineWidth(style.lineWidth || 1);
+  if (style.color) {
+    doc.setDrawColor(style.color);
+  }
+  doc.line(startX, startY, endX, endY);
+}
+
+/**
  * Iterates over a section’s elements and renders them on the PDF.
  *
  * @param {jsPDF} doc - The jsPDF instance.
@@ -118,10 +166,21 @@ function renderImage(doc, element, mapping) {
 function renderSection(doc, section, mapping) {
   if (!section || !section.elements) return;
   section.elements.forEach(element => {
-    if (element.type === "text") {
-      renderText(doc, element, mapping);
-    } else if (element.type === "image") {
-      renderImage(doc, element, mapping);
+    switch (element.type) {
+      case "text":
+        renderText(doc, element, mapping);
+        break;
+      case "image":
+        renderImage(doc, element, mapping);
+        break;
+      case "rectangle":
+        renderRectangle(doc, element, mapping);
+        break;
+      case "line":
+        renderLine(doc, element, mapping);
+        break;
+      default:
+        console.warn("Unknown element type:", element.type);
     }
   });
 }

@@ -1,10 +1,9 @@
 <template>
   <div>
-    <!-- (Optional visible button if needed) -->
     <v-btn @click="generatePdf" color="primary" dark>
       Generate PDF
     </v-btn>
-    <!-- Hidden container for QR code -->
+    <!-- Hidden container for the QR code -->
     <div ref="qrContainer" style="display: none;">
       <qrcode-vue :value="qrContent" :size="128" />
     </div>
@@ -15,6 +14,7 @@
 import { jsPDF } from "jspdf";
 import { defineProps, ref, nextTick, computed, defineExpose } from "vue";
 import QrcodeVue from "qrcode.vue";
+import pdfConfig from "../data/pdfConfig.json";
 
 const props = defineProps({
   patientData: {
@@ -27,7 +27,7 @@ const props = defineProps({
   }
 });
 
-// Reference for the hidden QR code container
+// Reference for the hidden QR code container.
 const qrContainer = ref(null);
 
 // Compute QR code content from patient data and selected tests.
@@ -35,58 +35,89 @@ const qrContent = computed(() => {
   return `Given Name: ${props.patientData.givenName}, Family Name: ${props.patientData.familyName}, Birthdate: ${props.patientData.birthdate}, Insurance: ${props.patientData.insurance}, Tests: ${props.selectedTests.join(", ")}`;
 });
 
-function generatePdf() {
-  const doc = new jsPDF();
-  let y = 10;
-  
-  // Title
-  doc.setFontSize(16);
-  doc.text("Genetic Test Requisition", 10, y);
-  y += 10;
-  
-  // Patient details
-  doc.setFontSize(12);
-  doc.text(`Given Name: ${props.patientData.givenName}`, 10, y);
-  y += 10;
-  doc.text(`Family Name: ${props.patientData.familyName}`, 10, y);
-  y += 10;
-  doc.text(`Birthdate: ${props.patientData.birthdate}`, 10, y);
-  y += 10;
-  doc.text(`Insurance: ${props.patientData.insurance}`, 10, y);
-  y += 10;
-  
-  // Additional information
-  doc.text(`Sex: ${props.patientData.sex}`, 10, y);
-  y += 10;
-  doc.text(`Physician: ${props.patientData.physicianName}`, 10, y);
-  y += 10;
-  doc.text(`Family History: ${props.patientData.familyHistory}`, 10, y);
-  y += 10;
-  doc.text(`Parental Consanguinity: ${props.patientData.parentalConsanguinity}`, 10, y);
-  y += 10;
-  doc.text(`Diagnosis: ${props.patientData.diagnosis}`, 10, y);
-  y += 10;
-  
-  // Selected tests
-  doc.text("Selected Tests:", 10, y);
-  y += 10;
-  props.selectedTests.forEach((testId) => {
-    doc.text(`- ${testId}`, 10, y);
-    y += 10;
+// Expose generatePdf for external calls.
+defineExpose({ generatePdf });
+
+async function generatePdf() {
+  const doc = new jsPDF({
+    orientation: "portrait",
+    unit: "pt",  // Using points for precise placement.
+    format: "A4"
   });
+
+  // Render the header using config data.
+  doc.setFontSize(12);
+  const clinicName = String(pdfConfig.header?.clinicName || "");
+  const department = String(pdfConfig.header?.department || "");
+  const addressLine = String(pdfConfig.header?.addressLine || "");
+  const headerTitle = String(pdfConfig.header?.headerTitle || "");
   
+  // Place header texts.
+  doc.text(clinicName, 40, 40);
+  doc.text(department, 40, 60);
+  doc.text(addressLine, 40, 80);
+  
+  // If a logo is provided in the config, add it.
+  if (pdfConfig.header.logoBase64 && pdfConfig.header.logoBase64.length > 0) {
+    // Adjust coordinates (x, y) and size as needed.
+    doc.addImage(pdfConfig.header.logoBase64, "PNG", 300, 30, 225, 47);
+  }
+
+  // Header title.
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "bold");
+  doc.text(headerTitle, 40, 120);
+  doc.setFont("helvetica", "normal");
+
+  let y = 160;
+
+  // Patient details.
+  doc.setFontSize(12);
+  doc.text(`Given Name: ${props.patientData.givenName || ""}`, 40, y);
+  y += 14;
+  doc.text(`Family Name: ${props.patientData.familyName || ""}`, 40, y);
+  y += 14;
+  doc.text(`Birthdate: ${props.patientData.birthdate || ""}`, 40, y);
+  y += 14;
+  doc.text(`Insurance: ${props.patientData.insurance || ""}`, 40, y);
+  y += 14;
+  
+  doc.text(`Sex: ${props.patientData.sex || ""}`, 40, y);
+  y += 14;
+  doc.text(`Physician: ${props.patientData.physicianName || ""}`, 40, y);
+  y += 14;
+  doc.text(`Family History: ${props.patientData.familyHistory || ""}`, 40, y);
+  y += 14;
+  doc.text(`Parental Consanguinity: ${props.patientData.parentalConsanguinity || ""}`, 40, y);
+  y += 14;
+  doc.text(`Diagnosis: ${props.patientData.diagnosis || ""}`, 40, y);
+  y += 20;
+
+  // Selected tests.
+  doc.text("Selected Tests:", 40, y);
+  y += 14;
+  props.selectedTests.forEach((testId) => {
+    doc.text(`- ${testId}`, 60, y);
+    y += 14;
+  });
+
+  // Footer contact information.
+  const footerY = 780;
+  doc.setFontSize(10);
+  doc.text(String(pdfConfig.footer?.contactLine1 || ""), 40, footerY);
+  doc.text(String(pdfConfig.footer?.contactLine2 || ""), 40, footerY + 14);
+  doc.text(String(pdfConfig.footer?.website || ""), 40, footerY + 28);
+
+  // Wait for QR code rendering and add it.
   nextTick(() => {
     const canvas = qrContainer.value.querySelector("canvas");
     if (canvas) {
       const qrDataUrl = canvas.toDataURL("image/png");
-      doc.addImage(qrDataUrl, "PNG", 150, 10, 50, 50);
+      doc.addImage(qrDataUrl, "PNG", 450, 700, 100, 100);
       doc.save("genetic_test_requisition.pdf");
     } else {
       console.error("QR code canvas not found.");
     }
   });
 }
-
-// Expose the generatePdf method for external calls.
-defineExpose({ generatePdf });
 </script>

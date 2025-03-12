@@ -1,22 +1,149 @@
 {
-    "categories": [
-      {
-        "id": "nephrology",
-        "title": "Nephrology",
-        "tests": [
-          { "id": "INV5", "name": "INV5 (ALMS1, NPHP1, etc.)" },
-          { "id": "NPHScn", "name": "Nephronophthisis Panel" },
-          { "id": "CYSTic", "name": "Cystic Kidney Disease Panel" }
-        ]
-      },
-      {
-        "id": "other-section",
-        "title": "Other Section",
-        "tests": [
-          { "id": "EXAMPLE1", "name": "Example Test #1" },
-          { "id": "EXAMPLE2", "name": "Example Test #2" }
-        ]
-      }
-    ]
-  }
-  
+  "categories": [
+    {
+      "id": "nephrology",
+      "title": "Nephrology",
+      "tests": [
+        {
+          "id": "nephronophthisis",
+          "name": "Nephronophthisis",
+          "genes": [
+            "NPH1",
+            "NPHP2",
+            "NPHP3",
+            "WDR19",
+            "GCKL",
+            "CEP290",
+            "GLIS2",
+            "TMEM67",
+            "GLIS3",
+            "RPGRIP1",
+            "NEK8",
+            "SDCCAG8",
+            "TTC21B",
+            "WDR35",
+            "ZNF423",
+            "CEP164",
+            "IFT172",
+            "C8ORF37",
+            "DCDC2",
+            "MAPKBP1",
+            "MAP3K7",
+            "NAXP",
+            "XPNPEP3",
+            "ADAMTS9",
+            "MKS1",
+            "SLC41A1"
+          ]
+        },
+        {
+          "id": "fsgs",
+          "name": "FSGS (Focal Segmental Glomerulosclerosis)",
+          "genes": [
+            "ACTN4",
+            "ADCK4",
+            "ANLN",
+            "ARHGDIA",
+            "ARHGEF17",
+            "AVIL",
+            "BSND",
+            "CCDC34",
+            "CD2AP",
+            "COL4A3",
+            "COL4A4",
+            "COL4A5",
+            "COQ2",
+            "COQ6",
+            "COQ8B",
+            "CRB2",
+            "CUBN",
+            "EMP2",
+            "FAM111B",
+            "FAS",
+            "FGD2",
+            "FN1",
+            "FOXC2",
+            "FSGS1",
+            "GLEPP1",
+            "INF2",
+            "KANK1",
+            "KANK2",
+            "KANK4",
+            "KIRREL1",
+            "LMX1B",
+            "LRP2",
+            "MAFB",
+            "MALL",
+            "MTTL1",
+            "NCK1",
+            "NPHS1",
+            "NPHS2",
+            "PDSS2",
+            "PLCE1",
+            "PLCE2",
+            "PLCE3",
+            "PLCE4",
+            "PMM2",
+            "PTPRO",
+            "SCARB2",
+            "SGPL1",
+            "SMARCAL1",
+            "SMPD1",
+            "SYNPO",
+            "TBC1D8B",
+            "TCF21",
+            "TNS2",
+            "TRPC6",
+            "TTC21B",
+            "WDR73",
+            "WTIP",
+            "WT1"
+          ]
+        },
+        {
+          "id": "alport",
+          "name": "Alport Syndrome",
+          "genes": [
+            "COL4A3",
+            "COL4A4",
+            "COL4A5"
+          ]
+        },
+        {
+          "id": "dent",
+          "name": "Dent Syndrome",
+          "genes": [
+            "CLCN5",
+            "OCRL"
+          ]
+        },
+        {
+          "id": "bartter",
+          "name": "Bartter Syndrome",
+          "genes": [
+            "SLC12A1",
+            "KCNJ1",
+            "BSND",
+            "CLCNKB",
+            "MAGED2",
+            "XPNPEP3"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "other-section",
+      "title": "Other Section",
+      "tests": [
+        {
+          "id": "EXAMPLE1",
+          "name": "Example Test #1"
+        },
+        {
+          "id": "EXAMPLE2",
+          "name": "Example Test #2"
+        }
+      ]
+    }
+  ]
+}

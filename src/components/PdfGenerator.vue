@@ -187,8 +187,16 @@ async function generatePdf() {
     const canvas = qrContainer.value.querySelector("canvas");
     if (canvas) {
       const qrDataUrl = canvas.toDataURL("image/png");
-      // Place QR code at specified coordinates.
-      doc.addImage(qrDataUrl, "PNG", 450, 700, 100, 100);
+      if (pdfConfig.qr && pdfConfig.qr.position && pdfConfig.qr.size) {
+        doc.addImage(
+          qrDataUrl,
+          "PNG",
+          pdfConfig.qr.position.x,
+          pdfConfig.qr.position.y,
+          pdfConfig.qr.size.width,
+          pdfConfig.qr.size.height
+        );
+      }
       doc.save("genetic_test_requisition.pdf");
     } else {
       console.error("QR code canvas not found.");

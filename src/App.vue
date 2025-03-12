@@ -1,20 +1,24 @@
 <template>
   <v-app>
-    <!-- Top menu bar with the app name and Generate PDF button -->
+    <!-- Top Menu Bar -->
     <TopBar @generate-pdf="handleGeneratePdf" />
     <v-main>
       <v-container>
         <PatientForm :patientData="patientData" />
         <TestSelector v-model="selectedTests" />
 
-        <!-- PdfGenerator is kept hidden; its method is invoked from TopBar -->
+        <!-- Hide the PDF generator component -->
         <div style="display: none;">
-          <PdfGenerator ref="pdfGen" :patientData="patientData" :selectedTests="selectedTests" />
+          <PdfGenerator
+            ref="pdfGen"
+            :patientData="patientData"
+            :selectedTests="selectedTests"
+          />
         </div>
 
-        <!-- For debugging -->
+        <!-- Debug: List selected panels -->
         <div class="mt-4">
-          <h2>Selected Tests:</h2>
+          <h2>Selected Panels:</h2>
           <ul>
             <li v-for="testId in selectedTests" :key="testId">{{ testId }}</li>
           </ul>
@@ -35,24 +39,34 @@ const patientData = reactive({
   givenName: '',
   familyName: '',
   birthdate: '',
-  insurance: ''
-})
+  insurance: '',
+  sex: '',
+  physicianName: '',
+  familyHistory: '',
+  parentalConsanguinity: '',
+  diagnosis: ''
+});
 
-const selectedTests = ref([])
+const selectedTests = ref([]);
 
 onMounted(() => {
-  const params = new URLSearchParams(window.location.search)
-  patientData.givenName = params.get('givenName') || ''
-  patientData.familyName = params.get('familyName') || ''
-  patientData.birthdate = params.get('birthdate') || ''
-  patientData.insurance = params.get('insurance') || ''
-})
+  const params = new URLSearchParams(window.location.search);
+  patientData.givenName = params.get('givenName') || '';
+  patientData.familyName = params.get('familyName') || '';
+  patientData.birthdate = params.get('birthdate') || '';
+  patientData.insurance = params.get('insurance') || '';
+  // Convert to lowercase so they match select options
+  patientData.sex = (params.get('sex') || '').toLowerCase();
+  patientData.physicianName = params.get('physicianName') || '';
+  patientData.familyHistory = (params.get('familyHistory') || '').toLowerCase();
+  patientData.parentalConsanguinity = (params.get('parentalConsanguinity') || '').toLowerCase();
+  patientData.diagnosis = params.get('diagnosis') || '';
+});
 
-// Get a ref to PdfGenerator so we can call generatePdf()
-const pdfGen = ref(null)
+const pdfGen = ref(null);
 const handleGeneratePdf = () => {
   if (pdfGen.value && typeof pdfGen.value.generatePdf === 'function') {
     pdfGen.value.generatePdf();
   }
-}
+};
 </script>

@@ -1,19 +1,27 @@
-<!-- App.vue -->
+<!-- src/App.vue -->
 <template>
   <v-app>
     <v-main>
       <v-container>
-        <!-- Existing PatientForm -->
+        <!-- Patient Form -->
         <PatientForm :patientData="patientData" />
 
-        <!-- Our new TestSelector component -->
+        <!-- Test Selector -->
         <TestSelector v-model="selectedTests" />
 
-        <!-- Debug / display the currently selected tests -->
+        <!-- PDF Generator Button -->
+        <PdfGenerator 
+          :patientData="patientData" 
+          :selectedTests="selectedTests" 
+        />
+
+        <!-- Debug: List Selected Tests -->
         <div class="mt-4">
           <h2>Selected Tests:</h2>
           <ul>
-            <li v-for="testId in selectedTests" :key="testId">{{ testId }}</li>
+            <li v-for="testId in selectedTests" :key="testId">
+              {{ testId }}
+            </li>
           </ul>
         </div>
       </v-container>
@@ -25,6 +33,7 @@
 import { reactive, ref, onMounted } from 'vue'
 import PatientForm from './components/PatientForm.vue'
 import TestSelector from './components/TestSelector.vue'
+import PdfGenerator from './components/PdfGenerator.vue'
 
 const patientData = reactive({
   name: '',

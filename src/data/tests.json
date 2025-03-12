@@ -1,0 +1,22 @@
+{
+    "categories": [
+      {
+        "id": "nephrology",
+        "title": "Nephrology",
+        "tests": [
+          { "id": "INV5", "name": "INV5 (ALMS1, NPHP1, etc.)" },
+          { "id": "NPHScn", "name": "Nephronophthisis Panel" },
+          { "id": "CYSTic", "name": "Cystic Kidney Disease Panel" }
+        ]
+      },
+      {
+        "id": "other-section",
+        "title": "Other Section",
+        "tests": [
+          { "id": "EXAMPLE1", "name": "Example Test #1" },
+          { "id": "EXAMPLE2", "name": "Example Test #2" }
+        ]
+      }
+    ]
+  }
+  

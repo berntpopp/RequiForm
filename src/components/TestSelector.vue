@@ -2,7 +2,7 @@
   <div>
     <h2>Select Panels / Tests</h2>
     
-    <!-- Tabs to switch between Category Selection and Search -->
+    <!-- Tabs: one for Category Selection and one for Search -->
     <v-tabs v-model="tab" bg-color="primary">
       <v-tab value="Category Selection">Category Selection</v-tab>
       <v-tab value="Search">Search</v-tab>
@@ -21,7 +21,11 @@
         />
         <div v-if="selectedCategory" class="mb-6">
           <h3 class="text-h6">{{ currentCategoryTitle }}</h3>
-          <div v-for="test in filteredTests" :key="test.id" class="d-flex align-center">
+          <div
+            v-for="test in filteredTests"
+            :key="test.id"
+            class="d-flex align-center"
+          >
             <v-checkbox
               :label="test.name"
               :value="test.id"
@@ -39,7 +43,7 @@
           item-title="label"
           item-value="value"
           v-model="searchSelection"
-          :filter="customFilter"
+          :custom-filter="customFilter"
           multiple
           chips
           hide-selected
@@ -60,9 +64,14 @@ function arraysEqual(a, b) {
   return a.every(item => b.includes(item))
 }
 
-// Custom filter: use our custom searchText for filtering
-const customFilter = (item, queryText) => {
-  return item.searchText.toLowerCase().includes(queryText.toLowerCase())
+// Custom filter function for Vuetify autocomplete.
+// Expected signature: (itemTitle, queryText, item)
+const customFilter = (itemTitle, queryText, item) => {
+  if (!queryText) return true;
+  if (item && item.raw && item.raw.searchText) {
+    return item.raw.searchText.toLowerCase().includes(queryText.toLowerCase());
+  }
+  return itemTitle.toLowerCase().includes(queryText.toLowerCase());
 }
 
 // Props: external v-model for selected panel IDs
@@ -81,10 +90,10 @@ const categories = ref([])
 const selectedTests = ref([])
 const selectedCategory = ref('')
 const searchSelection = ref([])
-// Tab state: default to "Category Selection"
+// Active tab: default to "Category Selection"
 const tab = ref("Category Selection")
 
-// On mount: load categories and initialize arrays from the prop
+// On mount: load categories and initialize arrays from props
 onMounted(() => {
   categories.value = testsData.categories
   selectedTests.value = [...props.modelValue]
@@ -108,36 +117,35 @@ watch(searchSelection, (newVal) => {
   }
 })
 
-// Computed: Panels for the selected category
+// Computed: panels for the selected category
 const filteredTests = computed(() => {
   const cat = categories.value.find(c => c.id === selectedCategory.value)
   return cat ? cat.tests : []
 })
 
-// Computed: Current category title for display
+// Computed: current category title for display
 const currentCategoryTitle = computed(() => {
   const cat = categories.value.find(c => c.id === selectedCategory.value)
   return cat ? cat.title : ''
 })
 
-// Computed: Build search items as one entry per panel
+// Computed: Build search items as one object per panel with combined searchText.
 const searchItems = computed(() => {
   const items = []
   for (const cat of categories.value) {
     for (const test of cat.tests) {
-      // Create a searchText that combines panel name and all gene names (if any)
-      let searchText = test.name
+      let searchText = test.name;
       if (test.genes && Array.isArray(test.genes)) {
-        searchText += ' ' + test.genes.join(' ')
+        searchText += ' ' + test.genes.join(' ');
       }
       items.push({
         label: test.name,
         value: test.id,
-        searchText: searchText
-      })
+        searchText
+      });
     }
   }
-  return items
+  return items;
 })
 </script>
 

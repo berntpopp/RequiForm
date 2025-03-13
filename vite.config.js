@@ -2,12 +2,13 @@
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { fileURLToPath, URL } from 'url';
-import vuetify from 'vite-plugin-vuetify'; // Optional: helps with Vuetify support in Vite
+import vuetify from 'vite-plugin-vuetify';
 
 export default defineConfig({
+  base: process.env.VITE_ASSET_URL,
   plugins: [
     vue(),
-    vuetify({ autoImport: true }), // This plugin is optional but can help with Vuetify’s auto-imports
+    vuetify({ autoImport: true }),
   ],
   resolve: {
     alias: {

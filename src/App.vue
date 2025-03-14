@@ -9,7 +9,11 @@
 
         <!-- Hidden PDF Generator component -->
         <div style="display: none;">
-          <PdfGenerator ref="pdfGen" :patientData="patientData" :selectedTests="selectedTests" />
+          <PdfGenerator
+            ref="pdfGen"
+            :patientData="patientData"
+            :selectedTests="selectedTests"
+          />
         </div>
 
         <!-- Conditionally render the Selected Panels section only if panels are selected -->
@@ -52,7 +56,7 @@ import TopBar from './components/TopBar.vue';
 import PdfGenerator from './components/PdfGenerator.vue';
 import testsData from './data/tests.json';
 
-// Patient data object
+/** Patient data object */
 const patientData = reactive({
   givenName: '',
   familyName: '',
@@ -65,16 +69,48 @@ const patientData = reactive({
   diagnosis: ''
 });
 
-// Array of selected panel IDs
+/** Array of selected panel IDs */
 const selectedTests = ref([]);
 
-// Snackbar state for notifications
+/** Snackbar state for notifications */
 const snackbar = ref(false);
 const snackbarMessage = ref('');
 
-// On mount, load patient data from URL parameters if present
+/**
+ * Merges parameters from both query string and URL hash.
+ * @return {URLSearchParams} The merged URL parameters.
+ */
+function mergeUrlParameters() {
+  const merged = new URLSearchParams();
+  // Parse query parameters.
+  const queryParams = new URLSearchParams(window.location.search);
+  for (const [key, value] of queryParams.entries()) {
+    merged.set(key, value);
+  }
+  // Parse hash parameters (removing the leading '#').
+  const hash = window.location.hash.substring(1);
+  if (hash) {
+    const hashParams = new URLSearchParams(hash);
+    for (const [key, value] of hashParams.entries()) {
+      merged.set(key, value);
+    }
+  }
+  return merged;
+}
+
+/**
+ * Clears URL parameters and hash from the browser’s address bar.
+ */
+function clearUrlParameters() {
+  window.history.replaceState(null, '', window.location.pathname);
+}
+
+/**
+ * Loads patient data from URL parameters (query and hash) and then clears them.
+ */
 onMounted(() => {
-  const params = new URLSearchParams(window.location.search);
+  const params = mergeUrlParameters();
+  // Expecting key "givenName" for the first name.
   patientData.givenName = params.get('givenName') || '';
   patientData.familyName = params.get('familyName') || '';
   patientData.birthdate = params.get('birthdate') || '';
@@ -84,22 +120,24 @@ onMounted(() => {
   patientData.familyHistory = (params.get('familyHistory') || '').toLowerCase();
   patientData.parentalConsanguinity = (params.get('parentalConsanguinity') || '').toLowerCase();
   patientData.diagnosis = params.get('diagnosis') || '';
+  
+  // Auto-clear URL parameters (both query and hash) to enhance security.
+  clearUrlParameters();
 });
 
 /**
  * Groups selected panels by category.
- * Only categories with at least one selected panel are returned.
  */
 const groupedPanelDetails = computed(() => {
   return testsData.categories
-    .map(category => ({
+    .map((category) => ({
       categoryTitle: category.title,
-      tests: category.tests.filter(test => selectedTests.value.includes(test.id))
+      tests: category.tests.filter((test) => selectedTests.value.includes(test.id))
     }))
-    .filter(group => group.tests.length > 0);
+    .filter((group) => group.tests.length > 0);
 });
 
-// Reference for the PdfGenerator component
+/** Reference for the PdfGenerator component */
 const pdfGen = ref(null);
 
 /**
@@ -118,13 +156,13 @@ const handleGeneratePdf = () => {
 const generateUrlWithParams = () => {
   const url = new URL(window.location.href);
   url.search = '';
-  // Add patient data as query parameters
+  // Add patient data as query parameters.
   Object.entries(patientData).forEach(([key, value]) => {
     if (value) {
       url.searchParams.set(key, value);
     }
   });
-  // Add selected tests as a comma-separated list if any
+  // Add selected tests as a comma-separated list if any.
   if (selectedTests.value.length) {
     url.searchParams.set('selectedTests', selectedTests.value.join(','));
   }
@@ -136,13 +174,13 @@ const generateUrlWithParams = () => {
  */
 const handleCopyUrl = () => {
   const urlToCopy = generateUrlWithParams();
-  navigator.clipboard.writeText(urlToCopy)
+  navigator.clipboard
+    .writeText(urlToCopy)
     .then(() => {
       snackbarMessage.value = 'URL copied to clipboard!';
       snackbar.value = true;
     })
     .catch((err) => {
-      console.error('Error copying URL:', err);
       snackbarMessage.value = 'Failed to copy URL.';
       snackbar.value = true;
     });

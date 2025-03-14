@@ -7,19 +7,21 @@
         <PatientForm :patientData="patientData" />
         <TestSelector v-model="selectedTests" />
 
-        <!-- Hide the PDF generator component -->
+        <!-- Hidden PDF Generator component -->
         <div style="display: none;">
           <PdfGenerator ref="pdfGen" :patientData="patientData" :selectedTests="selectedTests" />
         </div>
 
-        <!-- Formatted display of selected panels grouped by category -->
-        <div class="mt-4">
+        <!-- Conditionally render the Selected Panels section only if panels are selected -->
+        <div class="mt-4" v-if="groupedPanelDetails.length">
           <h2>Selected Panels:</h2>
           <div v-for="group in groupedPanelDetails" :key="group.categoryTitle">
             <h3 class="category-header">{{ group.categoryTitle }}</h3>
             <ul>
               <li v-for="panel in group.tests" :key="panel.id" class="panel-item">
-                <div class="panel-name"><strong>{{ panel.name }}</strong></div>
+                <div class="panel-name">
+                  <strong>{{ panel.name }}</strong>
+                </div>
                 <div class="panel-genes" v-if="panel.genes && panel.genes.length">
                   <em>{{ panel.genes.join(', ') }}</em>
                 </div>
@@ -28,6 +30,7 @@
           </div>
         </div>
       </v-container>
+
       <!-- Snackbar for copy URL notifications -->
       <v-snackbar v-model="snackbar" timeout="3000" top right transition="scale-transition">
         {{ snackbarMessage }}
@@ -65,11 +68,11 @@ const patientData = reactive({
 // Array of selected panel IDs
 const selectedTests = ref([]);
 
-// Snackbar state for notifications.
+// Snackbar state for notifications
 const snackbar = ref(false);
 const snackbarMessage = ref('');
 
-// On mount, read URL parameters.
+// On mount, load patient data from URL parameters if present
 onMounted(() => {
   const params = new URLSearchParams(window.location.search);
   patientData.givenName = params.get('givenName') || '';
@@ -83,7 +86,10 @@ onMounted(() => {
   patientData.diagnosis = params.get('diagnosis') || '';
 });
 
-// Compute details for the selected panels grouped by category.
+/**
+ * Groups selected panels by category.
+ * Only categories with at least one selected panel are returned.
+ */
 const groupedPanelDetails = computed(() => {
   return testsData.categories
     .map(category => ({
@@ -93,8 +99,12 @@ const groupedPanelDetails = computed(() => {
     .filter(group => group.tests.length > 0);
 });
 
-// Ref for PdfGenerator component.
+// Reference for the PdfGenerator component
 const pdfGen = ref(null);
+
+/**
+ * Handles PDF generation by calling the exposed generatePdf method.
+ */
 const handleGeneratePdf = () => {
   if (pdfGen.value && typeof pdfGen.value.generatePdf === 'function') {
     pdfGen.value.generatePdf();
@@ -102,21 +112,19 @@ const handleGeneratePdf = () => {
 };
 
 /**
- * Generates a URL with query parameters from the current patient data and selected tests.
- *
+ * Generates a URL with query parameters based on patient data and selected tests.
  * @return {string} The generated URL.
  */
 const generateUrlWithParams = () => {
   const url = new URL(window.location.href);
-  // Clear any existing query parameters.
   url.search = '';
-  // Add patient data to query parameters.
+  // Add patient data as query parameters
   Object.entries(patientData).forEach(([key, value]) => {
     if (value) {
       url.searchParams.set(key, value);
     }
   });
-  // Add selected tests as a comma-separated list.
+  // Add selected tests as a comma-separated list if any
   if (selectedTests.value.length) {
     url.searchParams.set('selectedTests', selectedTests.value.join(','));
   }
@@ -124,7 +132,7 @@ const generateUrlWithParams = () => {
 };
 
 /**
- * Copies the generated URL to the clipboard and shows a snackbar notification.
+ * Copies the generated URL to the clipboard and displays a snackbar notification.
  */
 const handleCopyUrl = () => {
   const urlToCopy = generateUrlWithParams();

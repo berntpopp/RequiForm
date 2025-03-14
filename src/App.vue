@@ -36,7 +36,13 @@
       </v-container>
 
       <!-- Snackbar for copy URL notifications -->
-      <v-snackbar v-model="snackbar" timeout="3000" top right transition="scale-transition">
+      <v-snackbar
+        v-model="snackbar"
+        timeout="3000"
+        top
+        right
+        transition="scale-transition"
+      >
         {{ snackbarMessage }}
         <template #action="{ attrs }">
           <v-btn color="red" text v-bind="attrs" @click="snackbar = false">
@@ -150,34 +156,38 @@ const handleGeneratePdf = () => {
 };
 
 /**
- * Generates a URL with query parameters based on patient data and selected tests.
+ * Generates a URL with hash parameters based on patient data and selected tests.
  * @return {string} The generated URL.
  */
-const generateUrlWithParams = () => {
+const generateUrlWithHash = () => {
   const url = new URL(window.location.href);
+  // Clear query parameters.
   url.search = '';
-  // Add patient data as query parameters.
+  // Build a new URLSearchParams for the hash.
+  const hashParams = new URLSearchParams();
+  // Add patient data.
   Object.entries(patientData).forEach(([key, value]) => {
     if (value) {
-      url.searchParams.set(key, value);
+      hashParams.set(key, value);
     }
   });
   // Add selected tests as a comma-separated list if any.
   if (selectedTests.value.length) {
-    url.searchParams.set('selectedTests', selectedTests.value.join(','));
+    hashParams.set('selectedTests', selectedTests.value.join(','));
   }
+  url.hash = hashParams.toString();
   return url.toString();
 };
 
 /**
- * Copies the generated URL to the clipboard and displays a snackbar notification.
+ * Copies the generated URL (with hash parameters) to the clipboard and displays a snackbar notification.
  */
 const handleCopyUrl = () => {
-  const urlToCopy = generateUrlWithParams();
+  const urlToCopy = generateUrlWithHash();
   navigator.clipboard
     .writeText(urlToCopy)
     .then(() => {
-      snackbarMessage.value = 'URL copied to clipboard!';
+      snackbarMessage.value = 'Hash URL copied to clipboard!';
       snackbar.value = true;
     })
     .catch((err) => {

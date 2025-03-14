@@ -1,7 +1,11 @@
 <template>
   <v-app>
     <!-- Top Menu Bar -->
-    <TopBar @generate-pdf="handleGeneratePdf" @copy-url="handleCopyUrl" />
+    <TopBar 
+      @generate-pdf="handleGeneratePdf" 
+      @copy-url="handleCopyUrl"
+      @copy-encrypted-url="openEncryptionDialog"
+    />
     <v-main>
       <v-container>
         <PatientForm :patientData="patientData" />
@@ -35,7 +39,7 @@
         </div>
       </v-container>
 
-      <!-- Snackbar for copy URL notifications -->
+      <!-- Snackbar for notifications -->
       <v-snackbar
         v-model="snackbar"
         timeout="3000"
@@ -50,12 +54,54 @@
           </v-btn>
         </template>
       </v-snackbar>
+
+      <!-- Encryption Modal -->
+      <v-dialog v-model="encryptionDialog" max-width="500">
+        <v-card>
+          <v-card-title class="headline">Enter Password for Encryption</v-card-title>
+          <v-card-text>
+            <v-text-field
+              v-model="encryptionPassword"
+              type="password"
+              label="Password"
+              autocomplete="off"
+            />
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn text @click="closeEncryptionDialog">Cancel</v-btn>
+            <v-btn color="primary" text @click="confirmEncryption">Confirm</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
+      <!-- Decryption Modal -->
+      <v-dialog v-model="decryptionDialog" max-width="500">
+        <v-card>
+          <v-card-title class="headline">Enter Password for Decryption</v-card-title>
+          <v-card-text>
+            <v-text-field
+              v-model="decryptionPassword"
+              type="password"
+              label="Password"
+              autocomplete="off"
+              :error-messages="decryptionError"
+            />
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn text @click="cancelDecryption">Cancel</v-btn>
+            <v-btn color="primary" text @click="confirmDecryption">Confirm</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
     </v-main>
   </v-app>
 </template>
 
 <script setup>
 import { reactive, ref, onMounted, computed } from 'vue';
+import CryptoJS from 'crypto-js';
 import PatientForm from './components/PatientForm.vue';
 import TestSelector from './components/TestSelector.vue';
 import TopBar from './components/TopBar.vue';
@@ -82,18 +128,25 @@ const selectedTests = ref([]);
 const snackbar = ref(false);
 const snackbarMessage = ref('');
 
+/** Encryption dialog state and password */
+const encryptionDialog = ref(false);
+const encryptionPassword = ref('');
+
+/** Decryption dialog state, password, and error */
+const decryptionDialog = ref(false);
+const decryptionPassword = ref('');
+const decryptionError = ref('');
+
 /**
  * Merges parameters from both query string and URL hash.
  * @return {URLSearchParams} The merged URL parameters.
  */
 function mergeUrlParameters() {
   const merged = new URLSearchParams();
-  // Parse query parameters.
   const queryParams = new URLSearchParams(window.location.search);
   for (const [key, value] of queryParams.entries()) {
     merged.set(key, value);
   }
-  // Parse hash parameters (removing the leading '#').
   const hash = window.location.hash.substring(1);
   if (hash) {
     const hashParams = new URLSearchParams(hash);
@@ -113,23 +166,35 @@ function clearUrlParameters() {
 
 /**
  * Loads patient data from URL parameters (query and hash) and then clears them.
+ * If an encrypted parameter is detected, opens the decryption dialog.
  */
 onMounted(() => {
-  const params = mergeUrlParameters();
-  // Expecting key "givenName" for the first name.
-  patientData.givenName = params.get('givenName') || '';
-  patientData.familyName = params.get('familyName') || '';
-  patientData.birthdate = params.get('birthdate') || '';
-  patientData.insurance = params.get('insurance') || '';
-  patientData.sex = (params.get('sex') || '').toLowerCase();
-  patientData.physicianName = params.get('physicianName') || '';
-  patientData.familyHistory = (params.get('familyHistory') || '').toLowerCase();
-  patientData.parentalConsanguinity = (params.get('parentalConsanguinity') || '').toLowerCase();
-  patientData.diagnosis = params.get('diagnosis') || '';
-  
-  // Auto-clear URL parameters (both query and hash) to enhance security.
-  clearUrlParameters();
+  const urlParams = new URLSearchParams(window.location.search);
+  let encryptedValue = urlParams.get('encrypted');
+  if (!encryptedValue) {
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    encryptedValue = hashParams.get('encrypted');
+  }
+  if (encryptedValue) {
+    pendingEncryptedValue.value = encryptedValue;
+    decryptionDialog.value = true;
+  } else {
+    const params = mergeUrlParameters();
+    patientData.givenName = params.get('givenName') || '';
+    patientData.familyName = params.get('familyName') || '';
+    patientData.birthdate = params.get('birthdate') || '';
+    patientData.insurance = params.get('insurance') || '';
+    patientData.sex = (params.get('sex') || '').toLowerCase();
+    patientData.physicianName = params.get('physicianName') || '';
+    patientData.familyHistory = (params.get('familyHistory') || '').toLowerCase();
+    patientData.parentalConsanguinity = (params.get('parentalConsanguinity') || '').toLowerCase();
+    patientData.diagnosis = params.get('diagnosis') || '';
+    clearUrlParameters();
+  }
 });
+
+/** Used to store the encrypted string from the URL for decryption */
+const pendingEncryptedValue = ref(null);
 
 /**
  * Groups selected panels by category.
@@ -161,17 +226,13 @@ const handleGeneratePdf = () => {
  */
 const generateUrlWithHash = () => {
   const url = new URL(window.location.href);
-  // Clear query parameters.
   url.search = '';
-  // Build a new URLSearchParams for the hash.
   const hashParams = new URLSearchParams();
-  // Add patient data.
   Object.entries(patientData).forEach(([key, value]) => {
     if (value) {
       hashParams.set(key, value);
     }
   });
-  // Add selected tests as a comma-separated list if any.
   if (selectedTests.value.length) {
     hashParams.set('selectedTests', selectedTests.value.join(','));
   }
@@ -180,7 +241,7 @@ const generateUrlWithHash = () => {
 };
 
 /**
- * Copies the generated URL (with hash parameters) to the clipboard and displays a snackbar notification.
+ * Copies the generated plain URL (with hash parameters) to the clipboard.
  */
 const handleCopyUrl = () => {
   const urlToCopy = generateUrlWithHash();
@@ -190,10 +251,103 @@ const handleCopyUrl = () => {
       snackbarMessage.value = 'Hash URL copied to clipboard!';
       snackbar.value = true;
     })
-    .catch((err) => {
+    .catch(() => {
       snackbarMessage.value = 'Failed to copy URL.';
       snackbar.value = true;
     });
+};
+
+/**
+ * Opens the encryption modal.
+ */
+const openEncryptionDialog = () => {
+  encryptionPassword.value = '';
+  encryptionDialog.value = true;
+};
+
+/**
+ * Closes the encryption modal.
+ */
+const closeEncryptionDialog = () => {
+  encryptionDialog.value = false;
+};
+
+/**
+ * Encrypts the current parameters using the provided password,
+ * copies the URL with the encrypted hash, and closes the modal.
+ */
+const confirmEncryption = () => {
+  const params = new URLSearchParams();
+  Object.entries(patientData).forEach(([key, value]) => {
+    if (value) {
+      params.set(key, value);
+    }
+  });
+  if (selectedTests.value.length) {
+    params.set('selectedTests', selectedTests.value.join(','));
+  }
+  const paramsStr = params.toString();
+  const cipher = CryptoJS.AES.encrypt(paramsStr, encryptionPassword.value);
+  const encryptedStr = cipher.toString();
+  const url = new URL(window.location.href);
+  url.search = '';
+  const hashParams = new URLSearchParams();
+  hashParams.set('encrypted', encryptedStr);
+  url.hash = hashParams.toString();
+  navigator.clipboard
+    .writeText(url.toString())
+    .then(() => {
+      snackbarMessage.value = 'Encrypted URL copied to clipboard!';
+      snackbar.value = true;
+      encryptionDialog.value = false;
+    })
+    .catch(() => {
+      snackbarMessage.value = 'Failed to copy encrypted URL.';
+      snackbar.value = true;
+      encryptionDialog.value = false;
+    });
+};
+
+/**
+ * Cancels decryption: closes the modal and resets patient data.
+ */
+const cancelDecryption = () => {
+  decryptionDialog.value = false;
+  decryptionPassword.value = '';
+  decryptionError.value = '';
+  Object.keys(patientData).forEach((key) => {
+    patientData[key] = '';
+  });
+  clearUrlParameters();
+};
+
+/**
+ * Attempts to decrypt the pending encrypted parameter using the provided password.
+ */
+const confirmDecryption = () => {
+  try {
+    const bytes = CryptoJS.AES.decrypt(pendingEncryptedValue.value, decryptionPassword.value);
+    const decryptedStr = bytes.toString(CryptoJS.enc.Utf8);
+    if (!decryptedStr) {
+      throw new Error('Invalid password or corrupted data');
+    }
+    const params = new URLSearchParams(decryptedStr);
+    patientData.givenName = params.get('givenName') || '';
+    patientData.familyName = params.get('familyName') || '';
+    patientData.birthdate = params.get('birthdate') || '';
+    patientData.insurance = params.get('insurance') || '';
+    patientData.sex = (params.get('sex') || '').toLowerCase();
+    patientData.physicianName = params.get('physicianName') || '';
+    patientData.familyHistory = (params.get('familyHistory') || '').toLowerCase();
+    patientData.parentalConsanguinity = (params.get('parentalConsanguinity') || '').toLowerCase();
+    patientData.diagnosis = params.get('diagnosis') || '';
+    decryptionDialog.value = false;
+    decryptionPassword.value = '';
+    decryptionError.value = '';
+    clearUrlParameters();
+  } catch (error) {
+    decryptionError.value = 'Decryption failed. Please check your password.';
+  }
 };
 </script>
 

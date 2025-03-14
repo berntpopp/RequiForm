@@ -1,7 +1,7 @@
 <template>
   <v-app>
     <!-- Top Menu Bar -->
-    <TopBar @generate-pdf="handleGeneratePdf" />
+    <TopBar @generate-pdf="handleGeneratePdf" @copy-url="handleCopyUrl" />
     <v-main>
       <v-container>
         <PatientForm :patientData="patientData" />
@@ -28,6 +28,15 @@
           </div>
         </div>
       </v-container>
+      <!-- Snackbar for copy URL notifications -->
+      <v-snackbar v-model="snackbar" timeout="3000" top right transition="scale-transition">
+        {{ snackbarMessage }}
+        <template #action="{ attrs }">
+          <v-btn color="red" text v-bind="attrs" @click="snackbar = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </template>
+      </v-snackbar>
     </v-main>
   </v-app>
 </template>
@@ -38,7 +47,6 @@ import PatientForm from './components/PatientForm.vue';
 import TestSelector from './components/TestSelector.vue';
 import TopBar from './components/TopBar.vue';
 import PdfGenerator from './components/PdfGenerator.vue';
-// Import tests data to look up panel details.
 import testsData from './data/tests.json';
 
 // Patient data object
@@ -57,7 +65,11 @@ const patientData = reactive({
 // Array of selected panel IDs
 const selectedTests = ref([]);
 
-// On mount, read URL parameters (make sure to convert drop‑down values to lowercase if needed)
+// Snackbar state for notifications.
+const snackbar = ref(false);
+const snackbarMessage = ref('');
+
+// On mount, read URL parameters.
 onMounted(() => {
   const params = new URLSearchParams(window.location.search);
   patientData.givenName = params.get('givenName') || '';
@@ -81,12 +93,51 @@ const groupedPanelDetails = computed(() => {
     .filter(group => group.tests.length > 0);
 });
 
-// Ref for PdfGenerator component (to trigger PDF generation)
+// Ref for PdfGenerator component.
 const pdfGen = ref(null);
 const handleGeneratePdf = () => {
   if (pdfGen.value && typeof pdfGen.value.generatePdf === 'function') {
     pdfGen.value.generatePdf();
   }
+};
+
+/**
+ * Generates a URL with query parameters from the current patient data and selected tests.
+ *
+ * @return {string} The generated URL.
+ */
+const generateUrlWithParams = () => {
+  const url = new URL(window.location.href);
+  // Clear any existing query parameters.
+  url.search = '';
+  // Add patient data to query parameters.
+  Object.entries(patientData).forEach(([key, value]) => {
+    if (value) {
+      url.searchParams.set(key, value);
+    }
+  });
+  // Add selected tests as a comma-separated list.
+  if (selectedTests.value.length) {
+    url.searchParams.set('selectedTests', selectedTests.value.join(','));
+  }
+  return url.toString();
+};
+
+/**
+ * Copies the generated URL to the clipboard and shows a snackbar notification.
+ */
+const handleCopyUrl = () => {
+  const urlToCopy = generateUrlWithParams();
+  navigator.clipboard.writeText(urlToCopy)
+    .then(() => {
+      snackbarMessage.value = 'URL copied to clipboard!';
+      snackbar.value = true;
+    })
+    .catch((err) => {
+      console.error('Error copying URL:', err);
+      snackbarMessage.value = 'Failed to copy URL.';
+      snackbar.value = true;
+    });
 };
 </script>
 

@@ -1,8 +1,8 @@
 <template>
   <v-app>
     <!-- Top Menu Bar -->
-    <TopBar 
-      @generate-pdf="handleGeneratePdf" 
+    <TopBar
+      @generate-pdf="handleGeneratePdf"
       @copy-url="handleCopyUrl"
       @copy-encrypted-url="openEncryptionDialog"
     />
@@ -58,7 +58,9 @@
       <!-- Encryption Modal -->
       <v-dialog v-model="encryptionDialog" max-width="500">
         <v-card>
-          <v-card-title class="headline">Enter Password for Encryption</v-card-title>
+          <v-card-title class="headline">
+            Enter Password for Encryption
+          </v-card-title>
           <v-card-text>
             <v-text-field
               v-model="encryptionPassword"
@@ -78,7 +80,9 @@
       <!-- Decryption Modal -->
       <v-dialog v-model="decryptionDialog" max-width="500">
         <v-card>
-          <v-card-title class="headline">Enter Password for Decryption</v-card-title>
+          <v-card-title class="headline">
+            Enter Password for Decryption
+          </v-card-title>
           <v-card-text>
             <v-text-field
               v-model="decryptionPassword"
@@ -95,11 +99,40 @@
           </v-card-actions>
         </v-card>
       </v-dialog>
+
+      <!-- Validation Warning Dialog -->
+      <v-dialog v-model="validationDialog" max-width="500">
+        <v-card>
+          <v-card-title class="headline">
+            Incomplete or Invalid Data
+          </v-card-title>
+          <v-card-text>
+            <p>The following required fields are missing or invalid:</p>
+            <ul>
+              <li v-for="(error, index) in validationErrors" :key="index">
+                {{ error }}
+              </li>
+            </ul>
+            <p>
+              Generating the PDF with incomplete data may result in errors. Please
+              review and correct the data if necessary.
+            </p>
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn text @click="cancelValidation">Cancel</v-btn>
+            <v-btn color="primary" text @click="proceedValidation">
+              Proceed Anyway
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
     </v-main>
   </v-app>
 </template>
 
 <script setup>
+// Import Vue APIs and components.
 import { reactive, ref, onMounted, computed } from 'vue';
 import PatientForm from './components/PatientForm.vue';
 import TestSelector from './components/TestSelector.vue';
@@ -124,7 +157,7 @@ function getCurrentIsoDate() {
   return new Date().toISOString().split('T')[0];
 }
 
-/** Patient data object */
+/** Patient data object. */
 const patientData = reactive({
   givenName: '',
   familyName: '',
@@ -138,23 +171,27 @@ const patientData = reactive({
   orderingDate: getCurrentIsoDate(), // New ordering date property
 });
 
-/** Array of selected panel IDs */
+/** Array of selected panel IDs. */
 const selectedTests = ref([]);
 
-/** Snackbar state for notifications */
+/** Snackbar state for notifications. */
 const snackbar = ref(false);
 const snackbarMessage = ref('');
 
-/** Encryption dialog state and password */
+/** Encryption dialog state and password. */
 const encryptionDialog = ref(false);
 const encryptionPassword = ref('');
 
-/** Decryption dialog state, password, and error */
+/** Decryption dialog state, password, and error. */
 const decryptionDialog = ref(false);
 const decryptionPassword = ref('');
 const decryptionError = ref('');
 
-/** Used to store the encrypted string from the URL for decryption */
+/** Validation dialog state and error messages. */
+const validationDialog = ref(false);
+const validationErrors = ref([]);
+
+/** Used to store the encrypted string from the URL for decryption. */
 const pendingEncryptedValue = ref(null);
 
 /**
@@ -177,7 +214,7 @@ onMounted(() => {
     patientData.familyHistory = (params.get('familyHistory') || '').toLowerCase();
     patientData.parentalConsanguinity = (params.get('parentalConsanguinity') || '').toLowerCase();
     patientData.diagnosis = params.get('diagnosis') || '';
-    // Optionally load orderingDate from URL if provided
+    // Optionally load orderingDate from URL if provided.
     patientData.orderingDate = params.get('orderingDate') || getCurrentIsoDate();
     clearUrlParameters();
   }
@@ -197,17 +234,74 @@ const groupedPanelDetails = computed(() => {
     .filter((group) => group.tests.length > 0);
 });
 
-/** Reference for the PdfGenerator component */
+/** Reference for the PdfGenerator component. */
 const pdfGen = ref(null);
 
 /**
- * Handles PDF generation by calling the exposed generatePdf method.
+ * Validates the patient data based on required fields.
+ *
+ * @return {Array<string>} List of error messages for missing/invalid fields.
+ */
+function validatePatientData() {
+  const errors = [];
+  // Define the required fields with friendly labels.
+  const requiredFields = {
+    givenName: 'Given Name',
+    familyName: 'Family Name',
+    birthdate: 'Birthdate',
+    sex: 'Sex',
+    physicianName: 'Physician Name',
+    orderingDate: 'Ordering Date',
+  };
+
+  Object.entries(requiredFields).forEach(([field, label]) => {
+    if (!patientData[field] || patientData[field].trim() === '') {
+      errors.push(`${label} is required.`);
+    }
+  });
+
+  // Additional checks (e.g., birthdate format) can be added here.
+  // For example, a simple date format validation:
+  if (patientData.birthdate && !/^\d{4}-\d{2}-\d{2}$/.test(patientData.birthdate)) {
+    errors.push('Birthdate must be in YYYY-MM-DD format.');
+  }
+
+  return errors;
+}
+
+/**
+ * Handles PDF generation by validating patient data before calling the exposed generatePdf method.
+ * If there are validation errors, a warning dialog is shown.
  */
 const handleGeneratePdf = () => {
+  const errors = validatePatientData();
+  if (errors.length > 0) {
+    validationErrors.value = errors;
+    validationDialog.value = true;
+  } else {
+    // If no errors, generate the PDF directly.
+    if (pdfGen.value && typeof pdfGen.value.generatePdf === 'function') {
+      pdfGen.value.generatePdf();
+    }
+  }
+};
+
+/**
+ * Cancels the PDF generation when validation fails.
+ */
+function cancelValidation() {
+  validationDialog.value = false;
+}
+
+/**
+ * Proceeds with PDF generation despite validation errors.
+ */
+function proceedValidation() {
+  validationDialog.value = false;
   if (pdfGen.value && typeof pdfGen.value.generatePdf === 'function') {
     pdfGen.value.generatePdf();
   }
-};
+}
 
 /**
  * Generates a URL with hash parameters based on patient data and selected tests.

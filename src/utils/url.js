@@ -1,12 +1,13 @@
 /**
  * @file url.js
- * @description Utility module for URL handling and encryption/decryption logic.
+ * @description Utility module for URL parameter handling and encryption/decryption operations.
  */
 
 import CryptoJS from 'crypto-js';
 
 /**
  * Merges URL parameters from both the query string and the hash.
+ *
  * @return {URLSearchParams} The merged URL parameters.
  */
 export function mergeUrlParameters() {
@@ -23,6 +24,17 @@ export function mergeUrlParameters() {
     }
   }
   return merged;
+}
+
+/**
+ * Retrieves a specific URL parameter from the merged query and hash parameters.
+ *
+ * @param {string} key - The parameter key to retrieve.
+ * @return {string|null} The parameter value if found, otherwise null.
+ */
+export function getUrlParameter(key) {
+  const merged = mergeUrlParameters();
+  return merged.get(key);
 }
 
 /**

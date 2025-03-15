@@ -108,10 +108,11 @@ import PdfGenerator from './components/PdfGenerator.vue';
 import testsData from './data/tests.json';
 import {
   mergeUrlParameters,
+  getUrlParameter,
   clearUrlParameters,
   encryptParams,
   decryptParams,
-  generateUrlWithHash
+  generateUrlWithHash,
 } from './utils/url.js';
 
 /** Patient data object */
@@ -124,7 +125,7 @@ const patientData = reactive({
   physicianName: '',
   familyHistory: '',
   parentalConsanguinity: '',
-  diagnosis: ''
+  diagnosis: '',
 });
 
 /** Array of selected panel IDs */
@@ -147,16 +148,11 @@ const decryptionError = ref('');
 const pendingEncryptedValue = ref(null);
 
 /**
- * Loads patient data from URL parameters (query and hash) and then clears them.
+ * Loads patient data from URL parameters and then clears them.
  * If an encrypted parameter is detected, opens the decryption dialog.
  */
 onMounted(() => {
-  const urlParams = new URLSearchParams(window.location.search);
-  let encryptedValue = urlParams.get('encrypted');
-  if (!encryptedValue) {
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    encryptedValue = hashParams.get('encrypted');
-  }
+  const encryptedValue = getUrlParameter('encrypted');
   if (encryptedValue) {
     pendingEncryptedValue.value = encryptedValue;
     decryptionDialog.value = true;
@@ -182,7 +178,7 @@ const groupedPanelDetails = computed(() => {
   return testsData.categories
     .map((category) => ({
       categoryTitle: category.title,
-      tests: category.tests.filter((test) => selectedTests.value.includes(test.id))
+      tests: category.tests.filter((test) => selectedTests.value.includes(test.id)),
     }))
     .filter((group) => group.tests.length > 0);
 });
@@ -201,6 +197,7 @@ const handleGeneratePdf = () => {
 
 /**
  * Generates a URL with hash parameters based on patient data and selected tests.
+ *
  * @return {string} The generated URL.
  */
 const generatePlainUrl = () => generateUrlWithHash(patientData, selectedTests.value);

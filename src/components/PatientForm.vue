@@ -113,13 +113,41 @@
         />
       </v-col>
     </v-row>
+
+    <v-divider class="my-1"></v-divider>
+    
+    <!-- Group 5: Variant Segregation Request -->
+    <v-row dense>
+      <v-col cols="12">
+        <v-checkbox
+          v-model="patientData.variantSegregationRequested"
+          label="Request Variant Segregation"
+        />
+      </v-col>
+      <v-col cols="12" v-if="patientData.variantSegregationRequested">
+        <v-text-field
+          density="compact"
+          outlined
+          label="Variant Details"
+          v-model="patientData.variantDetails"
+          hint="Provide details for the variant segregation request"
+          persistent-hint
+        />
+      </v-col>
+    </v-row>
   </div>
 </template>
 
 <script setup>
 import LocaleDatePicker from './LocaleDatePicker.vue'
 
-defineProps({
+/**
+ * PatientForm component to capture patient details.
+ *
+ * Props:
+ * - patientData: Object with patient details.
+ */
+const props = defineProps({
   patientData: {
     type: Object,
     required: true

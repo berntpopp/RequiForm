@@ -9,6 +9,8 @@
     <v-main>
       <v-container>
         <PatientForm :patientData="patientData" />
+        
+        <!-- Always render TestSelector regardless of variant segregation option -->
         <TestSelector v-model="selectedTests" />
 
         <!-- Hidden PDF Generator component -->
@@ -20,7 +22,7 @@
           />
         </div>
 
-        <!-- Conditionally render the Selected Panels section only if panels are selected -->
+        <!-- Always render the Selected Panels section if panels are selected -->
         <div class="mt-4" v-if="groupedPanelDetails.length">
           <h2>Selected Panels:</h2>
           <div v-for="group in groupedPanelDetails" :key="group.categoryTitle">
@@ -132,13 +134,12 @@
 </template>
 
 <script setup>
-// Import Vue APIs and components.
-import { reactive, ref, onMounted, computed } from 'vue';
-import PatientForm from './components/PatientForm.vue';
-import TestSelector from './components/TestSelector.vue';
-import TopBar from './components/TopBar.vue';
-import PdfGenerator from './components/PdfGenerator.vue';
-import testsData from './data/tests.json';
+import { reactive, ref, onMounted, computed } from 'vue'
+import PatientForm from './components/PatientForm.vue'
+import TestSelector from './components/TestSelector.vue'
+import TopBar from './components/TopBar.vue'
+import PdfGenerator from './components/PdfGenerator.vue'
+import testsData from './data/tests.json'
 import {
   mergeUrlParameters,
   getUrlParameter,
@@ -146,15 +147,14 @@ import {
   encryptParams,
   decryptParams,
   generateUrlWithHash,
-} from './utils/url.js';
+} from './utils/url.js'
 
 /**
  * Returns the current date in ISO format (YYYY-MM-DD).
- *
  * @return {string} The ISO date string.
  */
 function getCurrentIsoDate() {
-  return new Date().toISOString().split('T')[0];
+  return new Date().toISOString().split('T')[0]
 }
 
 /** Patient data object. */
@@ -168,83 +168,81 @@ const patientData = reactive({
   familyHistory: '',
   parentalConsanguinity: '',
   diagnosis: '',
-  orderingDate: getCurrentIsoDate(), // New ordering date property
-});
+  orderingDate: getCurrentIsoDate(),
+  variantSegregationRequested: false,
+  variantDetails: '',
+})
 
 /** Array of selected panel IDs. */
-const selectedTests = ref([]);
+const selectedTests = ref([])
 
 /** Snackbar state for notifications. */
-const snackbar = ref(false);
-const snackbarMessage = ref('');
+const snackbar = ref(false)
+const snackbarMessage = ref('')
 
 /** Encryption dialog state and password. */
-const encryptionDialog = ref(false);
-const encryptionPassword = ref('');
+const encryptionDialog = ref(false)
+const encryptionPassword = ref('')
 
 /** Decryption dialog state, password, and error. */
-const decryptionDialog = ref(false);
-const decryptionPassword = ref('');
-const decryptionError = ref('');
+const decryptionDialog = ref(false)
+const decryptionPassword = ref('')
+const decryptionError = ref('')
 
 /** Validation dialog state and error messages. */
-const validationDialog = ref(false);
-const validationErrors = ref([]);
+const validationDialog = ref(false)
+const validationErrors = ref([])
 
 /** Used to store the encrypted string from the URL for decryption. */
-const pendingEncryptedValue = ref(null);
+const pendingEncryptedValue = ref(null)
 
 /**
  * Loads patient data from URL parameters and then clears them.
  * If an encrypted parameter is detected, opens the decryption dialog.
  */
 onMounted(() => {
-  const encryptedValue = getUrlParameter('encrypted');
+  const encryptedValue = getUrlParameter('encrypted')
   if (encryptedValue) {
-    pendingEncryptedValue.value = encryptedValue;
-    decryptionDialog.value = true;
+    pendingEncryptedValue.value = encryptedValue
+    decryptionDialog.value = true
   } else {
-    const params = mergeUrlParameters();
-    patientData.givenName = params.get('givenName') || '';
-    patientData.familyName = params.get('familyName') || '';
-    patientData.birthdate = params.get('birthdate') || '';
-    patientData.insurance = params.get('insurance') || '';
-    patientData.sex = (params.get('sex') || '').toLowerCase();
-    patientData.physicianName = params.get('physicianName') || '';
-    patientData.familyHistory = (params.get('familyHistory') || '').toLowerCase();
-    patientData.parentalConsanguinity = (params.get('parentalConsanguinity') || '').toLowerCase();
-    patientData.diagnosis = params.get('diagnosis') || '';
-    // Optionally load orderingDate from URL if provided.
-    patientData.orderingDate = params.get('orderingDate') || getCurrentIsoDate();
-    clearUrlParameters();
+    const params = mergeUrlParameters()
+    patientData.givenName = params.get('givenName') || ''
+    patientData.familyName = params.get('familyName') || ''
+    patientData.birthdate = params.get('birthdate') || ''
+    patientData.insurance = params.get('insurance') || ''
+    patientData.sex = (params.get('sex') || '').toLowerCase()
+    patientData.physicianName = params.get('physicianName') || ''
+    patientData.familyHistory = (params.get('familyHistory') || '').toLowerCase()
+    patientData.parentalConsanguinity = (params.get('parentalConsanguinity') || '').toLowerCase()
+    patientData.diagnosis = params.get('diagnosis') || ''
+    patientData.orderingDate = params.get('orderingDate') || getCurrentIsoDate()
+    clearUrlParameters()
   }
-});
+})
 
 /**
  * Groups selected panels by category.
- *
  * @return {Array<Object>} Grouped panel details.
  */
 const groupedPanelDetails = computed(() => {
   return testsData.categories
-    .map((category) => ({
+    .map(category => ({
       categoryTitle: category.title,
-      tests: category.tests.filter((test) => selectedTests.value.includes(test.id)),
+      tests: category.tests.filter(test => selectedTests.value.includes(test.id)),
     }))
-    .filter((group) => group.tests.length > 0);
-});
+    .filter(group => group.tests.length > 0)
+})
 
 /** Reference for the PdfGenerator component. */
-const pdfGen = ref(null);
+const pdfGen = ref(null)
 
 /**
  * Validates the patient data based on required fields.
- *
  * @return {Array<string>} List of error messages for missing/invalid fields.
  */
 function validatePatientData() {
-  const errors = [];
-  // Define the required fields with friendly labels.
+  const errors = []
   const requiredFields = {
     givenName: 'Given Name',
     familyName: 'Family Name',
@@ -252,21 +250,16 @@ function validatePatientData() {
     sex: 'Sex',
     physicianName: 'Physician Name',
     orderingDate: 'Ordering Date',
-  };
-
+  }
   Object.entries(requiredFields).forEach(([field, label]) => {
     if (!patientData[field] || patientData[field].trim() === '') {
-      errors.push(`${label} is required.`);
+      errors.push(`${label} is required.`)
     }
-  });
-
-  // Additional checks (e.g., birthdate format) can be added here.
-  // For example, a simple date format validation:
+  })
   if (patientData.birthdate && !/^\d{4}-\d{2}-\d{2}$/.test(patientData.birthdate)) {
-    errors.push('Birthdate must be in YYYY-MM-DD format.');
+    errors.push('Birthdate must be in YYYY-MM-DD format.')
   }
-
-  return errors;
+  return errors
 }
 
 /**
@@ -274,140 +267,138 @@ function validatePatientData() {
  * If there are validation errors, a warning dialog is shown.
  */
 const handleGeneratePdf = () => {
-  const errors = validatePatientData();
+  const errors = validatePatientData()
   if (errors.length > 0) {
-    validationErrors.value = errors;
-    validationDialog.value = true;
+    validationErrors.value = errors
+    validationDialog.value = true
   } else {
-    // If no errors, generate the PDF directly.
     if (pdfGen.value && typeof pdfGen.value.generatePdf === 'function') {
-      pdfGen.value.generatePdf();
+      pdfGen.value.generatePdf()
     }
   }
-};
+}
 
 /**
  * Cancels the PDF generation when validation fails.
  */
 function cancelValidation() {
-  validationDialog.value = false;
+  validationDialog.value = false
 }
 
 /**
  * Proceeds with PDF generation despite validation errors.
  */
 function proceedValidation() {
-  validationDialog.value = false;
+  validationDialog.value = false
   if (pdfGen.value && typeof pdfGen.value.generatePdf === 'function') {
-    pdfGen.value.generatePdf();
+    pdfGen.value.generatePdf()
   }
 }
 
 /**
  * Generates a URL with hash parameters based on patient data and selected tests.
- *
  * @return {string} The generated URL.
  */
-const generatePlainUrl = () => generateUrlWithHash(patientData, selectedTests.value);
+const generatePlainUrl = () => generateUrlWithHash(patientData, selectedTests.value)
 
 /**
  * Copies the generated plain URL (with hash parameters) to the clipboard.
  */
 const handleCopyUrl = () => {
-  const urlToCopy = generatePlainUrl();
+  const urlToCopy = generatePlainUrl()
   navigator.clipboard
     .writeText(urlToCopy)
     .then(() => {
-      snackbarMessage.value = 'Hash URL copied to clipboard!';
-      snackbar.value = true;
+      snackbarMessage.value = 'Hash URL copied to clipboard!'
+      snackbar.value = true
     })
     .catch(() => {
-      snackbarMessage.value = 'Failed to copy URL.';
-      snackbar.value = true;
-    });
-};
+      snackbarMessage.value = 'Failed to copy URL.'
+      snackbar.value = true
+    })
+}
 
 /**
  * Opens the encryption modal.
  */
 const openEncryptionDialog = () => {
-  encryptionPassword.value = '';
-  encryptionDialog.value = true;
-};
+  encryptionPassword.value = ''
+  encryptionDialog.value = true
+}
 
 /**
  * Closes the encryption modal.
  */
 const closeEncryptionDialog = () => {
-  encryptionDialog.value = false;
-};
+  encryptionDialog.value = false
+}
 
 /**
  * Encrypts the current parameters using the provided password,
  * copies the URL with the encrypted hash, and closes the modal.
  */
 const confirmEncryption = () => {
-  const paramsObj = { ...patientData };
+  const paramsObj = { ...patientData }
   if (selectedTests.value.length) {
-    paramsObj.selectedTests = selectedTests.value.join(',');
+    paramsObj.selectedTests = selectedTests.value.join(',')
   }
-  const encryptedStr = encryptParams(paramsObj, encryptionPassword.value);
-  const url = new URL(window.location.href);
-  url.search = '';
-  const hashParams = new URLSearchParams();
-  hashParams.set('encrypted', encryptedStr);
-  url.hash = hashParams.toString();
+  const encryptedStr = encryptParams(paramsObj, encryptionPassword.value)
+  const url = new URL(window.location.href)
+  url.search = ''
+  const hashParams = new URLSearchParams()
+  hashParams.set('encrypted', encryptedStr)
+  url.hash = hashParams.toString()
   navigator.clipboard
     .writeText(url.toString())
     .then(() => {
-      snackbarMessage.value = 'Encrypted URL copied to clipboard!';
-      snackbar.value = true;
-      encryptionDialog.value = false;
+      snackbarMessage.value = 'Encrypted URL copied to clipboard!'
+      snackbar.value = true
+      encryptionDialog.value = false
     })
     .catch(() => {
-      snackbarMessage.value = 'Failed to copy encrypted URL.';
-      snackbar.value = true;
-      encryptionDialog.value = false;
-    });
-};
+      snackbarMessage.value = 'Failed to copy encrypted URL.'
+      snackbar.value = true
+      encryptionDialog.value = false
+    })
+}
 
 /**
  * Cancels decryption: closes the modal, resets patient data, and clears URL parameters.
  */
 const cancelDecryption = () => {
-  decryptionDialog.value = false;
-  decryptionPassword.value = '';
-  decryptionError.value = '';
-  Object.keys(patientData).forEach((key) => {
-    patientData[key] = '';
-  });
-  clearUrlParameters();
-};
+  decryptionDialog.value = false
+  decryptionPassword.value = ''
+  decryptionError.value = ''
+  Object.keys(patientData).forEach(key => {
+    patientData[key] = ''
+  })
+  clearUrlParameters()
+}
 
 /**
  * Attempts to decrypt the pending encrypted parameter using the provided password.
  */
 const confirmDecryption = () => {
-  const params = decryptParams(pendingEncryptedValue.value, decryptionPassword.value);
+  const params = decryptParams(pendingEncryptedValue.value, decryptionPassword.value)
   if (!params) {
-    decryptionError.value = 'Decryption failed. Please check your password.';
-    return;
+    decryptionError.value = 'Decryption failed. Please check your password.'
+    return
   }
-  patientData.givenName = params.get('givenName') || '';
-  patientData.familyName = params.get('familyName') || '';
-  patientData.birthdate = params.get('birthdate') || '';
-  patientData.insurance = params.get('insurance') || '';
-  patientData.sex = (params.get('sex') || '').toLowerCase();
-  patientData.physicianName = params.get('physicianName') || '';
-  patientData.familyHistory = (params.get('familyHistory') || '').toLowerCase();
-  patientData.parentalConsanguinity = (params.get('parentalConsanguinity') || '').toLowerCase();
-  patientData.diagnosis = params.get('diagnosis') || '';
-  patientData.orderingDate = params.get('orderingDate') || getCurrentIsoDate();
-  decryptionDialog.value = false;
-  decryptionPassword.value = '';
-  decryptionError.value = '';
-  clearUrlParameters();
-};
+  patientData.givenName = params.get('givenName') || ''
+  patientData.familyName = params.get('familyName') || ''
+  patientData.birthdate = params.get('birthdate') || ''
+  patientData.insurance = params.get('insurance') || ''
+  patientData.sex = (params.get('sex') || '').toLowerCase()
+  patientData.physicianName = params.get('physicianName') || ''
+  patientData.familyHistory = (params.get('familyHistory') || '').toLowerCase()
+  patientData.parentalConsanguinity = (params.get('parentalConsanguinity') || '').toLowerCase()
+  patientData.diagnosis = params.get('diagnosis') || ''
+  patientData.orderingDate = params.get('orderingDate') || getCurrentIsoDate()
+  decryptionDialog.value = false
+  decryptionPassword.value = ''
+  decryptionError.value = ''
+  clearUrlParameters()
+}
 </script>
 
 <style>

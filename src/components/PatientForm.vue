@@ -23,7 +23,7 @@
         />
       </v-col>
       <v-col cols="12" sm="6">
-        <!-- Using the new LocaleDatePicker -->
+        <!-- Using the LocaleDatePicker for Birthdate -->
         <LocaleDatePicker 
           v-model="patientData.birthdate" 
           label="Birthdate" 
@@ -97,6 +97,19 @@
           v-model="patientData.diagnosis"
           rows="2"
           prepend-inner-icon="mdi-file-document-edit-outline"
+        />
+      </v-col>
+    </v-row>
+    
+    <v-divider class="my-1"></v-divider>
+    
+    <!-- Group 4: Ordering Information -->
+    <v-row dense>
+      <v-col cols="12" sm="6">
+        <!-- Using LocaleDatePicker for Ordering Date -->
+        <LocaleDatePicker 
+          v-model="patientData.orderingDate" 
+          label="Ordering Date" 
         />
       </v-col>
     </v-row>

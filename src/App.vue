@@ -115,6 +115,15 @@ import {
   generateUrlWithHash,
 } from './utils/url.js';
 
+/**
+ * Returns the current date in ISO format (YYYY-MM-DD).
+ *
+ * @return {string} The ISO date string.
+ */
+function getCurrentIsoDate() {
+  return new Date().toISOString().split('T')[0];
+}
+
 /** Patient data object */
 const patientData = reactive({
   givenName: '',
@@ -126,6 +135,7 @@ const patientData = reactive({
   familyHistory: '',
   parentalConsanguinity: '',
   diagnosis: '',
+  orderingDate: getCurrentIsoDate(), // New ordering date property
 });
 
 /** Array of selected panel IDs */
@@ -167,12 +177,16 @@ onMounted(() => {
     patientData.familyHistory = (params.get('familyHistory') || '').toLowerCase();
     patientData.parentalConsanguinity = (params.get('parentalConsanguinity') || '').toLowerCase();
     patientData.diagnosis = params.get('diagnosis') || '';
+    // Optionally load orderingDate from URL if provided
+    patientData.orderingDate = params.get('orderingDate') || getCurrentIsoDate();
     clearUrlParameters();
   }
 });
 
 /**
  * Groups selected panels by category.
+ *
+ * @return {Array<Object>} Grouped panel details.
  */
 const groupedPanelDetails = computed(() => {
   return testsData.categories
@@ -294,6 +308,7 @@ const confirmDecryption = () => {
   patientData.familyHistory = (params.get('familyHistory') || '').toLowerCase();
   patientData.parentalConsanguinity = (params.get('parentalConsanguinity') || '').toLowerCase();
   patientData.diagnosis = params.get('diagnosis') || '';
+  patientData.orderingDate = params.get('orderingDate') || getCurrentIsoDate();
   decryptionDialog.value = false;
   decryptionPassword.value = '';
   decryptionError.value = '';

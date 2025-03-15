@@ -3,8 +3,8 @@
     <v-btn @click="generatePdf" color="primary" dark>
       Generate PDF
     </v-btn>
-    <!-- Hidden container for the QR code -->
-    <div ref="qrContainer" style="display: none;">
+    <!-- Hidden container for the QR code (using CSS class to hide) -->
+    <div ref="qrContainer" class="hidden">
       <qrcode-vue :value="qrContent" :size="128" />
     </div>
   </div>
@@ -17,7 +17,6 @@ import QrcodeVue from 'qrcode.vue';
 import pdfConfig from '../data/pdfConfig.json';
 import testsData from '../data/tests.json';
 
-// Define props for patient data and selected tests.
 const props = defineProps({
   patientData: { type: Object, required: true },
   selectedTests: { type: Array, required: true }
@@ -29,28 +28,33 @@ defineExpose({ generatePdf });
 // Reference for the hidden QR code container.
 const qrContainer = ref(null);
 
-// Compute grouped panels by category.
-const groupedPanels = computed(() => {
-  return testsData.categories
+/**
+ * Computes the grouping of tests by category.
+ * @return {Array<Object>} Array of grouped panel objects.
+ */
+const groupedPanels = computed(() =>
+  testsData.categories
     .map(category => ({
       categoryTitle: category.title,
       tests: category.tests.filter(test => props.selectedTests.includes(test.id))
     }))
-    .filter(group => group.tests.length > 0);
-});
-
-// Compute QR code content.
-const qrContent = computed(() => {
-  return `Given Name: ${props.patientData.givenName}, Family Name: ${props.patientData.familyName}, Birthdate: ${props.patientData.birthdate}, Insurance: ${props.patientData.insurance}, Tests: ${props.selectedTests.join(', ')}`;
-});
+    .filter(group => group.tests.length > 0)
+);
 
 /**
- * Replace placeholders in a template string with actual values from mapping.
- * Returns an empty string if a variable is missing.
+ * Computes the QR code content.
+ * @return {string} The QR code content.
+ */
+const qrContent = computed(() =>
+  `Given Name: ${props.patientData.givenName}, Family Name: ${props.patientData.familyName}, Birthdate: ${props.patientData.birthdate}, Insurance: ${props.patientData.insurance}, Tests: ${props.selectedTests.join(', ')}`
+);
+
+/**
+ * Replaces placeholders in a template string with actual values from the mapping.
  *
  * @param {string} template - The template string containing placeholders.
  * @param {Object} mapping - The mapping of placeholders to values.
- * @return {string} - The resulting string with placeholders replaced.
+ * @return {string} The string with placeholders replaced.
  */
 function mapTemplateString(template, mapping) {
   return template.replace(/{{\s*([\w]+)\s*}}/g, (match, key) =>
@@ -172,7 +176,7 @@ function renderSection(doc, section, mapping) {
  * @param {number} offsetX - The x-coordinate for the header.
  * @param {number} y - The y-coordinate for the header.
  * @param {number} spacing - The vertical spacing after the header.
- * @return {number} - The new y-coordinate after rendering.
+ * @return {number} The new y-coordinate after rendering.
  */
 function renderCategoryHeader(doc, categoryTitle, offsetX, y, spacing) {
   const headerStyle = {
@@ -186,7 +190,6 @@ function renderCategoryHeader(doc, categoryTitle, offsetX, y, spacing) {
   doc.setTextColor(headerStyle.color);
   doc.text(categoryTitle, offsetX, y);
   const textWidth = doc.getTextWidth(categoryTitle);
-  // Draw an underline below the header.
   doc.line(offsetX, y + 2, offsetX + textWidth, y + 2);
   return y + spacing;
 }
@@ -199,17 +202,19 @@ function renderCategoryHeader(doc, categoryTitle, offsetX, y, spacing) {
  * @param {number} offsetX - The x-coordinate for the panel.
  * @param {number} y - The y-coordinate for the panel.
  * @param {number} spacing - The vertical spacing after rendering.
- * @return {number} - The new y-coordinate after rendering.
+ * @return {number} The new y-coordinate after rendering.
  */
 function renderPanel(doc, panel, offsetX, y, spacing) {
-  const panelNameStyle = panel.style || { font: 'Helvetica', fontStyle: 'bold', fontSize: 12, color: '#000000' };
+  const panelNameStyle =
+    panel.style || { font: 'Helvetica', fontStyle: 'bold', fontSize: 12, color: '#000000' };
   doc.setFont(panelNameStyle.font, panelNameStyle.fontStyle);
   doc.setFontSize(panelNameStyle.fontSize);
   doc.setTextColor(panelNameStyle.color);
   doc.text(panel.name, offsetX, y);
   y += spacing;
   if (panel.genes && panel.genes.length > 0) {
-    const panelGeneStyle = panel.geneStyle || { font: 'Helvetica', fontStyle: 'italic', fontSize: 10, color: '#000000' };
+    const panelGeneStyle =
+      panel.geneStyle || { font: 'Helvetica', fontStyle: 'italic', fontSize: 10, color: '#000000' };
     doc.setFont(panelGeneStyle.font, panelGeneStyle.fontStyle);
     doc.setFontSize(panelGeneStyle.fontSize);
     doc.setTextColor(panelGeneStyle.color);
@@ -233,15 +238,12 @@ function renderPanel(doc, panel, offsetX, y, spacing) {
  */
 async function generatePdf() {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'A4' });
-
-  // Merge placeholders.
   const mapping = {
     ...props.patientData,
     ...pdfConfig.header,
     ...pdfConfig.footer
   };
 
-  // Render header and body on page 1.
   if (pdfConfig.header) {
     renderSection(doc, pdfConfig.header, mapping);
   }
@@ -249,20 +251,15 @@ async function generatePdf() {
     renderSection(doc, pdfConfig.body, mapping);
   }
 
-  // Panels configuration.
   const { baseY = 350, maxHeight = 600, spacing = 14, offsetX = 60, secondPageBaseY = 50 } =
     pdfConfig.panels || {};
-
   let y = baseY;
 
-  // Render grouped panels with category headers.
   groupedPanels.value.forEach(group => {
-    // Check if the category header fits on the current page.
     if (y + spacing > maxHeight) {
       doc.addPage();
       y = secondPageBaseY;
     }
-    // Render the category header.
     y = renderCategoryHeader(doc, group.categoryTitle, offsetX, y, spacing);
     group.tests.forEach(panel => {
       let requiredHeight = spacing;
@@ -272,7 +269,6 @@ async function generatePdf() {
         const lines = doc.splitTextToSize(geneText, maxWidth);
         requiredHeight += lines.length * spacing;
       }
-      // If the panel does not fit, add a new page.
       if (y + requiredHeight > maxHeight) {
         doc.addPage();
         y = secondPageBaseY;
@@ -281,16 +277,14 @@ async function generatePdf() {
     });
   });
 
-  // Render footer on page 1.
   if (pdfConfig.footer) {
     renderSection(doc, pdfConfig.footer, mapping);
   }
 
-  // Render QR code on page 1 in nextTick.
   nextTick(() => {
     const canvas = qrContainer.value?.querySelector('canvas');
     if (canvas && pdfConfig.qr?.position && pdfConfig.qr?.size) {
-      doc.setPage(1); // Ensure we're on page 1.
+      doc.setPage(1);
       doc.addImage(
         canvas.toDataURL('image/png'),
         'PNG',
@@ -300,7 +294,6 @@ async function generatePdf() {
         pdfConfig.qr.size.height
       );
     }
-    // Add page numbers if more than one page is present.
     const totalPages = doc.internal.getNumberOfPages();
     if (totalPages > 1 && pdfConfig.pageNumber && pdfConfig.pageNumber.enabled) {
       for (let p = 1; p <= totalPages; p++) {
@@ -319,5 +312,7 @@ async function generatePdf() {
 </script>
 
 <style scoped>
-/* Scoped styles if needed */
+.hidden {
+  display: none;
+}
 </style>

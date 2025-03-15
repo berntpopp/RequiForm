@@ -101,12 +101,18 @@
 
 <script setup>
 import { reactive, ref, onMounted, computed } from 'vue';
-import CryptoJS from 'crypto-js';
 import PatientForm from './components/PatientForm.vue';
 import TestSelector from './components/TestSelector.vue';
 import TopBar from './components/TopBar.vue';
 import PdfGenerator from './components/PdfGenerator.vue';
 import testsData from './data/tests.json';
+import {
+  mergeUrlParameters,
+  clearUrlParameters,
+  encryptParams,
+  decryptParams,
+  generateUrlWithHash
+} from './utils/url.js';
 
 /** Patient data object */
 const patientData = reactive({
@@ -137,32 +143,8 @@ const decryptionDialog = ref(false);
 const decryptionPassword = ref('');
 const decryptionError = ref('');
 
-/**
- * Merges parameters from both query string and URL hash.
- * @return {URLSearchParams} The merged URL parameters.
- */
-function mergeUrlParameters() {
-  const merged = new URLSearchParams();
-  const queryParams = new URLSearchParams(window.location.search);
-  for (const [key, value] of queryParams.entries()) {
-    merged.set(key, value);
-  }
-  const hash = window.location.hash.substring(1);
-  if (hash) {
-    const hashParams = new URLSearchParams(hash);
-    for (const [key, value] of hashParams.entries()) {
-      merged.set(key, value);
-    }
-  }
-  return merged;
-}
-
-/**
- * Clears URL parameters and hash from the browser’s address bar.
- */
-function clearUrlParameters() {
-  window.history.replaceState(null, '', window.location.pathname);
-}
+/** Used to store the encrypted string from the URL for decryption */
+const pendingEncryptedValue = ref(null);
 
 /**
  * Loads patient data from URL parameters (query and hash) and then clears them.
@@ -193,9 +175,6 @@ onMounted(() => {
   }
 });
 
-/** Used to store the encrypted string from the URL for decryption */
-const pendingEncryptedValue = ref(null);
-
 /**
  * Groups selected panels by category.
  */
@@ -224,27 +203,13 @@ const handleGeneratePdf = () => {
  * Generates a URL with hash parameters based on patient data and selected tests.
  * @return {string} The generated URL.
  */
-const generateUrlWithHash = () => {
-  const url = new URL(window.location.href);
-  url.search = '';
-  const hashParams = new URLSearchParams();
-  Object.entries(patientData).forEach(([key, value]) => {
-    if (value) {
-      hashParams.set(key, value);
-    }
-  });
-  if (selectedTests.value.length) {
-    hashParams.set('selectedTests', selectedTests.value.join(','));
-  }
-  url.hash = hashParams.toString();
-  return url.toString();
-};
+const generatePlainUrl = () => generateUrlWithHash(patientData, selectedTests.value);
 
 /**
  * Copies the generated plain URL (with hash parameters) to the clipboard.
  */
 const handleCopyUrl = () => {
-  const urlToCopy = generateUrlWithHash();
+  const urlToCopy = generatePlainUrl();
   navigator.clipboard
     .writeText(urlToCopy)
     .then(() => {
@@ -277,18 +242,11 @@ const closeEncryptionDialog = () => {
  * copies the URL with the encrypted hash, and closes the modal.
  */
 const confirmEncryption = () => {
-  const params = new URLSearchParams();
-  Object.entries(patientData).forEach(([key, value]) => {
-    if (value) {
-      params.set(key, value);
-    }
-  });
+  const paramsObj = { ...patientData };
   if (selectedTests.value.length) {
-    params.set('selectedTests', selectedTests.value.join(','));
+    paramsObj.selectedTests = selectedTests.value.join(',');
   }
-  const paramsStr = params.toString();
-  const cipher = CryptoJS.AES.encrypt(paramsStr, encryptionPassword.value);
-  const encryptedStr = cipher.toString();
+  const encryptedStr = encryptParams(paramsObj, encryptionPassword.value);
   const url = new URL(window.location.href);
   url.search = '';
   const hashParams = new URLSearchParams();
@@ -309,7 +267,7 @@ const confirmEncryption = () => {
 };
 
 /**
- * Cancels decryption: closes the modal and resets patient data.
+ * Cancels decryption: closes the modal, resets patient data, and clears URL parameters.
  */
 const cancelDecryption = () => {
   decryptionDialog.value = false;
@@ -325,29 +283,24 @@ const cancelDecryption = () => {
  * Attempts to decrypt the pending encrypted parameter using the provided password.
  */
 const confirmDecryption = () => {
-  try {
-    const bytes = CryptoJS.AES.decrypt(pendingEncryptedValue.value, decryptionPassword.value);
-    const decryptedStr = bytes.toString(CryptoJS.enc.Utf8);
-    if (!decryptedStr) {
-      throw new Error('Invalid password or corrupted data');
-    }
-    const params = new URLSearchParams(decryptedStr);
-    patientData.givenName = params.get('givenName') || '';
-    patientData.familyName = params.get('familyName') || '';
-    patientData.birthdate = params.get('birthdate') || '';
-    patientData.insurance = params.get('insurance') || '';
-    patientData.sex = (params.get('sex') || '').toLowerCase();
-    patientData.physicianName = params.get('physicianName') || '';
-    patientData.familyHistory = (params.get('familyHistory') || '').toLowerCase();
-    patientData.parentalConsanguinity = (params.get('parentalConsanguinity') || '').toLowerCase();
-    patientData.diagnosis = params.get('diagnosis') || '';
-    decryptionDialog.value = false;
-    decryptionPassword.value = '';
-    decryptionError.value = '';
-    clearUrlParameters();
-  } catch (error) {
+  const params = decryptParams(pendingEncryptedValue.value, decryptionPassword.value);
+  if (!params) {
     decryptionError.value = 'Decryption failed. Please check your password.';
+    return;
   }
+  patientData.givenName = params.get('givenName') || '';
+  patientData.familyName = params.get('familyName') || '';
+  patientData.birthdate = params.get('birthdate') || '';
+  patientData.insurance = params.get('insurance') || '';
+  patientData.sex = (params.get('sex') || '').toLowerCase();
+  patientData.physicianName = params.get('physicianName') || '';
+  patientData.familyHistory = (params.get('familyHistory') || '').toLowerCase();
+  patientData.parentalConsanguinity = (params.get('parentalConsanguinity') || '').toLowerCase();
+  patientData.diagnosis = params.get('diagnosis') || '';
+  decryptionDialog.value = false;
+  decryptionPassword.value = '';
+  decryptionError.value = '';
+  clearUrlParameters();
 };
 </script>
 

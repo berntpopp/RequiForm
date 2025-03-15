@@ -10,6 +10,7 @@
           outlined
           label="Given Name"
           v-model="patientData.givenName"
+          prepend-inner-icon="mdi-account"
         />
       </v-col>
       <v-col cols="12" sm="6">
@@ -18,14 +19,14 @@
           outlined
           label="Family Name"
           v-model="patientData.familyName"
+          prepend-inner-icon="mdi-account-group"
         />
       </v-col>
       <v-col cols="12" sm="6">
-        <v-text-field
-          density="compact"
-          outlined
-          label="Birthdate"
-          v-model="patientData.birthdate"
+        <!-- Using the new LocaleDatePicker -->
+        <LocaleDatePicker 
+          v-model="patientData.birthdate" 
+          label="Birthdate" 
         />
       </v-col>
       <v-col cols="12" sm="6">
@@ -35,6 +36,7 @@
           label="Sex"
           :items="sexOptions"
           v-model="patientData.sex"
+          prepend-inner-icon="mdi-gender-male-female"
         />
       </v-col>
     </v-row>
@@ -49,6 +51,7 @@
           outlined
           label="Insurance"
           v-model="patientData.insurance"
+          prepend-inner-icon="mdi-card-account-details-outline"
         />
       </v-col>
       <v-col cols="12" sm="6">
@@ -57,6 +60,7 @@
           outlined
           label="Physician Name"
           v-model="patientData.physicianName"
+          prepend-inner-icon="mdi-stethoscope"
         />
       </v-col>
     </v-row>
@@ -72,6 +76,7 @@
           label="Family History"
           :items="familyHistoryOptions"
           v-model="patientData.familyHistory"
+          prepend-inner-icon="mdi-history"
         />
       </v-col>
       <v-col cols="12" sm="4">
@@ -81,6 +86,7 @@
           label="Parental Consanguinity"
           :items="consanguinityOptions"
           v-model="patientData.parentalConsanguinity"
+          prepend-inner-icon="mdi-human-male-female"
         />
       </v-col>
       <v-col cols="12" sm="4">
@@ -90,6 +96,7 @@
           label="Diagnosis / Suspicion"
           v-model="patientData.diagnosis"
           rows="2"
+          prepend-inner-icon="mdi-file-document-edit-outline"
         />
       </v-col>
     </v-row>
@@ -97,16 +104,18 @@
 </template>
 
 <script setup>
+import LocaleDatePicker from './LocaleDatePicker.vue'
+
 defineProps({
   patientData: {
     type: Object,
     required: true
   }
-});
+})
 
-const sexOptions = ["male", "female", "undetermined"];
-const familyHistoryOptions = ["conspicuous", "inconspicuous", "unknown"];
-const consanguinityOptions = ["yes", "no"];
+const sexOptions = ['male', 'female', 'undetermined']
+const familyHistoryOptions = ['conspicuous', 'inconspicuous', 'unknown']
+const consanguinityOptions = ['yes', 'no']
 </script>
 
 <style scoped>
@@ -114,5 +123,4 @@ const consanguinityOptions = ["yes", "no"];
   margin-top: 1rem;
   margin-bottom: 1rem;
 }
-
 </style>

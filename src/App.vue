@@ -146,17 +146,20 @@
         </v-card>
       </v-dialog>
     </v-main>
+    <!-- Version Footer displaying the current version -->
+    <VersionFooter />
   </v-app>
 </template>
 
 <script setup>
 import { reactive, ref, onMounted, computed } from 'vue';
+import TopBar from './components/TopBar.vue';
 import PatientForm from './components/PatientForm.vue';
 import TestSelector from './components/TestSelector.vue';
-import TopBar from './components/TopBar.vue';
 import PdfGenerator from './components/PdfGenerator.vue';
 import PedigreeDrawer from './components/PedigreeDrawer.vue';
 import PhenotypeSelector from './components/PhenotypeSelector.vue';
+import VersionFooter from './components/Footer.vue';
 import testsData from './data/tests.json';
 import {
   mergeUrlParameters,

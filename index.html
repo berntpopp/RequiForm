@@ -6,10 +6,27 @@
     <link rel="icon" type="image/svg+xml" href="/RequiForm/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RequiForm</title>
-    <script type="module" crossorigin src="/RequiForm/assets/index-DNuy6EM8.js"></script>
-    <link rel="stylesheet" crossorigin href="/RequiForm/assets/index-B7XS4L3N.css">
+
+    <!-- Load local jQuery -->
+    <script src="/RequiForm/vendor/jquery-3.7.1.min.js"></script>
+
+    <!-- Load local jQuery UI CSS and JS -->
+    <link rel="stylesheet" href="/RequiForm/vendor/jquery-ui.min.css" />
+    <script src="/RequiForm/vendor/jquery-ui.min.js"></script>
+
+    <!-- Load local d3 library -->
+    <script src="/RequiForm/vendor/d3.v7.min.js"></script>
+
+    <!-- Load pedigreejs (assumed to be built as an ES module) -->
+    <script src="/src/vendor/pedigreejs.es.v3.0.0-rc8.js"></script>
+
+    <script type="module" crossorigin src="/RequiForm/assets/index-BE0JmNRk.js"></script>
+    <link rel="stylesheet" crossorigin href="/RequiForm/assets/index-BwxG8C9j.css">
   </head>
   <body>
+    <!-- Required for the default pedigree editor -->
+    <div id="node_properties"></div>
+    <!-- The app root -->
     <div id="app"></div>
   </body>
 </html>

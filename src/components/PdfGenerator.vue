@@ -3,7 +3,7 @@
     <v-btn @click="generatePdf" color="primary" dark>
       Generate PDF
     </v-btn>
-    <!-- Hidden container for the QR code (using CSS class to hide) -->
+    <!-- Hidden container for the QR code -->
     <div ref="qrContainer" class="hidden">
       <qrcode-vue :value="qrContent" :size="128" />
     </div>
@@ -17,20 +17,23 @@ import QrcodeVue from 'qrcode.vue'
 import pdfConfig from '../data/pdfConfig.json'
 import testsData from '../data/tests.json'
 
+// Define props with an optional pedigree image URL.
 const props = defineProps({
   patientData: { type: Object, required: true },
-  selectedTests: { type: Array, required: true }
+  selectedTests: { type: Array, required: true },
+  pedigreeDataUrl: { type: String, required: false, default: '' }
 })
 
-// Expose generatePdf for external calls.
+// Expose generatePdf function for external use.
 defineExpose({ generatePdf })
 
 // Reference for the hidden QR code container.
 const qrContainer = ref(null)
 
 /**
- * Computes the grouping of tests by category.
- * @return {Array<Object>} Array of grouped panel objects.
+ * Computes the grouped test panels by category based on the selected tests.
+ *
+ * @returns {Array<Object>} An array of objects each containing a category title and tests.
  */
 const groupedPanels = computed(() =>
   testsData.categories
@@ -42,18 +45,20 @@ const groupedPanels = computed(() =>
 )
 
 /**
- * Computes the QR code content.
- * @return {string} The QR code content.
+ * Computes the content string for the QR code.
+ *
+ * @returns {string} The QR code content.
  */
 const qrContent = computed(() =>
   `Given Name: ${props.patientData.givenName}, Family Name: ${props.patientData.familyName}, Birthdate: ${props.patientData.birthdate}, Insurance: ${props.patientData.insurance}, Tests: ${props.selectedTests.join(', ')}`
 )
 
 /**
- * Replaces placeholders in a template string with actual values from the mapping.
- * @param {string} template - The template string containing placeholders.
- * @param {Object} mapping - The mapping of placeholders to values.
- * @return {string} The string with placeholders replaced.
+ * Replaces all placeholders in the given template with corresponding values from the mapping.
+ *
+ * @param {string} template - The template string containing placeholders in the format {{ key }}.
+ * @param {Object} mapping - An object mapping keys to their replacement values.
+ * @returns {string} The resulting string with placeholders replaced.
  */
 function mapTemplateString(template, mapping) {
   return template.replace(/{{\s*([\w]+)\s*}}/g, (match, key) =>
@@ -62,10 +67,11 @@ function mapTemplateString(template, mapping) {
 }
 
 /**
- * Renders a text element on the PDF.
+ * Renders a text element on the PDF document.
+ *
  * @param {jsPDF} doc - The jsPDF document instance.
- * @param {Object} element - The text element configuration.
- * @param {Object} mapping - The mapping of placeholders to values.
+ * @param {Object} element - The configuration object for the text element.
+ * @param {Object} mapping - The placeholder-to-value mapping for dynamic content.
  */
 function renderText(doc, element, mapping) {
   const text = mapTemplateString(element.content, mapping)
@@ -78,10 +84,11 @@ function renderText(doc, element, mapping) {
 }
 
 /**
- * Renders an image element on the PDF.
+ * Renders an image element on the PDF document.
+ *
  * @param {jsPDF} doc - The jsPDF document instance.
- * @param {Object} element - The image element configuration.
- * @param {Object} mapping - The mapping of placeholders to values.
+ * @param {Object} element - The configuration object for the image element.
+ * @param {Object} mapping - The placeholder-to-value mapping for dynamic content.
  */
 function renderImage(doc, element, mapping) {
   const imageData = mapTemplateString(element.source, mapping)
@@ -96,9 +103,10 @@ function renderImage(doc, element, mapping) {
 }
 
 /**
- * Renders a rectangle element on the PDF.
+ * Renders a rectangle element on the PDF document.
+ *
  * @param {jsPDF} doc - The jsPDF document instance.
- * @param {Object} element - The rectangle element configuration.
+ * @param {Object} element - The configuration object for the rectangle element.
  */
 function renderRectangle(doc, element) {
   const { x, y } = element.position
@@ -119,9 +127,10 @@ function renderRectangle(doc, element) {
 }
 
 /**
- * Renders a line element on the PDF.
+ * Renders a line element on the PDF document.
+ *
  * @param {jsPDF} doc - The jsPDF document instance.
- * @param {Object} element - The line element configuration.
+ * @param {Object} element - The configuration object for the line element.
  */
 function renderLine(doc, element) {
   const { x: startX, y: startY } = element.start
@@ -135,10 +144,11 @@ function renderLine(doc, element) {
 }
 
 /**
- * Renders all elements in a section on the PDF.
+ * Renders a section (a group of elements) on the PDF document.
+ *
  * @param {jsPDF} doc - The jsPDF document instance.
- * @param {Object} section - The section configuration.
- * @param {Object} mapping - The mapping of placeholders to values.
+ * @param {Object} section - The section configuration object containing an array of elements.
+ * @param {Object} mapping - The placeholder-to-value mapping for dynamic content.
  */
 function renderSection(doc, section, mapping) {
   if (!section || !section.elements) return
@@ -163,13 +173,14 @@ function renderSection(doc, section, mapping) {
 }
 
 /**
- * Renders a category header as a subheader in the PDF.
+ * Renders a category header on the PDF document.
+ *
  * @param {jsPDF} doc - The jsPDF document instance.
- * @param {string} categoryTitle - The category title.
+ * @param {string} categoryTitle - The title text for the category.
  * @param {number} offsetX - The x-coordinate for the header.
  * @param {number} y - The y-coordinate for the header.
- * @param {number} spacing - The vertical spacing after the header.
- * @return {number} The new y-coordinate after rendering.
+ * @param {number} spacing - The vertical spacing to add after the header.
+ * @returns {number} The updated y-coordinate after rendering the header.
  */
 function renderCategoryHeader(doc, categoryTitle, offsetX, y, spacing) {
   const headerStyle = {
@@ -188,13 +199,14 @@ function renderCategoryHeader(doc, categoryTitle, offsetX, y, spacing) {
 }
 
 /**
- * Renders a single panel on the PDF and returns the new y-coordinate.
+ * Renders a single panel (test) on the PDF document.
+ *
  * @param {jsPDF} doc - The jsPDF document instance.
- * @param {Object} panel - The panel configuration.
- * @param {number} offsetX - The x-coordinate for the panel.
- * @param {number} y - The y-coordinate for the panel.
- * @param {number} spacing - The vertical spacing after rendering.
- * @return {number} The new y-coordinate after rendering.
+ * @param {Object} panel - The panel configuration object.
+ * @param {number} offsetX - The x-coordinate to begin rendering.
+ * @param {number} y - The current y-coordinate.
+ * @param {number} spacing - The vertical spacing between lines.
+ * @returns {number} The updated y-coordinate after rendering the panel.
  */
 function renderPanel(doc, panel, offsetX, y, spacing) {
   const panelNameStyle =
@@ -218,15 +230,21 @@ function renderPanel(doc, panel, offsetX, y, spacing) {
       y += spacing
     })
   }
-  // Reset font to default.
+  // Reset font settings to default.
   doc.setFont('Helvetica', 'normal')
   doc.setFontSize(12)
   return y
 }
 
 /**
- * Main function to generate the PDF.
- * Renders header, body, grouped panels with category headers, variant segregation details, QR code, and footer.
+ * Main function to generate the PDF document.
+ *
+ * Steps:
+ * 1. Render main sections (header, body, panels, etc.).
+ * 2. Wait for the QR code element to be rendered and add it to the first page.
+ * 3. If available, load and add the pedigree image on a new page while preserving its aspect ratio.
+ * 4. Add page numbering to all pages if enabled.
+ * 5. Save the final PDF document.
  */
 async function generatePdf() {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'A4' })
@@ -236,6 +254,7 @@ async function generatePdf() {
     ...pdfConfig.footer
   }
 
+  // Render header and body sections.
   if (pdfConfig.header) {
     renderSection(doc, pdfConfig.header, mapping)
   }
@@ -243,10 +262,10 @@ async function generatePdf() {
     renderSection(doc, pdfConfig.body, mapping)
   }
 
+  // Render grouped test panels.
   const { baseY = 350, maxHeight = 600, spacing = 14, offsetX = 60, secondPageBaseY = 50 } =
     pdfConfig.panels || {}
   let y = baseY
-
   groupedPanels.value.forEach(group => {
     if (y + spacing > maxHeight) {
       doc.addPage()
@@ -269,7 +288,7 @@ async function generatePdf() {
     })
   })
 
-  // Render Variant Segregation Request details if provided.
+  // Render variant segregation details if provided.
   if (props.patientData.variantSegregationRequested && props.patientData.variantDetails) {
     if (y + spacing > maxHeight) {
       doc.addPage()
@@ -295,33 +314,66 @@ async function generatePdf() {
     renderSection(doc, pdfConfig.footer, mapping)
   }
 
-  nextTick(() => {
-    const canvas = qrContainer.value?.querySelector('canvas')
-    if (canvas && pdfConfig.qr?.position && pdfConfig.qr?.size) {
-      doc.setPage(1)
-      doc.addImage(
-        canvas.toDataURL('image/png'),
-        'PNG',
-        pdfConfig.qr.position.x,
-        pdfConfig.qr.position.y,
-        pdfConfig.qr.size.width,
-        pdfConfig.qr.size.height
-      )
-    }
-    const totalPages = doc.internal.getNumberOfPages()
-    if (totalPages > 1 && pdfConfig.pageNumber && pdfConfig.pageNumber.enabled) {
-      for (let p = 1; p <= totalPages; p++) {
-        doc.setPage(p)
-        const { x, y: posY } = pdfConfig.pageNumber.position
-        const pageText = `Page ${p} of ${totalPages}`
-        doc.setFont(pdfConfig.pageNumber.font || 'Helvetica', pdfConfig.pageNumber.fontStyle || 'normal')
-        doc.setFontSize(pdfConfig.pageNumber.fontSize || 10)
-        doc.setTextColor(pdfConfig.pageNumber.color || '#000000')
-        doc.text(pageText, x, posY)
+  // Wait until the QR code is rendered, then add it to page 1.
+  await nextTick()
+  const canvas = qrContainer.value?.querySelector('canvas')
+  if (canvas && pdfConfig.qr?.position && pdfConfig.qr?.size) {
+    doc.setPage(1)
+    doc.addImage(
+      canvas.toDataURL('image/png'),
+      'PNG',
+      pdfConfig.qr.position.x,
+      pdfConfig.qr.position.y,
+      pdfConfig.qr.size.width,
+      pdfConfig.qr.size.height
+    )
+  }
+
+  // If a pedigree image exists, load it and add it as a new page.
+  if (props.pedigreeDataUrl && props.pedigreeDataUrl !== '') {
+    await new Promise((resolve) => {
+      const img = new Image()
+      img.src = props.pedigreeDataUrl
+      img.onload = () => {
+        const pageWidth = doc.internal.pageSize.getWidth()
+        const pageHeight = doc.internal.pageSize.getHeight()
+        const margin = 40
+        const maxWidth = pageWidth - margin * 2
+        const maxHeight = pageHeight - margin * 2
+        // Calculate scale factor without upscaling.
+        const scale = Math.min(maxWidth / img.width, maxHeight / img.height, 1)
+        const drawWidth = img.width * scale
+        const drawHeight = img.height * scale
+        // Center the image on the new page.
+        const offsetXImg = (pageWidth - drawWidth) / 2
+        const offsetYImg = (pageHeight - drawHeight) / 2
+        doc.addPage()
+        doc.addImage(props.pedigreeDataUrl, 'PNG', offsetXImg, offsetYImg, drawWidth, drawHeight)
+        resolve()
       }
+      img.onerror = () => {
+        console.error("Error loading pedigree image.")
+        resolve() // Proceed even if the image fails to load.
+      }
+    })
+  }
+
+  // Add page numbering on all pages if enabled.
+  const totalPages = doc.internal.getNumberOfPages()
+  if (totalPages > 1 && pdfConfig.pageNumber && pdfConfig.pageNumber.enabled) {
+    for (let p = 1; p <= totalPages; p++) {
+      doc.setPage(p)
+      const { x, y: posY } = pdfConfig.pageNumber.position
+      const pageText = `Page ${p} of ${totalPages}`
+      doc.setFont(pdfConfig.pageNumber.font || 'Helvetica', pdfConfig.pageNumber.fontStyle || 'normal')
+      doc.setFontSize(pdfConfig.pageNumber.fontSize || 10)
+      doc.setTextColor(pdfConfig.pageNumber.color || '#000000')
+      doc.text(pageText, x, posY)
     }
-    doc.save('genetic_test_requisition.pdf')
-  })
+  }
+
+  // Save the final PDF document.
+  doc.save('genetic_test_requisition.pdf')
 }
 </script>
 

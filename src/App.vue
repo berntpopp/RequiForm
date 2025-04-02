@@ -9,7 +9,15 @@
     <v-main>
       <v-container>
         <PatientForm :patientData="patientData" />
-        
+
+        <!-- Pedigree Option: show checkbox and component when enabled -->
+        <v-checkbox
+          v-model="showPedigree"
+          label="Include Pedigree Chart"
+          class="mb-4"
+        />
+        <PedigreeDrawer v-if="showPedigree" ref="pedigreeDrawer" />
+
         <!-- Always render TestSelector regardless of variant segregation option -->
         <TestSelector v-model="selectedTests" />
 
@@ -19,10 +27,11 @@
             ref="pdfGen"
             :patientData="patientData"
             :selectedTests="selectedTests"
+            :pedigreeDataUrl="pedigreeDataUrl"
           />
         </div>
 
-        <!-- Always render the Selected Panels section if panels are selected -->
+        <!-- Selected Panels Section -->
         <div class="mt-4" v-if="groupedPanelDetails.length">
           <h2>Selected Panels:</h2>
           <div v-for="group in groupedPanelDetails" :key="group.categoryTitle">
@@ -139,6 +148,7 @@ import PatientForm from './components/PatientForm.vue'
 import TestSelector from './components/TestSelector.vue'
 import TopBar from './components/TopBar.vue'
 import PdfGenerator from './components/PdfGenerator.vue'
+import PedigreeDrawer from './components/PedigreeDrawer.vue'
 import testsData from './data/tests.json'
 import {
   mergeUrlParameters,
@@ -196,10 +206,12 @@ const validationErrors = ref([])
 /** Used to store the encrypted string from the URL for decryption. */
 const pendingEncryptedValue = ref(null)
 
-/**
- * Loads patient data from URL parameters and then clears them.
- * If an encrypted parameter is detected, opens the decryption dialog.
- */
+/** Controls whether the pedigree chart is displayed. */
+const showPedigree = ref(false)
+
+/** Holds the pedigree chart image data URL for PDF inclusion. */
+const pedigreeDataUrl = ref('')
+
 onMounted(() => {
   const encryptedValue = getUrlParameter('encrypted')
   if (encryptedValue) {
@@ -234,8 +246,9 @@ const groupedPanelDetails = computed(() => {
     .filter(group => group.tests.length > 0)
 })
 
-/** Reference for the PdfGenerator component. */
+/** References to child components. */
 const pdfGen = ref(null)
+const pedigreeDrawer = ref(null)
 
 /**
  * Validates the patient data based on required fields.
@@ -263,31 +276,32 @@ function validatePatientData() {
 }
 
 /**
- * Handles PDF generation by validating patient data before calling the exposed generatePdf method.
- * If there are validation errors, a warning dialog is shown.
+ * Handles PDF generation by validating patient data and,
+ * if pedigree is enabled, retrieving the pedigree image before generating PDF.
  */
-const handleGeneratePdf = () => {
+const handleGeneratePdf = async () => {
   const errors = validatePatientData()
   if (errors.length > 0) {
     validationErrors.value = errors
     validationDialog.value = true
   } else {
+    if (showPedigree.value && pedigreeDrawer.value?.getPedigreeDataUrl) {
+      try {
+        pedigreeDataUrl.value = await pedigreeDrawer.value.getPedigreeDataUrl()
+      } catch (error) {
+        console.error('Error retrieving pedigree image:', error)
+      }
+    }
     if (pdfGen.value && typeof pdfGen.value.generatePdf === 'function') {
       pdfGen.value.generatePdf()
     }
   }
 }
 
-/**
- * Cancels the PDF generation when validation fails.
- */
 function cancelValidation() {
   validationDialog.value = false
 }
 
-/**
- * Proceeds with PDF generation despite validation errors.
- */
 function proceedValidation() {
   validationDialog.value = false
   if (pdfGen.value && typeof pdfGen.value.generatePdf === 'function') {
@@ -295,15 +309,8 @@ function proceedValidation() {
   }
 }
 
-/**
- * Generates a URL with hash parameters based on patient data and selected tests.
- * @return {string} The generated URL.
- */
 const generatePlainUrl = () => generateUrlWithHash(patientData, selectedTests.value)
 
-/**
- * Copies the generated plain URL (with hash parameters) to the clipboard.
- */
 const handleCopyUrl = () => {
   const urlToCopy = generatePlainUrl()
   navigator.clipboard
@@ -318,25 +325,15 @@ const handleCopyUrl = () => {
     })
 }
 
-/**
- * Opens the encryption modal.
- */
 const openEncryptionDialog = () => {
   encryptionPassword.value = ''
   encryptionDialog.value = true
 }
 
-/**
- * Closes the encryption modal.
- */
 const closeEncryptionDialog = () => {
   encryptionDialog.value = false
 }
 
-/**
- * Encrypts the current parameters using the provided password,
- * copies the URL with the encrypted hash, and closes the modal.
- */
 const confirmEncryption = () => {
   const paramsObj = { ...patientData }
   if (selectedTests.value.length) {
@@ -362,9 +359,6 @@ const confirmEncryption = () => {
     })
 }
 
-/**
- * Cancels decryption: closes the modal, resets patient data, and clears URL parameters.
- */
 const cancelDecryption = () => {
   decryptionDialog.value = false
   decryptionPassword.value = ''
@@ -375,9 +369,6 @@ const cancelDecryption = () => {
   clearUrlParameters()
 }
 
-/**
- * Attempts to decrypt the pending encrypted parameter using the provided password.
- */
 const confirmDecryption = () => {
   const params = decryptParams(pendingEncryptedValue.value, decryptionPassword.value)
   if (!params) {
@@ -405,23 +396,19 @@ const confirmDecryption = () => {
 .mt-4 {
   margin-top: 1rem;
 }
-
 .category-header {
   font-size: 1.1rem;
   margin: 1rem 0 0.5rem;
   border-bottom: 2px solid #000;
   font-weight: bold;
 }
-
 .panel-item {
   margin-bottom: 0.75rem;
 }
-
 .panel-name {
   font-size: 1rem;
   margin-bottom: 0.25rem;
 }
-
 .panel-genes {
   font-size: 0.85rem;
   color: #555;

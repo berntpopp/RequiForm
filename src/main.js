@@ -2,6 +2,9 @@
 import { createApp } from 'vue';
 import App from './App.vue';
 
+// Import the CSS file for the main application
+import '@fortawesome/fontawesome-free/css/all.css';
+
 // Import Vuetify, its components, and directives
 import { createVuetify } from 'vuetify';
 import * as components from 'vuetify/components';

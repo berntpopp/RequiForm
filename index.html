@@ -6,8 +6,25 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RequiForm</title>
+
+    <!-- Load local jQuery -->
+    <script src="/vendor/jquery-3.7.1.min.js"></script>
+
+    <!-- Load local jQuery UI CSS and JS -->
+    <link rel="stylesheet" href="/vendor/jquery-ui.min.css" />
+    <script src="/vendor/jquery-ui.min.js"></script>
+
+    <!-- Load local d3 library -->
+    <script src="/vendor/d3.v7.min.js"></script>
+
+    <!-- Load pedigreejs (assumed to be built as an ES module) -->
+    <script src="/src/vendor/pedigreejs.es.v3.0.0-rc8.js"></script>
+
   </head>
   <body>
+    <!-- Required for the default pedigree editor -->
+    <div id="node_properties"></div>
+    <!-- The app root -->
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
   </body>

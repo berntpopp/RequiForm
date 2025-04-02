@@ -21,6 +21,12 @@
         <!-- Always render TestSelector regardless of variant segregation option -->
         <TestSelector v-model="selectedTests" />
 
+        <!-- New Phenotype Selector Component -->
+        <PhenotypeSelector
+          :groupedPanelDetails="groupedPanelDetails"
+          v-model="phenotypeData"
+        />
+
         <!-- Hidden PDF Generator component -->
         <div style="display: none;">
           <PdfGenerator
@@ -28,6 +34,7 @@
             :patientData="patientData"
             :selectedTests="selectedTests"
             :pedigreeDataUrl="pedigreeDataUrl"
+            :phenotypeData="phenotypeData"
           />
         </div>
 
@@ -143,13 +150,14 @@
 </template>
 
 <script setup>
-import { reactive, ref, onMounted, computed } from 'vue'
-import PatientForm from './components/PatientForm.vue'
-import TestSelector from './components/TestSelector.vue'
-import TopBar from './components/TopBar.vue'
-import PdfGenerator from './components/PdfGenerator.vue'
-import PedigreeDrawer from './components/PedigreeDrawer.vue'
-import testsData from './data/tests.json'
+import { reactive, ref, onMounted, computed } from 'vue';
+import PatientForm from './components/PatientForm.vue';
+import TestSelector from './components/TestSelector.vue';
+import TopBar from './components/TopBar.vue';
+import PdfGenerator from './components/PdfGenerator.vue';
+import PedigreeDrawer from './components/PedigreeDrawer.vue';
+import PhenotypeSelector from './components/PhenotypeSelector.vue';
+import testsData from './data/tests.json';
 import {
   mergeUrlParameters,
   getUrlParameter,
@@ -157,14 +165,14 @@ import {
   encryptParams,
   decryptParams,
   generateUrlWithHash,
-} from './utils/url.js'
+} from './utils/url.js';
 
 /**
  * Returns the current date in ISO format (YYYY-MM-DD).
  * @return {string} The ISO date string.
  */
 function getCurrentIsoDate() {
-  return new Date().toISOString().split('T')[0]
+  return new Date().toISOString().split('T')[0];
 }
 
 /** Patient data object. */
@@ -181,57 +189,60 @@ const patientData = reactive({
   orderingDate: getCurrentIsoDate(),
   variantSegregationRequested: false,
   variantDetails: '',
-})
+});
 
 /** Array of selected panel IDs. */
-const selectedTests = ref([])
+const selectedTests = ref([]);
+
+/** Phenotype data: an object mapping category id to phenotype states. */
+const phenotypeData = ref({});
 
 /** Snackbar state for notifications. */
-const snackbar = ref(false)
-const snackbarMessage = ref('')
+const snackbar = ref(false);
+const snackbarMessage = ref('');
 
 /** Encryption dialog state and password. */
-const encryptionDialog = ref(false)
-const encryptionPassword = ref('')
+const encryptionDialog = ref(false);
+const encryptionPassword = ref('');
 
 /** Decryption dialog state, password, and error. */
-const decryptionDialog = ref(false)
-const decryptionPassword = ref('')
-const decryptionError = ref('')
+const decryptionDialog = ref(false);
+const decryptionPassword = ref('');
+const decryptionError = ref('');
 
 /** Validation dialog state and error messages. */
-const validationDialog = ref(false)
-const validationErrors = ref([])
+const validationDialog = ref(false);
+const validationErrors = ref([]);
 
 /** Used to store the encrypted string from the URL for decryption. */
-const pendingEncryptedValue = ref(null)
+const pendingEncryptedValue = ref(null);
 
 /** Controls whether the pedigree chart is displayed. */
-const showPedigree = ref(false)
+const showPedigree = ref(false);
 
 /** Holds the pedigree chart image data URL for PDF inclusion. */
-const pedigreeDataUrl = ref('')
+const pedigreeDataUrl = ref('');
 
 onMounted(() => {
-  const encryptedValue = getUrlParameter('encrypted')
+  const encryptedValue = getUrlParameter('encrypted');
   if (encryptedValue) {
-    pendingEncryptedValue.value = encryptedValue
-    decryptionDialog.value = true
+    pendingEncryptedValue.value = encryptedValue;
+    decryptionDialog.value = true;
   } else {
-    const params = mergeUrlParameters()
-    patientData.givenName = params.get('givenName') || ''
-    patientData.familyName = params.get('familyName') || ''
-    patientData.birthdate = params.get('birthdate') || ''
-    patientData.insurance = params.get('insurance') || ''
-    patientData.sex = (params.get('sex') || '').toLowerCase()
-    patientData.physicianName = params.get('physicianName') || ''
-    patientData.familyHistory = (params.get('familyHistory') || '').toLowerCase()
-    patientData.parentalConsanguinity = (params.get('parentalConsanguinity') || '').toLowerCase()
-    patientData.diagnosis = params.get('diagnosis') || ''
-    patientData.orderingDate = params.get('orderingDate') || getCurrentIsoDate()
-    clearUrlParameters()
+    const params = mergeUrlParameters();
+    patientData.givenName = params.get('givenName') || '';
+    patientData.familyName = params.get('familyName') || '';
+    patientData.birthdate = params.get('birthdate') || '';
+    patientData.insurance = params.get('insurance') || '';
+    patientData.sex = (params.get('sex') || '').toLowerCase();
+    patientData.physicianName = params.get('physicianName') || '';
+    patientData.familyHistory = (params.get('familyHistory') || '').toLowerCase();
+    patientData.parentalConsanguinity = (params.get('parentalConsanguinity') || '').toLowerCase();
+    patientData.diagnosis = params.get('diagnosis') || '';
+    patientData.orderingDate = params.get('orderingDate') || getCurrentIsoDate();
+    clearUrlParameters();
   }
-})
+});
 
 /**
  * Groups selected panels by category.
@@ -239,23 +250,24 @@ onMounted(() => {
  */
 const groupedPanelDetails = computed(() => {
   return testsData.categories
-    .map(category => ({
+    .map((category) => ({
+      id: category.id,
       categoryTitle: category.title,
-      tests: category.tests.filter(test => selectedTests.value.includes(test.id)),
+      tests: category.tests.filter((test) => selectedTests.value.includes(test.id)),
     }))
-    .filter(group => group.tests.length > 0)
-})
+    .filter((group) => group.tests.length > 0);
+});
 
 /** References to child components. */
-const pdfGen = ref(null)
-const pedigreeDrawer = ref(null)
+const pdfGen = ref(null);
+const pedigreeDrawer = ref(null);
 
 /**
  * Validates the patient data based on required fields.
  * @return {Array<string>} List of error messages for missing/invalid fields.
  */
 function validatePatientData() {
-  const errors = []
+  const errors = [];
   const requiredFields = {
     givenName: 'Given Name',
     familyName: 'Family Name',
@@ -263,16 +275,16 @@ function validatePatientData() {
     sex: 'Sex',
     physicianName: 'Physician Name',
     orderingDate: 'Ordering Date',
-  }
+  };
   Object.entries(requiredFields).forEach(([field, label]) => {
     if (!patientData[field] || patientData[field].trim() === '') {
-      errors.push(`${label} is required.`)
+      errors.push(`${label} is required.`);
     }
-  })
+  });
   if (patientData.birthdate && !/^\d{4}-\d{2}-\d{2}$/.test(patientData.birthdate)) {
-    errors.push('Birthdate must be in YYYY-MM-DD format.')
+    errors.push('Birthdate must be in YYYY-MM-DD format.');
   }
-  return errors
+  return errors;
 }
 
 /**
@@ -280,116 +292,116 @@ function validatePatientData() {
  * if pedigree is enabled, retrieving the pedigree image before generating PDF.
  */
 const handleGeneratePdf = async () => {
-  const errors = validatePatientData()
+  const errors = validatePatientData();
   if (errors.length > 0) {
-    validationErrors.value = errors
-    validationDialog.value = true
+    validationErrors.value = errors;
+    validationDialog.value = true;
   } else {
     if (showPedigree.value && pedigreeDrawer.value?.getPedigreeDataUrl) {
       try {
-        pedigreeDataUrl.value = await pedigreeDrawer.value.getPedigreeDataUrl()
+        pedigreeDataUrl.value = await pedigreeDrawer.value.getPedigreeDataUrl();
       } catch (error) {
-        console.error('Error retrieving pedigree image:', error)
+        console.error('Error retrieving pedigree image:', error);
       }
     }
     if (pdfGen.value && typeof pdfGen.value.generatePdf === 'function') {
-      pdfGen.value.generatePdf()
+      pdfGen.value.generatePdf();
     }
   }
-}
+};
 
 function cancelValidation() {
-  validationDialog.value = false
+  validationDialog.value = false;
 }
 
 function proceedValidation() {
-  validationDialog.value = false
+  validationDialog.value = false;
   if (pdfGen.value && typeof pdfGen.value.generatePdf === 'function') {
-    pdfGen.value.generatePdf()
+    pdfGen.value.generatePdf();
   }
 }
 
-const generatePlainUrl = () => generateUrlWithHash(patientData, selectedTests.value)
+const generatePlainUrl = () => generateUrlWithHash(patientData, selectedTests.value);
 
 const handleCopyUrl = () => {
-  const urlToCopy = generatePlainUrl()
+  const urlToCopy = generatePlainUrl();
   navigator.clipboard
     .writeText(urlToCopy)
     .then(() => {
-      snackbarMessage.value = 'Hash URL copied to clipboard!'
-      snackbar.value = true
+      snackbarMessage.value = 'Hash URL copied to clipboard!';
+      snackbar.value = true;
     })
     .catch(() => {
-      snackbarMessage.value = 'Failed to copy URL.'
-      snackbar.value = true
-    })
-}
+      snackbarMessage.value = 'Failed to copy URL.';
+      snackbar.value = true;
+    });
+};
 
 const openEncryptionDialog = () => {
-  encryptionPassword.value = ''
-  encryptionDialog.value = true
-}
+  encryptionPassword.value = '';
+  encryptionDialog.value = true;
+};
 
 const closeEncryptionDialog = () => {
-  encryptionDialog.value = false
-}
+  encryptionDialog.value = false;
+};
 
 const confirmEncryption = () => {
-  const paramsObj = { ...patientData }
+  const paramsObj = { ...patientData };
   if (selectedTests.value.length) {
-    paramsObj.selectedTests = selectedTests.value.join(',')
+    paramsObj.selectedTests = selectedTests.value.join(',');
   }
-  const encryptedStr = encryptParams(paramsObj, encryptionPassword.value)
-  const url = new URL(window.location.href)
-  url.search = ''
-  const hashParams = new URLSearchParams()
-  hashParams.set('encrypted', encryptedStr)
-  url.hash = hashParams.toString()
+  const encryptedStr = encryptParams(paramsObj, encryptionPassword.value);
+  const url = new URL(window.location.href);
+  url.search = '';
+  const hashParams = new URLSearchParams();
+  hashParams.set('encrypted', encryptedStr);
+  url.hash = hashParams.toString();
   navigator.clipboard
     .writeText(url.toString())
     .then(() => {
-      snackbarMessage.value = 'Encrypted URL copied to clipboard!'
-      snackbar.value = true
-      encryptionDialog.value = false
+      snackbarMessage.value = 'Encrypted URL copied to clipboard!';
+      snackbar.value = true;
+      encryptionDialog.value = false;
     })
     .catch(() => {
-      snackbarMessage.value = 'Failed to copy encrypted URL.'
-      snackbar.value = true
-      encryptionDialog.value = false
-    })
-}
+      snackbarMessage.value = 'Failed to copy encrypted URL.';
+      snackbar.value = true;
+      encryptionDialog.value = false;
+    });
+};
 
 const cancelDecryption = () => {
-  decryptionDialog.value = false
-  decryptionPassword.value = ''
-  decryptionError.value = ''
-  Object.keys(patientData).forEach(key => {
-    patientData[key] = ''
-  })
-  clearUrlParameters()
-}
+  decryptionDialog.value = false;
+  decryptionPassword.value = '';
+  decryptionError.value = '';
+  Object.keys(patientData).forEach((key) => {
+    patientData[key] = '';
+  });
+  clearUrlParameters();
+};
 
 const confirmDecryption = () => {
-  const params = decryptParams(pendingEncryptedValue.value, decryptionPassword.value)
+  const params = decryptParams(pendingEncryptedValue.value, decryptionPassword.value);
   if (!params) {
-    decryptionError.value = 'Decryption failed. Please check your password.'
-    return
+    decryptionError.value = 'Decryption failed. Please check your password.';
+    return;
   }
-  patientData.givenName = params.get('givenName') || ''
-  patientData.familyName = params.get('familyName') || ''
-  patientData.birthdate = params.get('birthdate') || ''
-  patientData.insurance = params.get('insurance') || ''
-  patientData.sex = (params.get('sex') || '').toLowerCase()
-  patientData.physicianName = params.get('physicianName') || ''
-  patientData.familyHistory = (params.get('familyHistory') || '').toLowerCase()
-  patientData.parentalConsanguinity = (params.get('parentalConsanguinity') || '').toLowerCase()
-  patientData.diagnosis = params.get('diagnosis') || ''
-  patientData.orderingDate = params.get('orderingDate') || getCurrentIsoDate()
-  decryptionDialog.value = false
-  decryptionPassword.value = ''
-  decryptionError.value = ''
-  clearUrlParameters()
-}
+  patientData.givenName = params.get('givenName') || '';
+  patientData.familyName = params.get('familyName') || '';
+  patientData.birthdate = params.get('birthdate') || '';
+  patientData.insurance = params.get('insurance') || '';
+  patientData.sex = (params.get('sex') || '').toLowerCase();
+  patientData.physicianName = params.get('physicianName') || '';
+  patientData.familyHistory = (params.get('familyHistory') || '').toLowerCase();
+  patientData.parentalConsanguinity = (params.get('parentalConsanguinity') || '').toLowerCase();
+  patientData.diagnosis = params.get('diagnosis') || '';
+  patientData.orderingDate = params.get('orderingDate') || getCurrentIsoDate();
+  decryptionDialog.value = false;
+  decryptionPassword.value = '';
+  decryptionError.value = '';
+  clearUrlParameters();
+};
 </script>
 
 <style>

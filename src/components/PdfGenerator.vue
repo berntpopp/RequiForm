@@ -17,11 +17,12 @@ import QrcodeVue from 'qrcode.vue'
 import pdfConfig from '../data/pdfConfig.json'
 import testsData from '../data/tests.json'
 
-// Define props with an optional pedigree image URL.
+// Define props including the new phenotypeData prop.
 const props = defineProps({
   patientData: { type: Object, required: true },
   selectedTests: { type: Array, required: true },
-  pedigreeDataUrl: { type: String, required: false, default: '' }
+  pedigreeDataUrl: { type: String, required: false, default: '' },
+  phenotypeData: { type: Object, required: false, default: () => ({}) }
 })
 
 // Expose generatePdf function for external use.
@@ -237,14 +238,77 @@ function renderPanel(doc, panel, offsetX, y, spacing) {
 }
 
 /**
+ * Renders the phenotype information as a separate page if phenotype data exists.
+ * Only phenotypes with state other than "no input" are rendered.
+ *
+ * @param {jsPDF} doc - The jsPDF document instance.
+ */
+function renderPhenotypePage(doc) {
+  let hasPhenotype = false
+  // Check if any phenotype in any category is selected (state != "no input")
+  for (const cat in props.phenotypeData) {
+    for (const phen in props.phenotypeData[cat]) {
+      if (props.phenotypeData[cat][phen] !== 'no input') {
+        hasPhenotype = true
+        break
+      }
+    }
+    if (hasPhenotype) break
+  }
+  if (hasPhenotype) {
+    doc.addPage()
+    let currentY = 40
+    const leftMargin = 40
+    // Render page header for phenotype information.
+    doc.setFont("Helvetica", "bold")
+    doc.setFontSize(14)
+    doc.text("Phenotype Information", leftMargin, currentY)
+    currentY += 20
+    doc.setFont("Helvetica", "normal")
+    doc.setFontSize(12)
+    // Iterate over each category in phenotypeData.
+    for (const catId in props.phenotypeData) {
+      // Find the category from testsData.
+      const category = testsData.categories.find(cat => cat.id === catId)
+      if (!category || !category.phenotypes) continue
+      // Filter phenotypes with a state other than "no input".
+      const phenotypes = category.phenotypes.filter(
+        phen => props.phenotypeData[catId][phen.id] !== "no input"
+      )
+      if (phenotypes.length > 0) {
+        // Render the category title.
+        doc.setFont("Helvetica", "bold")
+        doc.text(category.title, leftMargin, currentY)
+        currentY += 16
+        doc.setFont("Helvetica", "normal")
+        // Render each phenotype's name, HPO code, and state.
+        phenotypes.forEach(phen => {
+          const state = props.phenotypeData[catId][phen.id]
+          const line = `${phen.name} (${phen.hpo}): ${state}`
+          doc.text(line, leftMargin, currentY)
+          currentY += 14
+          // If we exceed the page height, add a new page.
+          if (currentY > doc.internal.pageSize.getHeight() - 40) {
+            doc.addPage()
+            currentY = 40
+          }
+        })
+        currentY += 10
+      }
+    }
+  }
+}
+
+/**
  * Main function to generate the PDF document.
  *
  * Steps:
  * 1. Render main sections (header, body, panels, etc.).
  * 2. Wait for the QR code element to be rendered and add it to the first page.
- * 3. If available, load and add the pedigree image on a new page while preserving its aspect ratio.
- * 4. Add page numbering to all pages if enabled.
- * 5. Save the final PDF document.
+ * 3. If phenotype data exists (i.e. any phenotype selected), add a new page for it.
+ * 4. If available, load and add the pedigree image on a new page while preserving its aspect ratio.
+ * 5. Add page numbering to all pages if enabled.
+ * 6. Save the final PDF document.
  */
 async function generatePdf() {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'A4' })
@@ -328,6 +392,9 @@ async function generatePdf() {
       pdfConfig.qr.size.height
     )
   }
+
+  // If phenotype data exists, add a new page with phenotype information.
+  renderPhenotypePage(doc)
 
   // If a pedigree image exists, load it and add it as a new page.
   if (props.pedigreeDataUrl && props.pedigreeDataUrl !== '') {

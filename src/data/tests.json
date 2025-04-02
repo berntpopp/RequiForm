@@ -449,9 +449,76 @@
             "LRP5"
           ]
         }
+      ],
+      "phenotypes": [
+        {
+          "id": "vesikoureteraler_reflux",
+          "name": "Vesikoureteraler Reflux",
+          "hpo": "HP:0012002",
+          "description": "Retrograde flow of urine from the bladder into the ureters."
+        },
+        {
+          "id": "megaureter",
+          "name": "Megaureter",
+          "hpo": "HP:0000078",
+          "description": "Abnormally dilated ureter."
+        },
+        {
+          "id": "nierenagenesie",
+          "name": "Nierenagenesie",
+          "hpo": "HP:0000119",
+          "description": "Absence of one or both kidneys."
+        },
+        {
+          "id": "nierenhypoplasie",
+          "name": "Nierenhypoplasie",
+          "hpo": "HP:0012563",
+          "description": "Underdeveloped kidneys."
+        },
+        {
+          "id": "polyzystische_nieren",
+          "name": "(Poly-)zystische Nieren",
+          "hpo": "HP:0000107",
+          "description": "Multiple cysts in the kidneys."
+        },
+        {
+          "id": "nierendysplasie",
+          "name": "Nierendysplasie",
+          "hpo": "HP:0000001",
+          "description": "Abnormal kidney shape due to dysplasia."
+        },
+        {
+          "id": "nephrocalcinose",
+          "name": "Nephrocalcinose",
+          "hpo": "HP:0000002",
+          "description": "Calcium deposits in the kidneys."
+        },
+        {
+          "id": "nephrolithiasis",
+          "name": "Nephrolithiasis",
+          "hpo": "HP:0000079",
+          "description": "Kidney stones."
+        },
+        {
+          "id": "nephrotisches_syndrom_fsgs",
+          "name": "Nephrotisches Syndrom / FSGS",
+          "hpo": "HP:0000093",
+          "description": "Nephrotic syndrome with focal segmental glomerulosclerosis."
+        },
+        {
+          "id": "schrumpfniere",
+          "name": "Schrumpfniere",
+          "hpo": "HP:0000095",
+          "description": "Shrinkage of the kidneys."
+        },
+        {
+          "id": "interstitielle_nephritis",
+          "name": "Interstitielle Nephritis",
+          "hpo": "HP:0000003",
+          "description": "Inflammation of the kidney interstitium."
+        }
       ]
     },
-
     {
       "id": "cardiology",
       "title": "Cardiology",
@@ -617,6 +684,20 @@
             "TTN*",
             "VCL"
           ]
+        }
+      ],
+      "phenotypes": [
+        {
+          "id": "synkopen",
+          "name": "Synkopen",
+          "hpo": "HP:0001262",
+          "description": "Episodes of fainting."
+        },
+        {
+          "id": "plotzlicher_herztod",
+          "name": "Plötzlicher Herztod / Herzstillstand",
+          "hpo": "HP:0001644",
+          "description": "Sudden cardiac arrest."
         }
       ]
     }

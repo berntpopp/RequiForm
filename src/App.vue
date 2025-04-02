@@ -10,6 +10,10 @@
       @copy-url="handleCopyUrl"
       @copy-encrypted-url="openEncryptionDialog"
     />
+
+    <!-- Disclaimer Modal: shown if not yet acknowledged or if reopened -->
+    <Disclaimer v-if="!disclaimerAcknowledged || showDisclaimerModal" @dismiss="handleDisclaimerDismiss" />
+
     <v-main>
       <v-container>
         <PatientForm :patientData="patientData" />
@@ -169,13 +173,18 @@
         </v-card>
       </v-dialog>
     </v-main>
-    <!-- Version Footer displaying the current version -->
-    <VersionFooter />
+
+    <!-- Footer with disclaimer acknowledgement button -->
+    <VersionFooter 
+      :disclaimerAcknowledged="disclaimerAcknowledged" 
+      :acknowledgmentTime="acknowledgmentTime" 
+      @reopen-disclaimer="openDisclaimerModal" 
+    />
   </v-app>
 </template>
 
 <script setup>
-import { reactive, ref, onMounted, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import TopBar from './components/TopBar.vue';
 import PatientForm from './components/PatientForm.vue';
 import TestSelector from './components/TestSelector.vue';
@@ -192,6 +201,7 @@ import {
   decryptParams,
   generateUrlWithHash,
 } from './utils/url.js';
+import Disclaimer from './components/Disclaimer.vue';
 
 /**
  * Returns the current date in ISO format (YYYY-MM-DD).
@@ -223,7 +233,7 @@ function initialPatientData() {
 }
 
 /** Reactive patient data object. */
-const patientData = reactive(initialPatientData());
+const patientData = ref(initialPatientData());
 
 /** Array of selected panel IDs. */
 const selectedTests = ref([]);
@@ -278,7 +288,7 @@ const faqContent = ref([
   {
     question: 'Is RequiForm a medical device?',
     answer:
-      'No. RequiForm is designed solely as a tool for streamlining the genetic test requisition process. It is not a substitute for professional medical advice or diagnosis. Always consult a healthcare professional for medical decisions.',
+      'No. RequiForm is designed solely as a tool for streamlining the genetic test requisition process. It is not a substitute for professional medical advice or diagnosis.',
   },
   {
     question: 'Why is my data safe in RequiForm?',
@@ -292,26 +302,9 @@ const faqContent = ref([
   },
 ]);
 
-onMounted(() => {
-  const encryptedValue = getUrlParameter('encrypted');
-  if (encryptedValue) {
-    pendingEncryptedValue.value = encryptedValue;
-    decryptionDialog.value = true;
-  } else {
-    const params = mergeUrlParameters();
-    patientData.givenName = params.get('givenName') || '';
-    patientData.familyName = params.get('familyName') || '';
-    patientData.birthdate = params.get('birthdate') || '';
-    patientData.insurance = params.get('insurance') || '';
-    patientData.sex = (params.get('sex') || '').toLowerCase();
-    patientData.physicianName = params.get('physicianName') || '';
-    patientData.familyHistory = (params.get('familyHistory') || '').toLowerCase();
-    patientData.parentalConsanguinity = (params.get('parentalConsanguinity') || '').toLowerCase();
-    patientData.diagnosis = params.get('diagnosis') || '';
-    patientData.orderingDate = params.get('orderingDate') || getCurrentIsoDate();
-    clearUrlParameters();
-  }
-});
+/** References to child components. */
+const pdfGen = ref(null);
+const pedigreeDrawer = ref(null);
 
 /**
  * Groups selected panels by category.
@@ -326,10 +319,6 @@ const groupedPanelDetails = computed(() => {
     }))
     .filter((group) => group.tests.length > 0);
 });
-
-/** References to child components. */
-const pdfGen = ref(null);
-const pedigreeDrawer = ref(null);
 
 /**
  * Validates the patient data based on required fields.
@@ -346,11 +335,11 @@ function validatePatientData() {
     orderingDate: 'Ordering Date',
   };
   Object.entries(requiredFields).forEach(([field, label]) => {
-    if (!patientData[field] || patientData[field].trim() === '') {
+    if (!patientData.value[field] || patientData.value[field].trim() === '') {
       errors.push(`${label} is required.`);
     }
   });
-  if (patientData.birthdate && !/^\d{4}-\d{2}-\d{2}$/.test(patientData.birthdate)) {
+  if (patientData.value.birthdate && !/^\d{4}-\d{2}-\d{2}$/.test(patientData.value.birthdate)) {
     errors.push('Birthdate must be in YYYY-MM-DD format.');
   }
   return errors;
@@ -390,7 +379,7 @@ function proceedValidation() {
   }
 }
 
-const generatePlainUrl = () => generateUrlWithHash(patientData, selectedTests.value);
+const generatePlainUrl = () => generateUrlWithHash(patientData.value, selectedTests.value);
 
 const handleCopyUrl = () => {
   const urlToCopy = generatePlainUrl();
@@ -416,7 +405,7 @@ const closeEncryptionDialog = () => {
 };
 
 const confirmEncryption = () => {
-  const paramsObj = { ...patientData };
+  const paramsObj = { ...patientData.value };
   if (selectedTests.value.length) {
     paramsObj.selectedTests = selectedTests.value.join(',');
   }
@@ -444,8 +433,8 @@ const cancelDecryption = () => {
   decryptionDialog.value = false;
   decryptionPassword.value = '';
   decryptionError.value = '';
-  Object.keys(patientData).forEach((key) => {
-    patientData[key] = '';
+  Object.keys(patientData.value).forEach((key) => {
+    patientData.value[key] = '';
   });
   clearUrlParameters();
 };
@@ -456,16 +445,16 @@ const confirmDecryption = () => {
     decryptionError.value = 'Decryption failed. Please check your password.';
     return;
   }
-  patientData.givenName = params.get('givenName') || '';
-  patientData.familyName = params.get('familyName') || '';
-  patientData.birthdate = params.get('birthdate') || '';
-  patientData.insurance = params.get('insurance') || '';
-  patientData.sex = (params.get('sex') || '').toLowerCase();
-  patientData.physicianName = params.get('physicianName') || '';
-  patientData.familyHistory = (params.get('familyHistory') || '').toLowerCase();
-  patientData.parentalConsanguinity = (params.get('parentalConsanguinity') || '').toLowerCase();
-  patientData.diagnosis = params.get('diagnosis') || '';
-  patientData.orderingDate = params.get('orderingDate') || getCurrentIsoDate();
+  patientData.value.givenName = params.get('givenName') || '';
+  patientData.value.familyName = params.get('familyName') || '';
+  patientData.value.birthdate = params.get('birthdate') || '';
+  patientData.value.insurance = params.get('insurance') || '';
+  patientData.value.sex = (params.get('sex') || '').toLowerCase();
+  patientData.value.physicianName = params.get('physicianName') || '';
+  patientData.value.familyHistory = (params.get('familyHistory') || '').toLowerCase();
+  patientData.value.parentalConsanguinity = (params.get('parentalConsanguinity') || '').toLowerCase();
+  patientData.value.diagnosis = params.get('diagnosis') || '';
+  patientData.value.orderingDate = params.get('orderingDate') || getCurrentIsoDate();
   decryptionDialog.value = false;
   decryptionPassword.value = '';
   decryptionError.value = '';
@@ -483,7 +472,7 @@ function toggleTheme() {
  * Resets the form to its initial state.
  */
 function resetForm() {
-  Object.assign(patientData, initialPatientData());
+  patientData.value = initialPatientData();
   selectedTests.value = [];
   phenotypeData.value = {};
   showPedigree.value = false;
@@ -504,6 +493,51 @@ function openFAQ() {
 function closeFAQ() {
   showFAQModal.value = false;
 }
+
+// --- Disclaimer Handling ---
+const disclaimerAcknowledged = ref(localStorage.getItem('disclaimerAcknowledged') === 'true');
+const acknowledgmentTime = ref(localStorage.getItem('acknowledgmentTime') || '');
+// Show the disclaimer modal if not yet acknowledged
+const showDisclaimerModal = ref(!disclaimerAcknowledged.value);
+
+/**
+ * Handles the dismissal of the disclaimer.
+ */
+function handleDisclaimerDismiss() {
+  disclaimerAcknowledged.value = true;
+  acknowledgmentTime.value = new Date().toLocaleDateString();
+  localStorage.setItem('disclaimerAcknowledged', 'true');
+  localStorage.setItem('acknowledgmentTime', acknowledgmentTime.value);
+  showDisclaimerModal.value = false;
+}
+
+/**
+ * Opens the disclaimer modal (e.g., when the footer button is clicked).
+ */
+function openDisclaimerModal() {
+  showDisclaimerModal.value = true;
+}
+
+onMounted(() => {
+  const encryptedValue = getUrlParameter('encrypted');
+  if (encryptedValue) {
+    pendingEncryptedValue.value = encryptedValue;
+    decryptionDialog.value = true;
+  } else {
+    const params = mergeUrlParameters();
+    patientData.value.givenName = params.get('givenName') || '';
+    patientData.value.familyName = params.get('familyName') || '';
+    patientData.value.birthdate = params.get('birthdate') || '';
+    patientData.value.insurance = params.get('insurance') || '';
+    patientData.value.sex = (params.get('sex') || '').toLowerCase();
+    patientData.value.physicianName = params.get('physicianName') || '';
+    patientData.value.familyHistory = (params.get('familyHistory') || '').toLowerCase();
+    patientData.value.parentalConsanguinity = (params.get('parentalConsanguinity') || '').toLowerCase();
+    patientData.value.diagnosis = params.get('diagnosis') || '';
+    patientData.value.orderingDate = params.get('orderingDate') || getCurrentIsoDate();
+    clearUrlParameters();
+  }
+});
 </script>
 
 <style>

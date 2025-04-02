@@ -1,4 +1,8 @@
 {
+  "schema": {
+    "name": "RequiForm PDF Schema",
+    "version": "0.1.0"
+  },
   "header": {
     "elements": [
       {

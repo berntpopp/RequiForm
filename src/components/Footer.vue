@@ -1,7 +1,9 @@
 <template>
   <v-footer app padless class="footer">
     <v-col class="text-center" cols="12">
-      <span class="app-version">Version: {{ version }}</span>
+      <span class="versions">
+        App: v{{ version }} | Test schema: v{{ testSchemaVersion }} | PDF schema: v{{ pdfSchemaVersion }}:
+      </span>
       <v-btn
         v-if="disclaimerAcknowledged"
         small
@@ -17,6 +19,8 @@
 
 <script>
 import appConfig from '../config/appConfig.js';
+import pdfConfig from '../data/pdfConfig.json';
+import testsData from '../data/tests.json';
 
 export default {
   name: 'Footer',
@@ -33,6 +37,8 @@ export default {
   data() {
     return {
       version: appConfig.version,
+      pdfSchemaVersion: (pdfConfig.schema && pdfConfig.schema.version) || 'N/A',
+      testSchemaVersion: (testsData.schema && testsData.schema.version) || 'N/A',
     };
   },
 };
@@ -44,7 +50,7 @@ export default {
   box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.app-version {
+.versions {
   font-size: 0.8rem;
   color: #555;
   padding: 8px;

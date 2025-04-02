@@ -11,11 +11,17 @@
 </template>
 
 <script setup>
-import { jsPDF } from 'jspdf'
-import { defineProps, ref, nextTick, computed, defineExpose } from 'vue'
-import QrcodeVue from 'qrcode.vue'
-import pdfConfig from '../data/pdfConfig.json'
-import testsData from '../data/tests.json'
+import { jsPDF } from 'jspdf';
+import {
+  defineProps,
+  ref,
+  nextTick,
+  computed,
+  defineExpose
+} from 'vue';
+import QrcodeVue from 'qrcode.vue';
+import pdfConfig from '../data/pdfConfig.json';
+import testsData from '../data/tests.json';
 
 // Define props including the new phenotypeData prop.
 const props = defineProps({
@@ -23,13 +29,13 @@ const props = defineProps({
   selectedTests: { type: Array, required: true },
   pedigreeDataUrl: { type: String, required: false, default: '' },
   phenotypeData: { type: Object, required: false, default: () => ({}) }
-})
+});
 
 // Expose generatePdf function for external use.
-defineExpose({ generatePdf })
+defineExpose({ generatePdf });
 
 // Reference for the hidden QR code container.
-const qrContainer = ref(null)
+const qrContainer = ref(null);
 
 /**
  * Computes the grouped test panels by category based on the selected tests.
@@ -38,12 +44,12 @@ const qrContainer = ref(null)
  */
 const groupedPanels = computed(() =>
   testsData.categories
-    .map(category => ({
+    .map((category) => ({
       categoryTitle: category.title,
-      tests: category.tests.filter(test => props.selectedTests.includes(test.id))
+      tests: category.tests.filter((test) => props.selectedTests.includes(test.id))
     }))
-    .filter(group => group.tests.length > 0)
-)
+    .filter((group) => group.tests.length > 0)
+);
 
 /**
  * Computes the content string for the QR code.
@@ -52,7 +58,7 @@ const groupedPanels = computed(() =>
  */
 const qrContent = computed(() =>
   `Given Name: ${props.patientData.givenName}, Family Name: ${props.patientData.familyName}, Birthdate: ${props.patientData.birthdate}, Insurance: ${props.patientData.insurance}, Tests: ${props.selectedTests.join(', ')}`
-)
+);
 
 /**
  * Replaces all placeholders in the given template with corresponding values from the mapping.
@@ -64,7 +70,7 @@ const qrContent = computed(() =>
 function mapTemplateString(template, mapping) {
   return template.replace(/{{\s*([\w]+)\s*}}/g, (match, key) =>
     key in mapping ? mapping[key] : ''
-  )
+  );
 }
 
 /**
@@ -75,13 +81,13 @@ function mapTemplateString(template, mapping) {
  * @param {Object} mapping - The placeholder-to-value mapping for dynamic content.
  */
 function renderText(doc, element, mapping) {
-  const text = mapTemplateString(element.content, mapping)
+  const text = mapTemplateString(element.content, mapping);
   if (element.style) {
-    doc.setFont(element.style.font || 'Helvetica', element.style.fontStyle || 'normal')
-    doc.setFontSize(element.style.fontSize || 12)
-    doc.setTextColor(element.style.color || '#000000')
+    doc.setFont(element.style.font || 'Helvetica', element.style.fontStyle || 'normal');
+    doc.setFontSize(element.style.fontSize || 12);
+    doc.setTextColor(element.style.color || '#000000');
   }
-  doc.text(text, element.position.x, element.position.y)
+  doc.text(text, element.position.x, element.position.y);
 }
 
 /**
@@ -92,7 +98,7 @@ function renderText(doc, element, mapping) {
  * @param {Object} mapping - The placeholder-to-value mapping for dynamic content.
  */
 function renderImage(doc, element, mapping) {
-  const imageData = mapTemplateString(element.source, mapping)
+  const imageData = mapTemplateString(element.source, mapping);
   doc.addImage(
     imageData,
     'PNG',
@@ -100,7 +106,7 @@ function renderImage(doc, element, mapping) {
     element.position.y,
     element.size.width,
     element.size.height
-  )
+  );
 }
 
 /**
@@ -110,21 +116,21 @@ function renderImage(doc, element, mapping) {
  * @param {Object} element - The configuration object for the rectangle element.
  */
 function renderRectangle(doc, element) {
-  const { x, y } = element.position
-  const { width, height } = element.size
-  const style = element.style || {}
+  const { x, y } = element.position;
+  const { width, height } = element.size;
+  const style = element.style || {};
   if (style.fill && style.fillColor) {
-    doc.setFillColor(style.fillColor)
+    doc.setFillColor(style.fillColor);
   }
   if (style.borderColor) {
-    doc.setDrawColor(style.borderColor)
+    doc.setDrawColor(style.borderColor);
   }
-  doc.setLineWidth(style.borderWidth || 1)
-  let rectStyle = 'S'
+  doc.setLineWidth(style.borderWidth || 1);
+  let rectStyle = 'S';
   if (style.fill && style.fillColor) {
-    rectStyle = style.borderWidth ? 'DF' : 'F'
+    rectStyle = style.borderWidth ? 'DF' : 'F';
   }
-  doc.rect(x, y, width, height, rectStyle)
+  doc.rect(x, y, width, height, rectStyle);
 }
 
 /**
@@ -134,14 +140,14 @@ function renderRectangle(doc, element) {
  * @param {Object} element - The configuration object for the line element.
  */
 function renderLine(doc, element) {
-  const { x: startX, y: startY } = element.start
-  const { x: endX, y: endY } = element.end
-  const style = element.style || {}
-  doc.setLineWidth(style.lineWidth || 1)
+  const { x: startX, y: startY } = element.start;
+  const { x: endX, y: endY } = element.end;
+  const style = element.style || {};
+  doc.setLineWidth(style.lineWidth || 1);
   if (style.color) {
-    doc.setDrawColor(style.color)
+    doc.setDrawColor(style.color);
   }
-  doc.line(startX, startY, endX, endY)
+  doc.line(startX, startY, endX, endY);
 }
 
 /**
@@ -152,25 +158,25 @@ function renderLine(doc, element) {
  * @param {Object} mapping - The placeholder-to-value mapping for dynamic content.
  */
 function renderSection(doc, section, mapping) {
-  if (!section || !section.elements) return
-  section.elements.forEach(element => {
+  if (!section || !section.elements) return;
+  section.elements.forEach((element) => {
     switch (element.type) {
       case 'text':
-        renderText(doc, element, mapping)
-        break
+        renderText(doc, element, mapping);
+        break;
       case 'image':
-        renderImage(doc, element, mapping)
-        break
+        renderImage(doc, element, mapping);
+        break;
       case 'rectangle':
-        renderRectangle(doc, element)
-        break
+        renderRectangle(doc, element);
+        break;
       case 'line':
-        renderLine(doc, element)
-        break
+        renderLine(doc, element);
+        break;
       default:
-        console.warn('Unknown element type:', element.type)
+        console.warn('Unknown element type:', element.type);
     }
-  })
+  });
 }
 
 /**
@@ -189,14 +195,14 @@ function renderCategoryHeader(doc, categoryTitle, offsetX, y, spacing) {
     fontStyle: 'bold',
     fontSize: 12,
     color: '#000000'
-  }
-  doc.setFont(headerStyle.font, headerStyle.fontStyle)
-  doc.setFontSize(headerStyle.fontSize)
-  doc.setTextColor(headerStyle.color)
-  doc.text(categoryTitle, offsetX, y)
-  const textWidth = doc.getTextWidth(categoryTitle)
-  doc.line(offsetX, y + 2, offsetX + textWidth, y + 2)
-  return y + spacing
+  };
+  doc.setFont(headerStyle.font, headerStyle.fontStyle);
+  doc.setFontSize(headerStyle.fontSize);
+  doc.setTextColor(headerStyle.color);
+  doc.text(categoryTitle, offsetX, y);
+  const textWidth = doc.getTextWidth(categoryTitle);
+  doc.line(offsetX, y + 2, offsetX + textWidth, y + 2);
+  return y + spacing;
 }
 
 /**
@@ -211,30 +217,30 @@ function renderCategoryHeader(doc, categoryTitle, offsetX, y, spacing) {
  */
 function renderPanel(doc, panel, offsetX, y, spacing) {
   const panelNameStyle =
-    panel.style || { font: 'Helvetica', fontStyle: 'bold', fontSize: 12, color: '#000000' }
-  doc.setFont(panelNameStyle.font, panelNameStyle.fontStyle)
-  doc.setFontSize(panelNameStyle.fontSize)
-  doc.setTextColor(panelNameStyle.color)
-  doc.text(panel.name, offsetX, y)
-  y += spacing
+    panel.style || { font: 'Helvetica', fontStyle: 'bold', fontSize: 12, color: '#000000' };
+  doc.setFont(panelNameStyle.font, panelNameStyle.fontStyle);
+  doc.setFontSize(panelNameStyle.fontSize);
+  doc.setTextColor(panelNameStyle.color);
+  doc.text(panel.name, offsetX, y);
+  y += spacing;
   if (panel.genes && panel.genes.length > 0) {
     const panelGeneStyle =
-      panel.geneStyle || { font: 'Helvetica', fontStyle: 'italic', fontSize: 10, color: '#000000' }
-    doc.setFont(panelGeneStyle.font, panelGeneStyle.fontStyle)
-    doc.setFontSize(panelGeneStyle.fontSize)
-    doc.setTextColor(panelGeneStyle.color)
-    const geneText = panel.genes.join(', ')
-    const maxWidth = doc.internal.pageSize.getWidth() - offsetX - 40
-    const lines = doc.splitTextToSize(geneText, maxWidth)
-    lines.forEach(line => {
-      doc.text(line, offsetX, y)
-      y += spacing
-    })
+      panel.geneStyle || { font: 'Helvetica', fontStyle: 'italic', fontSize: 10, color: '#000000' };
+    doc.setFont(panelGeneStyle.font, panelGeneStyle.fontStyle);
+    doc.setFontSize(panelGeneStyle.fontSize);
+    doc.setTextColor(panelGeneStyle.color);
+    const geneText = panel.genes.join(', ');
+    const maxWidth = doc.internal.pageSize.getWidth() - offsetX - 40;
+    const lines = doc.splitTextToSize(geneText, maxWidth);
+    lines.forEach((line) => {
+      doc.text(line, offsetX, y);
+      y += spacing;
+    });
   }
   // Reset font settings to default.
-  doc.setFont('Helvetica', 'normal')
-  doc.setFontSize(12)
-  return y
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(12);
+  return y;
 }
 
 /**
@@ -244,56 +250,56 @@ function renderPanel(doc, panel, offsetX, y, spacing) {
  * @param {jsPDF} doc - The jsPDF document instance.
  */
 function renderPhenotypePage(doc) {
-  let hasPhenotype = false
+  let hasPhenotype = false;
   // Check if any phenotype in any category is selected (state != "no input")
   for (const cat in props.phenotypeData) {
     for (const phen in props.phenotypeData[cat]) {
       if (props.phenotypeData[cat][phen] !== 'no input') {
-        hasPhenotype = true
-        break
+        hasPhenotype = true;
+        break;
       }
     }
-    if (hasPhenotype) break
+    if (hasPhenotype) break;
   }
   if (hasPhenotype) {
-    doc.addPage()
-    let currentY = 40
-    const leftMargin = 40
+    doc.addPage();
+    let currentY = 40;
+    const leftMargin = 40;
     // Render page header for phenotype information.
-    doc.setFont("Helvetica", "bold")
-    doc.setFontSize(14)
-    doc.text("Phenotype Information", leftMargin, currentY)
-    currentY += 20
-    doc.setFont("Helvetica", "normal")
-    doc.setFontSize(12)
+    doc.setFont("Helvetica", "bold");
+    doc.setFontSize(14);
+    doc.text("Phenotype Information", leftMargin, currentY);
+    currentY += 20;
+    doc.setFont("Helvetica", "normal");
+    doc.setFontSize(12);
     // Iterate over each category in phenotypeData.
     for (const catId in props.phenotypeData) {
       // Find the category from testsData.
-      const category = testsData.categories.find(cat => cat.id === catId)
-      if (!category || !category.phenotypes) continue
+      const category = testsData.categories.find(cat => cat.id === catId);
+      if (!category || !category.phenotypes) continue;
       // Filter phenotypes with a state other than "no input".
       const phenotypes = category.phenotypes.filter(
         phen => props.phenotypeData[catId][phen.id] !== "no input"
-      )
+      );
       if (phenotypes.length > 0) {
         // Render the category title.
-        doc.setFont("Helvetica", "bold")
-        doc.text(category.title, leftMargin, currentY)
-        currentY += 16
-        doc.setFont("Helvetica", "normal")
+        doc.setFont("Helvetica", "bold");
+        doc.text(category.title, leftMargin, currentY);
+        currentY += 16;
+        doc.setFont("Helvetica", "normal");
         // Render each phenotype's name, HPO code, and state.
         phenotypes.forEach(phen => {
-          const state = props.phenotypeData[catId][phen.id]
-          const line = `${phen.name} (${phen.hpo}): ${state}`
-          doc.text(line, leftMargin, currentY)
-          currentY += 14
+          const state = props.phenotypeData[catId][phen.id];
+          const line = `${phen.name} (${phen.hpo}): ${state}`;
+          doc.text(line, leftMargin, currentY);
+          currentY += 14;
           // If we exceed the page height, add a new page.
           if (currentY > doc.internal.pageSize.getHeight() - 40) {
-            doc.addPage()
-            currentY = 40
+            doc.addPage();
+            currentY = 40;
           }
-        })
-        currentY += 10
+        });
+        currentY += 10;
       }
     }
   }
@@ -307,82 +313,82 @@ function renderPhenotypePage(doc) {
  * 2. Wait for the QR code element to be rendered and add it to the first page.
  * 3. If phenotype data exists (i.e. any phenotype selected), add a new page for it.
  * 4. If available, load and add the pedigree image on a new page while preserving its aspect ratio.
- * 5. Add page numbering to all pages if enabled.
+ * 5. Add page numbering and schema version info to all pages.
  * 6. Save the final PDF document.
  */
 async function generatePdf() {
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'A4' })
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'A4' });
   const mapping = {
     ...props.patientData,
     ...pdfConfig.header,
     ...pdfConfig.footer
-  }
+  };
 
   // Render header and body sections.
   if (pdfConfig.header) {
-    renderSection(doc, pdfConfig.header, mapping)
+    renderSection(doc, pdfConfig.header, mapping);
   }
   if (pdfConfig.body) {
-    renderSection(doc, pdfConfig.body, mapping)
+    renderSection(doc, pdfConfig.body, mapping);
   }
 
   // Render grouped test panels.
   const { baseY = 350, maxHeight = 600, spacing = 14, offsetX = 60, secondPageBaseY = 50 } =
-    pdfConfig.panels || {}
-  let y = baseY
-  groupedPanels.value.forEach(group => {
+    pdfConfig.panels || {};
+  let y = baseY;
+  groupedPanels.value.forEach((group) => {
     if (y + spacing > maxHeight) {
-      doc.addPage()
-      y = secondPageBaseY
+      doc.addPage();
+      y = secondPageBaseY;
     }
-    y = renderCategoryHeader(doc, group.categoryTitle, offsetX, y, spacing)
-    group.tests.forEach(panel => {
-      let requiredHeight = spacing
+    y = renderCategoryHeader(doc, group.categoryTitle, offsetX, y, spacing);
+    group.tests.forEach((panel) => {
+      let requiredHeight = spacing;
       if (panel.genes && panel.genes.length > 0) {
-        const geneText = panel.genes.join(', ')
-        const maxWidth = doc.internal.pageSize.getWidth() - offsetX - 40
-        const lines = doc.splitTextToSize(geneText, maxWidth)
-        requiredHeight += lines.length * spacing
+        const geneText = panel.genes.join(', ');
+        const maxWidth = doc.internal.pageSize.getWidth() - offsetX - 40;
+        const lines = doc.splitTextToSize(geneText, maxWidth);
+        requiredHeight += lines.length * spacing;
       }
       if (y + requiredHeight > maxHeight) {
-        doc.addPage()
-        y = secondPageBaseY
+        doc.addPage();
+        y = secondPageBaseY;
       }
-      y = renderPanel(doc, panel, offsetX, y, spacing)
-    })
-  })
+      y = renderPanel(doc, panel, offsetX, y, spacing);
+    });
+  });
 
   // Render variant segregation details if provided.
   if (props.patientData.variantSegregationRequested && props.patientData.variantDetails) {
     if (y + spacing > maxHeight) {
-      doc.addPage()
-      y = secondPageBaseY
+      doc.addPage();
+      y = secondPageBaseY;
     }
-    doc.setFont('Helvetica', 'bold')
-    doc.setFontSize(12)
-    doc.setTextColor('#000000')
-    doc.text('Segregation familiärer Variante:', offsetX, y)
-    y += spacing
-    doc.setFont('Helvetica', 'normal')
+    doc.setFont('Helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor('#000000');
+    doc.text('Segregation familiärer Variante:', offsetX, y);
+    y += spacing;
+    doc.setFont('Helvetica', 'normal');
     const variantLines = doc.splitTextToSize(
       props.patientData.variantDetails,
       doc.internal.pageSize.getWidth() - offsetX - 40
-    )
-    variantLines.forEach(line => {
-      doc.text(line, offsetX, y)
-      y += spacing
-    })
+    );
+    variantLines.forEach((line) => {
+      doc.text(line, offsetX, y);
+      y += spacing;
+    });
   }
 
   if (pdfConfig.footer) {
-    renderSection(doc, pdfConfig.footer, mapping)
+    renderSection(doc, pdfConfig.footer, mapping);
   }
 
   // Wait until the QR code is rendered, then add it to page 1.
-  await nextTick()
-  const canvas = qrContainer.value?.querySelector('canvas')
+  await nextTick();
+  const canvas = qrContainer.value?.querySelector('canvas');
   if (canvas && pdfConfig.qr?.position && pdfConfig.qr?.size) {
-    doc.setPage(1)
+    doc.setPage(1);
     doc.addImage(
       canvas.toDataURL('image/png'),
       'PNG',
@@ -390,57 +396,67 @@ async function generatePdf() {
       pdfConfig.qr.position.y,
       pdfConfig.qr.size.width,
       pdfConfig.qr.size.height
-    )
+    );
   }
 
   // If phenotype data exists, add a new page with phenotype information.
-  renderPhenotypePage(doc)
+  renderPhenotypePage(doc);
 
   // If a pedigree image exists, load it and add it as a new page.
   if (props.pedigreeDataUrl && props.pedigreeDataUrl !== '') {
     await new Promise((resolve) => {
-      const img = new Image()
-      img.src = props.pedigreeDataUrl
+      const img = new Image();
+      img.src = props.pedigreeDataUrl;
       img.onload = () => {
-        const pageWidth = doc.internal.pageSize.getWidth()
-        const pageHeight = doc.internal.pageSize.getHeight()
-        const margin = 40
-        const maxWidth = pageWidth - margin * 2
-        const maxHeight = pageHeight - margin * 2
-        // Calculate scale factor without upscaling.
-        const scale = Math.min(maxWidth / img.width, maxHeight / img.height, 1)
-        const drawWidth = img.width * scale
-        const drawHeight = img.height * scale
-        // Center the image on the new page.
-        const offsetXImg = (pageWidth - drawWidth) / 2
-        const offsetYImg = (pageHeight - drawHeight) / 2
-        doc.addPage()
-        doc.addImage(props.pedigreeDataUrl, 'PNG', offsetXImg, offsetYImg, drawWidth, drawHeight)
-        resolve()
-      }
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const margin = 40;
+        const maxWidth = pageWidth - margin * 2;
+        const maxHeight = pageHeight - margin * 2;
+        const scale = Math.min(maxWidth / img.width, maxHeight / img.height, 1);
+        const drawWidth = img.width * scale;
+        const drawHeight = img.height * scale;
+        const offsetXImg = (pageWidth - drawWidth) / 2;
+        const offsetYImg = (pageHeight - drawHeight) / 2;
+        doc.addPage();
+        doc.addImage(props.pedigreeDataUrl, 'PNG', offsetXImg, offsetYImg, drawWidth, drawHeight);
+        resolve();
+      };
       img.onerror = () => {
-        console.error("Error loading pedigree image.")
-        resolve() // Proceed even if the image fails to load.
-      }
-    })
+        console.error("Error loading pedigree image.");
+        resolve();
+      };
+    });
   }
 
-  // Add page numbering on all pages if enabled.
-  const totalPages = doc.internal.getNumberOfPages()
-  if (totalPages > 1 && pdfConfig.pageNumber && pdfConfig.pageNumber.enabled) {
+  // Add page numbering and version info to all pages.
+  const totalPages = doc.internal.getNumberOfPages();
+
+  // Add page numbering if enabled.
+  if (pdfConfig.pageNumber && pdfConfig.pageNumber.enabled) {
     for (let p = 1; p <= totalPages; p++) {
-      doc.setPage(p)
-      const { x, y: posY } = pdfConfig.pageNumber.position
-      const pageText = `Page ${p} of ${totalPages}`
-      doc.setFont(pdfConfig.pageNumber.font || 'Helvetica', pdfConfig.pageNumber.fontStyle || 'normal')
-      doc.setFontSize(pdfConfig.pageNumber.fontSize || 10)
-      doc.setTextColor(pdfConfig.pageNumber.color || '#000000')
-      doc.text(pageText, x, posY)
+      doc.setPage(p);
+      const { x, y: posY } = pdfConfig.pageNumber.position;
+      const pageText = `Page ${p} of ${totalPages}`;
+      doc.setFont(pdfConfig.pageNumber.font || 'Helvetica', pdfConfig.pageNumber.fontStyle || 'normal');
+      doc.setFontSize(pdfConfig.pageNumber.fontSize || 10);
+      doc.setTextColor(pdfConfig.pageNumber.color || '#000000');
+      doc.text(pageText, x, posY);
     }
   }
 
+  // Add schema version info on the left bottom of every page.
+  const footerVersionText = `PDF Schema: v${pdfConfig.schema.version} | Test Schema: v${testsData.schema.version}`;
+  for (let p = 1; p <= totalPages; p++) {
+    doc.setPage(p);
+    doc.setFont('Helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor('#000000');
+    doc.text(footerVersionText, 40, doc.internal.pageSize.getHeight() - 10);
+  }
+
   // Save the final PDF document.
-  doc.save('genetic_test_requisition.pdf')
+  doc.save('genetic_test_requisition.pdf');
 }
 </script>
 

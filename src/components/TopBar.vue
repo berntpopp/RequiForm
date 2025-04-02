@@ -1,23 +1,87 @@
 <template>
   <v-app-bar app color="primary" dark>
-    <v-toolbar-title>RequiForm</v-toolbar-title>
     <v-spacer></v-spacer>
-    <!-- Button to copy the plain URL with parameters -->
-    <v-btn color="secondary" @click="$emit('copy-url')">
-      Copy URL
+    <v-spacer></v-spacer>
+    <v-divider vertical color="white" class="mx-1"></v-divider>
+    <v-toolbar-title class="flex text-center">
+      <h1 class="text-h5 font-weight-bold">
+        <v-icon left>mdi-file-document</v-icon>
+        <span class="ml-2">RequiForm</span>
+      </h1>
+    </v-toolbar-title>
+    <v-divider vertical color="white" class="mx-1"></v-divider>
+    <!-- Theme Toggle Button -->
+    <v-btn
+      icon
+      @click="$emit('toggle-theme')"
+      :aria-label="isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme'"
+    >
+      <v-icon>{{ isDark ? 'mdi-weather-night' : 'mdi-white-balance-sunny' }}</v-icon>
+      <v-tooltip activator="parent" location="bottom">
+        {{ isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme' }}
+      </v-tooltip>
     </v-btn>
-    <!-- Button to copy the encrypted URL -->
-    <v-btn color="secondary" @click="$emit('copy-encrypted-url')">
-      Copy Encrypted URL
+    <!-- Reset Form Button -->
+    <v-btn icon @click="$emit('reset-form')" aria-label="Reset Form">
+      <v-icon>mdi-refresh</v-icon>
+      <v-tooltip activator="parent" location="bottom">
+        Reset Form
+      </v-tooltip>
     </v-btn>
-    <!-- Button to generate PDF -->
-    <v-btn color="secondary" @click="$emit('generate-pdf')">
-      Generate PDF
+    <!-- FAQ Modal Button -->
+    <v-btn icon @click="$emit('open-faq')" aria-label="Open FAQ">
+      <v-icon>mdi-help-circle</v-icon>
+      <v-tooltip activator="parent" location="bottom">
+        FAQ
+      </v-tooltip>
     </v-btn>
+    <!-- Copy URL Button -->
+    <v-btn icon @click="$emit('copy-url')" aria-label="Copy URL">
+      <v-icon>mdi-link-variant</v-icon>
+      <v-tooltip activator="parent" location="bottom">
+        Copy URL
+      </v-tooltip>
+    </v-btn>
+    <!-- Copy Encrypted URL Button -->
+    <v-btn icon @click="$emit('copy-encrypted-url')" aria-label="Copy Encrypted URL">
+      <v-icon>mdi-lock</v-icon>
+      <v-tooltip activator="parent" location="bottom">
+        Copy Encrypted URL
+      </v-tooltip>
+    </v-btn>
+    <!-- Generate PDF Button -->
+    <v-btn icon @click="$emit('generate-pdf')" aria-label="Generate PDF">
+      <v-icon>mdi-file-pdf-box</v-icon>
+      <v-tooltip activator="parent" location="bottom">
+        Generate PDF
+      </v-tooltip>
+    </v-btn>
+    <v-divider vertical color="white" class="mx-1"></v-divider>
+    <v-spacer></v-spacer>
+    <v-spacer></v-spacer>
   </v-app-bar>
 </template>
 
 <script setup>
-// This component is purely presentational.
-// It emits 'copy-url', 'copy-encrypted-url', and 'generate-pdf' events.
+/**
+ * TopBar component for RequiForm.
+ *
+ * This component displays the top menu bar and provides icon-based buttons for:
+ * - Toggling the theme (dark/light)
+ * - Resetting the complete form
+ * - Opening the FAQ modal
+ * - Copying plain and encrypted URLs, and generating a PDF
+ *
+ * Props:
+ *   isDark {Boolean} - Whether the dark theme is active.
+ *
+ * Emits:
+ *   toggle-theme, reset-form, open-faq, copy-url, copy-encrypted-url, generate-pdf.
+ */
+defineProps({
+  isDark: {
+    type: Boolean,
+    required: true,
+  },
+});
 </script>

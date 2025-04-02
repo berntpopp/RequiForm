@@ -31,6 +31,24 @@
 - **Extensibility**: Allow easy updates to the list of genetic tests through a simple JSON file.  
 - **Interoperability**: Accept URL parameters so other systems (e.g., EHRs) can link directly into RequiForm with pre-populated data.
 
+## FAQ: Approach and Security Measures
+
+RequiForm includes a detailed FAQ that explains:
+
+- **Data Handling**:  
+  RequiForm operates entirely in your browser without a backend. This means all patient data remains local, significantly reducing security risks.
+
+- **Encryption & URL Security**:  
+  The application uses client-side encryption and hash-based URL parsing to secure URL parameters. This ensures sensitive information is not stored in your browser history or transmitted over the network.
+
+- **Non-Medical Disclaimer**:  
+  RequiForm is intended solely as a tool for streamlining the genetic test requisition process. It is not a substitute for professional medical advice or diagnosis. Users must consult a healthcare professional for medical decisions.
+
+- **Additional Security**:  
+  All functionalities are designed using modern JavaScript libraries and best practices to further protect your data from unauthorized access.
+
+You can access this FAQ directly within the application via the top menu bar.
+
 ## Getting Started
 
 - **Clone or Download**: Obtain a copy of this repository.  

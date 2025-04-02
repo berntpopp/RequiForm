@@ -1,7 +1,11 @@
 <template>
-  <v-app>
+  <v-app :theme="isDark ? 'dark' : 'light'">
     <!-- Top Menu Bar -->
     <TopBar
+      :isDark="isDark"
+      @toggle-theme="toggleTheme"
+      @reset-form="resetForm"
+      @open-faq="openFAQ"
       @generate-pdf="handleGeneratePdf"
       @copy-url="handleCopyUrl"
       @copy-encrypted-url="openEncryptionDialog"
@@ -145,6 +149,25 @@
           </v-card-actions>
         </v-card>
       </v-dialog>
+
+      <!-- FAQ Modal -->
+      <v-dialog v-model="showFAQModal" persistent max-width="600">
+        <v-card>
+          <v-card-title>Frequently Asked Questions (FAQ)</v-card-title>
+          <v-card-text>
+            <ul>
+              <li v-for="(faq, index) in faqContent" :key="index">
+                <h4>{{ faq.question }}</h4>
+                <p>{{ faq.answer }}</p>
+              </li>
+            </ul>
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn @click="closeFAQ">Close</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
     </v-main>
     <!-- Version Footer displaying the current version -->
     <VersionFooter />
@@ -178,21 +201,29 @@ function getCurrentIsoDate() {
   return new Date().toISOString().split('T')[0];
 }
 
-/** Patient data object. */
-const patientData = reactive({
-  givenName: '',
-  familyName: '',
-  birthdate: '',
-  insurance: '',
-  sex: '',
-  physicianName: '',
-  familyHistory: '',
-  parentalConsanguinity: '',
-  diagnosis: '',
-  orderingDate: getCurrentIsoDate(),
-  variantSegregationRequested: false,
-  variantDetails: '',
-});
+/**
+ * Returns the initial patient data object.
+ * @return {Object} Initial patient data.
+ */
+function initialPatientData() {
+  return {
+    givenName: '',
+    familyName: '',
+    birthdate: '',
+    insurance: '',
+    sex: '',
+    physicianName: '',
+    familyHistory: '',
+    parentalConsanguinity: '',
+    diagnosis: '',
+    orderingDate: getCurrentIsoDate(),
+    variantSegregationRequested: false,
+    variantDetails: '',
+  };
+}
+
+/** Reactive patient data object. */
+const patientData = reactive(initialPatientData());
 
 /** Array of selected panel IDs. */
 const selectedTests = ref([]);
@@ -225,6 +256,41 @@ const showPedigree = ref(false);
 
 /** Holds the pedigree chart image data URL for PDF inclusion. */
 const pedigreeDataUrl = ref('');
+
+/** Theme state: true for dark theme, false for light theme. */
+const isDark = ref(false);
+
+/** FAQ modal state. */
+const showFAQModal = ref(false);
+
+/** FAQ content array with detailed approach and security measures. */
+const faqContent = ref([
+  {
+    question: 'What is RequiForm’s approach to data handling?',
+    answer:
+      'RequiForm is completely static and runs entirely in your browser. No data is sent to a backend server. This ensures that your sensitive patient data remains on your local machine only.',
+  },
+  {
+    question: 'How does RequiForm secure my data?',
+    answer:
+      'RequiForm uses client-side encryption for URL parameters and hash-based URL parsing. This approach avoids sending sensitive data in the browser history or over the network, providing an extra layer of security.',
+  },
+  {
+    question: 'Is RequiForm a medical device?',
+    answer:
+      'No. RequiForm is designed solely as a tool for streamlining the genetic test requisition process. It is not a substitute for professional medical advice or diagnosis. Always consult a healthcare professional for medical decisions.',
+  },
+  {
+    question: 'Why is my data safe in RequiForm?',
+    answer:
+      'Since all processing happens locally in your browser, your data is never transmitted to a server. This minimizes the risk of unauthorized access and ensures that your information remains private.',
+  },
+  {
+    question: 'Where can I learn more about the security measures in place?',
+    answer:
+      'This FAQ and the project documentation provide detailed insights into the data handling, encryption techniques, and overall security measures implemented in RequiForm. We encourage you to review these sections for a comprehensive understanding.',
+  },
+]);
 
 onMounted(() => {
   const encryptedValue = getUrlParameter('encrypted');
@@ -405,6 +471,39 @@ const confirmDecryption = () => {
   decryptionError.value = '';
   clearUrlParameters();
 };
+
+/**
+ * Toggles the application theme between dark and light modes.
+ */
+function toggleTheme() {
+  isDark.value = !isDark.value;
+}
+
+/**
+ * Resets the form to its initial state.
+ */
+function resetForm() {
+  Object.assign(patientData, initialPatientData());
+  selectedTests.value = [];
+  phenotypeData.value = {};
+  showPedigree.value = false;
+  snackbarMessage.value = 'Form has been reset.';
+  snackbar.value = true;
+}
+
+/**
+ * Opens the FAQ modal.
+ */
+function openFAQ() {
+  showFAQModal.value = true;
+}
+
+/**
+ * Closes the FAQ modal.
+ */
+function closeFAQ() {
+  showFAQModal.value = false;
+}
 </script>
 
 <style>

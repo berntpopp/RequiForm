@@ -1,7 +1,6 @@
 <template>
   <v-app-bar app color="primary" dark>
     <v-spacer></v-spacer>
-    <v-spacer></v-spacer>
     <v-divider vertical color="white" class="mx-1"></v-divider>
     <v-toolbar-title class="flex text-center">
       <h1 class="text-h5 font-weight-bold">
@@ -10,52 +9,57 @@
       </h1>
     </v-toolbar-title>
     <v-divider vertical color="white" class="mx-1"></v-divider>
-    <!-- Theme Toggle Button -->
-    <v-btn
-      icon
-      @click="$emit('toggle-theme')"
-      :aria-label="isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme'"
-    >
-      <v-icon>{{ isDark ? 'mdi-weather-night' : 'mdi-white-balance-sunny' }}</v-icon>
-      <v-tooltip activator="parent" location="bottom">
-        {{ isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme' }}
-      </v-tooltip>
-    </v-btn>
-    <!-- Reset Form Button -->
-    <v-btn icon @click="$emit('reset-form')" aria-label="Reset Form">
-      <v-icon>mdi-refresh</v-icon>
-      <v-tooltip activator="parent" location="bottom">
-        Reset Form
-      </v-tooltip>
-    </v-btn>
-    <!-- FAQ Modal Button -->
-    <v-btn icon @click="$emit('open-faq')" aria-label="Open FAQ">
-      <v-icon>mdi-help-circle</v-icon>
-      <v-tooltip activator="parent" location="bottom">
-        FAQ
-      </v-tooltip>
-    </v-btn>
-    <!-- Copy URL Button -->
-    <v-btn icon @click="$emit('copy-url')" aria-label="Copy URL">
-      <v-icon>mdi-link-variant</v-icon>
-      <v-tooltip activator="parent" location="bottom">
-        Copy URL
-      </v-tooltip>
-    </v-btn>
-    <!-- Copy Encrypted URL Button -->
-    <v-btn icon @click="$emit('copy-encrypted-url')" aria-label="Copy Encrypted URL">
-      <v-icon>mdi-lock</v-icon>
-      <v-tooltip activator="parent" location="bottom">
-        Copy Encrypted URL
-      </v-tooltip>
-    </v-btn>
-    <!-- Generate PDF Button -->
-    <v-btn icon @click="$emit('generate-pdf')" aria-label="Generate PDF">
-      <v-icon>mdi-file-pdf-box</v-icon>
-      <v-tooltip activator="parent" location="bottom">
-        Generate PDF
-      </v-tooltip>
-    </v-btn>
+    <span id="top-bar-actions">
+      <!-- Theme Toggle Button -->
+      <v-btn icon @click="$emit('toggle-theme')" :aria-label="isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme'">
+        <v-icon>{{ isDark ? 'mdi-weather-night' : 'mdi-white-balance-sunny' }}</v-icon>
+        <v-tooltip activator="parent" location="bottom">
+          {{ isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme' }}
+        </v-tooltip>
+      </v-btn>
+      <!-- Reset Form Button -->
+      <v-btn icon @click="$emit('reset-form')" aria-label="Reset Form">
+        <v-icon>mdi-refresh</v-icon>
+        <v-tooltip activator="parent" location="bottom">
+          Reset Form
+        </v-tooltip>
+      </v-btn>
+      <!-- FAQ Modal Button -->
+      <v-btn icon @click="$emit('open-faq')" aria-label="Open FAQ">
+        <v-icon>mdi-help-circle</v-icon>
+        <v-tooltip activator="parent" location="bottom">
+          FAQ
+        </v-tooltip>
+      </v-btn>
+      <!-- Start Tour Button -->
+      <v-btn icon @click="$emit('start-tour')" aria-label="Start Guided Tour">
+        <v-icon>mdi-compass-outline</v-icon>
+        <v-tooltip activator="parent" location="bottom">
+          Start Guided Tour
+        </v-tooltip>
+      </v-btn>
+      <!-- Copy URL Button -->
+      <v-btn icon @click="$emit('copy-url')" aria-label="Copy URL">
+        <v-icon>mdi-link-variant</v-icon>
+        <v-tooltip activator="parent" location="bottom">
+          Copy URL
+        </v-tooltip>
+      </v-btn>
+      <!-- Copy Encrypted URL Button -->
+      <v-btn icon @click="$emit('copy-encrypted-url')" aria-label="Copy Encrypted URL">
+        <v-icon>mdi-lock</v-icon>
+        <v-tooltip activator="parent" location="bottom">
+          Copy Encrypted URL
+        </v-tooltip>
+      </v-btn>
+      <!-- Generate PDF Button -->
+      <v-btn icon @click="$emit('generate-pdf')" aria-label="Generate PDF" id="generate-pdf-btn">
+        <v-icon>mdi-file-pdf-box</v-icon>
+        <v-tooltip activator="parent" location="bottom">
+          Generate PDF
+        </v-tooltip>
+      </v-btn>
+    </span>
     <v-divider vertical color="white" class="mx-1"></v-divider>
     <v-spacer></v-spacer>
     <v-spacer></v-spacer>
@@ -71,12 +75,13 @@
  * - Resetting the complete form
  * - Opening the FAQ modal
  * - Copying plain and encrypted URLs, and generating a PDF
+ * - Starting a guided tour
  *
  * Props:
  *   isDark {Boolean} - Whether the dark theme is active.
  *
  * Emits:
- *   toggle-theme, reset-form, open-faq, copy-url, copy-encrypted-url, generate-pdf.
+ *   toggle-theme, reset-form, open-faq, start-tour, copy-url, copy-encrypted-url, generate-pdf.
  */
 defineProps({
   isDark: {

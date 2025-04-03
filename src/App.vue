@@ -1,5 +1,5 @@
 <template>
-  <v-app :theme="isDark ? 'dark' : 'light'">
+  <v-app :theme="isDark ? 'dark' : 'light'" id="app">
     <!-- Top Menu Bar -->
     <TopBar
       :isDark="isDark"
@@ -9,6 +9,7 @@
       @generate-pdf="handleGeneratePdf"
       @copy-url="handleCopyUrl"
       @copy-encrypted-url="openEncryptionDialog"
+      @start-tour="startTour"
     />
 
     <!-- Disclaimer Modal: shown if not yet acknowledged or if reopened -->
@@ -21,6 +22,7 @@
           :patientData="patientData" 
           @update:patientData="handlePatientDataUpdate"
           :pdfConfig="pdfConfig" 
+          id="patient-form-component"
         />
 
         <!-- Pedigree Option -->
@@ -28,10 +30,17 @@
         <PedigreeDrawer v-if="showPedigree" ref="pedigreeDrawer" />
 
         <!-- Test Selector -->
-        <TestSelector v-model="selectedTests" />
+        <TestSelector 
+          v-model="selectedTests"
+          id="test-selector-component"
+        />
 
         <!-- Phenotype Selector -->
-        <PhenotypeSelector :groupedPanelDetails="groupedPanelDetails" v-model="phenotypeData" />
+        <PhenotypeSelector 
+          :groupedPanelDetails="groupedPanelDetails" 
+          v-model="phenotypeData"
+          id="phenotype-selector-component"
+        />
 
         <!-- Hidden PDF Generator component -->
         <div style="display: none;">
@@ -180,6 +189,12 @@ import {
   generateUrlWithHash,
 } from './utils/url.js';
 import Disclaimer from './components/Disclaimer.vue';
+
+// Tour Service
+import { initializeTour, shouldShowTour } from './services/tourService';
+
+// Tour instance ref
+const tourInstance = ref(null);
 
 /**
  * Returns the current date in ISO format (YYYY-MM-DD).
@@ -502,8 +517,23 @@ function openDisclaimerModal() {
   showDisclaimerModal.value = true;
 }
 
-/** On mount, check for encrypted param. */
+// --- Tour Initialization ---
+// Wait a moment for the DOM to be ready after initial rendering
 onMounted(() => {
+  nextTick().then(() => {
+    try {
+      tourInstance.value = initializeTour();
+      if (shouldShowTour()) {
+        console.log("Starting tour automatically...");
+        tourInstance.value.start();
+      } else {
+        console.log("Tour already completed or skipped previously.");
+      }
+    } catch (error) {
+      console.error("Failed to initialize or start tour:", error);
+    }
+  });
+  // Existing onMounted logic:
   const encryptedValue = getUrlParameter('encrypted');
   if (encryptedValue) {
     pendingEncryptedValue.value = encryptedValue;
@@ -528,6 +558,20 @@ function handlePatientDataUpdate(newData) {
   console.log("App.vue received update:", JSON.stringify(newData)); // Log received data
   patientData.value = newData; // Update the reactive state
 }
+
+// --- Tour Method --- 
+// Method to manually start the tour
+function startTour() {
+  if (tourInstance.value) {
+    // Reset localStorage flag if you want the tour to be startable multiple times manually
+    // localStorage.removeItem('requiformTourCompleted'); 
+    console.log("Starting tour manually...");
+    tourInstance.value.start();
+  } else {
+    console.error("Tour instance not available.");
+  }
+}
+// --- End Tour Method ---
 </script>
 
 <style>

@@ -16,24 +16,18 @@
 
     <v-main>
       <v-container>
+        <!-- PatientForm now includes both the basic fields and the GenDG Consent select/form (if chosen). -->
         <PatientForm :patientData="patientData" />
 
-        <!-- Pedigree Option: show checkbox and component when enabled -->
-        <v-checkbox
-          v-model="showPedigree"
-          label="Include Pedigree Chart"
-          class="mb-4"
-        />
+        <!-- Pedigree Option -->
+        <v-checkbox v-model="showPedigree" label="Include Pedigree Chart" class="mb-4" />
         <PedigreeDrawer v-if="showPedigree" ref="pedigreeDrawer" />
 
-        <!-- Always render TestSelector regardless of variant segregation option -->
+        <!-- Test Selector -->
         <TestSelector v-model="selectedTests" />
 
-        <!-- New Phenotype Selector Component -->
-        <PhenotypeSelector
-          :groupedPanelDetails="groupedPanelDetails"
-          v-model="phenotypeData"
-        />
+        <!-- Phenotype Selector -->
+        <PhenotypeSelector :groupedPanelDetails="groupedPanelDetails" v-model="phenotypeData" />
 
         <!-- Hidden PDF Generator component -->
         <div style="display: none;">
@@ -43,6 +37,7 @@
             :selectedTests="selectedTests"
             :pedigreeDataUrl="pedigreeDataUrl"
             :phenotypeData="phenotypeData"
+            :consentData="patientData.genDGConsentData"
           />
         </div>
 
@@ -66,13 +61,7 @@
       </v-container>
 
       <!-- Snackbar for notifications -->
-      <v-snackbar
-        v-model="snackbar"
-        timeout="3000"
-        top
-        right
-        transition="scale-transition"
-      >
+      <v-snackbar v-model="snackbar" timeout="3000" top right transition="scale-transition">
         {{ snackbarMessage }}
         <template #action="{ attrs }">
           <v-btn color="red" text v-bind="attrs" @click="snackbar = false">
@@ -84,16 +73,9 @@
       <!-- Encryption Modal -->
       <v-dialog v-model="encryptionDialog" max-width="500">
         <v-card>
-          <v-card-title class="headline">
-            Enter Password for Encryption
-          </v-card-title>
+          <v-card-title class="headline">Enter Password for Encryption</v-card-title>
           <v-card-text>
-            <v-text-field
-              v-model="encryptionPassword"
-              type="password"
-              label="Password"
-              autocomplete="off"
-            />
+            <v-text-field v-model="encryptionPassword" type="password" label="Password" autocomplete="off" />
           </v-card-text>
           <v-card-actions>
             <v-spacer></v-spacer>
@@ -106,9 +88,7 @@
       <!-- Decryption Modal -->
       <v-dialog v-model="decryptionDialog" max-width="500">
         <v-card>
-          <v-card-title class="headline">
-            Enter Password for Decryption
-          </v-card-title>
+          <v-card-title class="headline">Enter Password for Decryption</v-card-title>
           <v-card-text>
             <v-text-field
               v-model="decryptionPassword"
@@ -129,27 +109,21 @@
       <!-- Validation Warning Dialog -->
       <v-dialog v-model="validationDialog" max-width="500">
         <v-card>
-          <v-card-title class="headline">
-            Incomplete or Invalid Data
-          </v-card-title>
+          <v-card-title class="headline">Incomplete or Invalid Data</v-card-title>
           <v-card-text>
             <p>The following required fields are missing or invalid:</p>
             <ul>
-              <li v-for="(error, index) in validationErrors" :key="index">
-                {{ error }}
-              </li>
+              <li v-for="(error, index) in validationErrors" :key="index">{{ error }}</li>
             </ul>
             <p>
-              Generating the PDF with incomplete data may result in errors. Please
-              review and correct the data if necessary.
+              Generating the PDF with incomplete data may result in errors.
+              Please review and correct the data if necessary.
             </p>
           </v-card-text>
           <v-card-actions>
             <v-spacer></v-spacer>
             <v-btn text @click="cancelValidation">Cancel</v-btn>
-            <v-btn color="primary" text @click="proceedValidation">
-              Proceed Anyway
-            </v-btn>
+            <v-btn color="primary" text @click="proceedValidation">Proceed Anyway</v-btn>
           </v-card-actions>
         </v-card>
       </v-dialog>
@@ -175,10 +149,10 @@
     </v-main>
 
     <!-- Footer with disclaimer acknowledgement button -->
-    <VersionFooter 
-      :disclaimerAcknowledged="disclaimerAcknowledged" 
-      :acknowledgmentTime="acknowledgmentTime" 
-      @reopen-disclaimer="openDisclaimerModal" 
+    <VersionFooter
+      :disclaimerAcknowledged="disclaimerAcknowledged"
+      :acknowledgmentTime="acknowledgmentTime"
+      @reopen-disclaimer="openDisclaimerModal"
     />
   </v-app>
 </template>
@@ -192,6 +166,7 @@ import PdfGenerator from './components/PdfGenerator.vue';
 import PedigreeDrawer from './components/PedigreeDrawer.vue';
 import PhenotypeSelector from './components/PhenotypeSelector.vue';
 import VersionFooter from './components/Footer.vue';
+import GenDGConsentForm from './components/ConsentForm.vue';
 import testsData from './data/tests.json';
 import {
   mergeUrlParameters,
@@ -213,6 +188,7 @@ function getCurrentIsoDate() {
 
 /**
  * Returns the initial patient data object.
+ * Includes genDGConsentData with "provided" or "fill" + subfields.
  * @return {Object} Initial patient data.
  */
 function initialPatientData() {
@@ -229,19 +205,32 @@ function initialPatientData() {
     orderingDate: getCurrentIsoDate(),
     variantSegregationRequested: false,
     variantDetails: '',
+    // The GenDG consent structure
+    genDGConsentData: {
+      provided: 'provided',
+      form: {
+        consentName: '',
+        consentDate: '',
+        consentStatement: '',
+        questionSecondaryFindings: 'no',
+        questionMaterial: 'no',
+        questionExtended: 'no',
+        questionResearch: 'no'
+      }
+    }
   };
 }
 
-/** Reactive patient data object. */
+/** The main reactive patient data object. */
 const patientData = ref(initialPatientData());
 
 /** Array of selected panel IDs. */
 const selectedTests = ref([]);
 
-/** Phenotype data: an object mapping category id to phenotype states. */
+/** Phenotype data mapping category id to phenotype states. */
 const phenotypeData = ref({});
 
-/** Snackbar state for notifications. */
+/** Snackbar for notifications. */
 const snackbar = ref(false);
 const snackbarMessage = ref('');
 
@@ -261,19 +250,19 @@ const validationErrors = ref([]);
 /** Used to store the encrypted string from the URL for decryption. */
 const pendingEncryptedValue = ref(null);
 
-/** Controls whether the pedigree chart is displayed. */
+/** Toggle for pedigree chart. */
 const showPedigree = ref(false);
 
 /** Holds the pedigree chart image data URL for PDF inclusion. */
 const pedigreeDataUrl = ref('');
 
-/** Theme state: true for dark theme, false for light theme. */
+/** Theme state: true = dark theme, false = light theme. */
 const isDark = ref(false);
 
 /** FAQ modal state. */
 const showFAQModal = ref(false);
 
-/** FAQ content array with detailed approach and security measures. */
+/** FAQ content array. */
 const faqContent = ref([
   {
     question: 'What is RequiForm’s approach to data handling?',
@@ -302,7 +291,7 @@ const faqContent = ref([
   },
 ]);
 
-/** References to child components. */
+/** PDF generator and pedigree drawer references. */
 const pdfGen = ref(null);
 const pedigreeDrawer = ref(null);
 
@@ -321,8 +310,8 @@ const groupedPanelDetails = computed(() => {
 });
 
 /**
- * Validates the patient data based on required fields.
- * @return {Array<string>} List of error messages for missing/invalid fields.
+ * Validate required fields in patient data.
+ * @return {Array<string>} List of error messages.
  */
 function validatePatientData() {
   const errors = [];
@@ -334,11 +323,11 @@ function validatePatientData() {
     physicianName: 'Physician Name',
     orderingDate: 'Ordering Date',
   };
-  Object.entries(requiredFields).forEach(([field, label]) => {
+  for (const [field, label] of Object.entries(requiredFields)) {
     if (!patientData.value[field] || patientData.value[field].trim() === '') {
       errors.push(`${label} is required.`);
     }
-  });
+  }
   if (patientData.value.birthdate && !/^\d{4}-\d{2}-\d{2}$/.test(patientData.value.birthdate)) {
     errors.push('Birthdate must be in YYYY-MM-DD format.');
   }
@@ -346,8 +335,7 @@ function validatePatientData() {
 }
 
 /**
- * Handles PDF generation by validating patient data and,
- * if pedigree is enabled, retrieving the pedigree image before generating PDF.
+ * Main PDF generation handler.
  */
 const handleGeneratePdf = async () => {
   const errors = validatePatientData();
@@ -355,6 +343,7 @@ const handleGeneratePdf = async () => {
     validationErrors.value = errors;
     validationDialog.value = true;
   } else {
+    // Attempt to get pedigree data if requested
     if (showPedigree.value && pedigreeDrawer.value?.getPedigreeDataUrl) {
       try {
         pedigreeDataUrl.value = await pedigreeDrawer.value.getPedigreeDataUrl();
@@ -368,10 +357,12 @@ const handleGeneratePdf = async () => {
   }
 };
 
+/** Cancel the validation dialog. */
 function cancelValidation() {
   validationDialog.value = false;
 }
 
+/** Proceed with PDF generation even if incomplete data. */
 function proceedValidation() {
   validationDialog.value = false;
   if (pdfGen.value && typeof pdfGen.value.generatePdf === 'function') {
@@ -379,9 +370,11 @@ function proceedValidation() {
   }
 }
 
+/** Create a plain hash-based URL for the current data. */
 const generatePlainUrl = () => generateUrlWithHash(patientData.value, selectedTests.value);
 
-const handleCopyUrl = () => {
+/** Copy the hash-based URL to the clipboard. */
+function handleCopyUrl() {
   const urlToCopy = generatePlainUrl();
   navigator.clipboard
     .writeText(urlToCopy)
@@ -393,18 +386,17 @@ const handleCopyUrl = () => {
       snackbarMessage.value = 'Failed to copy URL.';
       snackbar.value = true;
     });
-};
+}
 
-const openEncryptionDialog = () => {
+/** Encryption dialog handlers. */
+function openEncryptionDialog() {
   encryptionPassword.value = '';
   encryptionDialog.value = true;
-};
-
-const closeEncryptionDialog = () => {
+}
+function closeEncryptionDialog() {
   encryptionDialog.value = false;
-};
-
-const confirmEncryption = () => {
+}
+function confirmEncryption() {
   const paramsObj = { ...patientData.value };
   if (selectedTests.value.length) {
     paramsObj.selectedTests = selectedTests.value.join(',');
@@ -427,19 +419,20 @@ const confirmEncryption = () => {
       snackbar.value = true;
       encryptionDialog.value = false;
     });
-};
+}
 
-const cancelDecryption = () => {
+/** Decryption dialog handlers. */
+function cancelDecryption() {
   decryptionDialog.value = false;
   decryptionPassword.value = '';
   decryptionError.value = '';
+  // Clear all patient data if canceled
   Object.keys(patientData.value).forEach((key) => {
     patientData.value[key] = '';
   });
   clearUrlParameters();
-};
-
-const confirmDecryption = () => {
+}
+function confirmDecryption() {
   const params = decryptParams(pendingEncryptedValue.value, decryptionPassword.value);
   if (!params) {
     decryptionError.value = 'Decryption failed. Please check your password.';
@@ -459,18 +452,14 @@ const confirmDecryption = () => {
   decryptionPassword.value = '';
   decryptionError.value = '';
   clearUrlParameters();
-};
+}
 
-/**
- * Toggles the application theme between dark and light modes.
- */
+/** Toggle dark/light theme. */
 function toggleTheme() {
   isDark.value = !isDark.value;
 }
 
-/**
- * Resets the form to its initial state.
- */
+/** Resets the form to its initial state. */
 function resetForm() {
   patientData.value = initialPatientData();
   selectedTests.value = [];
@@ -480,29 +469,20 @@ function resetForm() {
   snackbar.value = true;
 }
 
-/**
- * Opens the FAQ modal.
- */
+/** FAQ modal handlers. */
 function openFAQ() {
   showFAQModal.value = true;
 }
-
-/**
- * Closes the FAQ modal.
- */
 function closeFAQ() {
   showFAQModal.value = false;
 }
 
-// --- Disclaimer Handling ---
+/** Disclaimer handling. */
 const disclaimerAcknowledged = ref(localStorage.getItem('disclaimerAcknowledged') === 'true');
 const acknowledgmentTime = ref(localStorage.getItem('acknowledgmentTime') || '');
-// Show the disclaimer modal if not yet acknowledged
 const showDisclaimerModal = ref(!disclaimerAcknowledged.value);
 
-/**
- * Handles the dismissal of the disclaimer.
- */
+/** Dismiss the disclaimer. */
 function handleDisclaimerDismiss() {
   disclaimerAcknowledged.value = true;
   acknowledgmentTime.value = new Date().toLocaleDateString();
@@ -511,13 +491,12 @@ function handleDisclaimerDismiss() {
   showDisclaimerModal.value = false;
 }
 
-/**
- * Opens the disclaimer modal (e.g., when the footer button is clicked).
- */
+/** Reopen the disclaimer modal. */
 function openDisclaimerModal() {
   showDisclaimerModal.value = true;
 }
 
+/** On mount, check for encrypted param. */
 onMounted(() => {
   const encryptedValue = getUrlParameter('encrypted');
   if (encryptedValue) {

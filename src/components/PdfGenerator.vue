@@ -12,74 +12,53 @@
 
 <script setup>
 import { jsPDF } from 'jspdf';
-import {
-  defineProps,
-  ref,
-  nextTick,
-  computed,
-  defineExpose
-} from 'vue';
+import { defineProps, ref, nextTick, computed, defineExpose } from 'vue';
 import QrcodeVue from 'qrcode.vue';
 import pdfConfig from '../data/pdfConfig.json';
 import testsData from '../data/tests.json';
 
-// Define props including the new phenotypeData prop.
+// Define props – note the use of "consentData" instead of "genDGConsentData".
 const props = defineProps({
   patientData: { type: Object, required: true },
   selectedTests: { type: Array, required: true },
   pedigreeDataUrl: { type: String, required: false, default: '' },
-  phenotypeData: { type: Object, required: false, default: () => ({}) }
+  phenotypeData: { type: Object, required: false, default: () => ({}) },
+  consentData: { type: Object, required: false, default: () => null }
 });
 
-// Expose generatePdf function for external use.
+// Expose generatePdf for external calls.
 defineExpose({ generatePdf });
 
-// Reference for the hidden QR code container.
+// Reference for the hidden QR code.
 const qrContainer = ref(null);
 
-/**
- * Computes the grouped test panels by category based on the selected tests.
- *
- * @returns {Array<Object>} An array of objects each containing a category title and tests.
- */
+// Compute grouped test panels.
 const groupedPanels = computed(() =>
   testsData.categories
     .map((category) => ({
       categoryTitle: category.title,
-      tests: category.tests.filter((test) => props.selectedTests.includes(test.id))
+      tests: category.tests.filter((test) =>
+        props.selectedTests.includes(test.id)
+      )
     }))
     .filter((group) => group.tests.length > 0)
 );
 
-/**
- * Computes the content string for the QR code.
- *
- * @returns {string} The QR code content.
- */
+// Compute QR code content.
 const qrContent = computed(() =>
   `Given Name: ${props.patientData.givenName}, Family Name: ${props.patientData.familyName}, Birthdate: ${props.patientData.birthdate}, Insurance: ${props.patientData.insurance}, Tests: ${props.selectedTests.join(', ')}`
 );
 
-/**
- * Replaces all placeholders in the given template with corresponding values from the mapping.
- *
- * @param {string} template - The template string containing placeholders in the format {{ key }}.
- * @param {Object} mapping - An object mapping keys to their replacement values.
- * @returns {string} The resulting string with placeholders replaced.
- */
+// Utility: Replace placeholders in a template string with values from mapping.
 function mapTemplateString(template, mapping) {
   return template.replace(/{{\s*([\w]+)\s*}}/g, (match, key) =>
     key in mapping ? mapping[key] : ''
   );
 }
 
-/**
- * Renders a text element on the PDF document.
- *
- * @param {jsPDF} doc - The jsPDF document instance.
- * @param {Object} element - The configuration object for the text element.
- * @param {Object} mapping - The placeholder-to-value mapping for dynamic content.
- */
+// ------------------------
+// Common Render Functions
+// ------------------------
 function renderText(doc, element, mapping) {
   const text = mapTemplateString(element.content, mapping);
   if (element.style) {
@@ -90,13 +69,6 @@ function renderText(doc, element, mapping) {
   doc.text(text, element.position.x, element.position.y);
 }
 
-/**
- * Renders an image element on the PDF document.
- *
- * @param {jsPDF} doc - The jsPDF document instance.
- * @param {Object} element - The configuration object for the image element.
- * @param {Object} mapping - The placeholder-to-value mapping for dynamic content.
- */
 function renderImage(doc, element, mapping) {
   const imageData = mapTemplateString(element.source, mapping);
   doc.addImage(
@@ -109,12 +81,6 @@ function renderImage(doc, element, mapping) {
   );
 }
 
-/**
- * Renders a rectangle element on the PDF document.
- *
- * @param {jsPDF} doc - The jsPDF document instance.
- * @param {Object} element - The configuration object for the rectangle element.
- */
 function renderRectangle(doc, element) {
   const { x, y } = element.position;
   const { width, height } = element.size;
@@ -133,12 +99,6 @@ function renderRectangle(doc, element) {
   doc.rect(x, y, width, height, rectStyle);
 }
 
-/**
- * Renders a line element on the PDF document.
- *
- * @param {jsPDF} doc - The jsPDF document instance.
- * @param {Object} element - The configuration object for the line element.
- */
 function renderLine(doc, element) {
   const { x: startX, y: startY } = element.start;
   const { x: endX, y: endY } = element.end;
@@ -150,13 +110,6 @@ function renderLine(doc, element) {
   doc.line(startX, startY, endX, endY);
 }
 
-/**
- * Renders a section (a group of elements) on the PDF document.
- *
- * @param {jsPDF} doc - The jsPDF document instance.
- * @param {Object} section - The section configuration object containing an array of elements.
- * @param {Object} mapping - The placeholder-to-value mapping for dynamic content.
- */
 function renderSection(doc, section, mapping) {
   if (!section || !section.elements) return;
   section.elements.forEach((element) => {
@@ -179,56 +132,26 @@ function renderSection(doc, section, mapping) {
   });
 }
 
-/**
- * Renders a category header on the PDF document.
- *
- * @param {jsPDF} doc - The jsPDF document instance.
- * @param {string} categoryTitle - The title text for the category.
- * @param {number} offsetX - The x-coordinate for the header.
- * @param {number} y - The y-coordinate for the header.
- * @param {number} spacing - The vertical spacing to add after the header.
- * @returns {number} The updated y-coordinate after rendering the header.
- */
 function renderCategoryHeader(doc, categoryTitle, offsetX, y, spacing) {
-  const headerStyle = {
-    font: 'Helvetica',
-    fontStyle: 'bold',
-    fontSize: 12,
-    color: '#000000'
-  };
-  doc.setFont(headerStyle.font, headerStyle.fontStyle);
-  doc.setFontSize(headerStyle.fontSize);
-  doc.setTextColor(headerStyle.color);
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor('#000000');
   doc.text(categoryTitle, offsetX, y);
   const textWidth = doc.getTextWidth(categoryTitle);
   doc.line(offsetX, y + 2, offsetX + textWidth, y + 2);
   return y + spacing;
 }
 
-/**
- * Renders a single panel (test) on the PDF document.
- *
- * @param {jsPDF} doc - The jsPDF document instance.
- * @param {Object} panel - The panel configuration object.
- * @param {number} offsetX - The x-coordinate to begin rendering.
- * @param {number} y - The current y-coordinate.
- * @param {number} spacing - The vertical spacing between lines.
- * @returns {number} The updated y-coordinate after rendering the panel.
- */
 function renderPanel(doc, panel, offsetX, y, spacing) {
-  const panelNameStyle =
-    panel.style || { font: 'Helvetica', fontStyle: 'bold', fontSize: 12, color: '#000000' };
-  doc.setFont(panelNameStyle.font, panelNameStyle.fontStyle);
-  doc.setFontSize(panelNameStyle.fontSize);
-  doc.setTextColor(panelNameStyle.color);
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor('#000000');
   doc.text(panel.name, offsetX, y);
   y += spacing;
   if (panel.genes && panel.genes.length > 0) {
-    const panelGeneStyle =
-      panel.geneStyle || { font: 'Helvetica', fontStyle: 'italic', fontSize: 10, color: '#000000' };
-    doc.setFont(panelGeneStyle.font, panelGeneStyle.fontStyle);
-    doc.setFontSize(panelGeneStyle.fontSize);
-    doc.setTextColor(panelGeneStyle.color);
+    doc.setFont('Helvetica', 'italic');
+    doc.setFontSize(10);
+    doc.setTextColor('#000000');
     const geneText = panel.genes.join(', ');
     const maxWidth = doc.internal.pageSize.getWidth() - offsetX - 40;
     const lines = doc.splitTextToSize(geneText, maxWidth);
@@ -237,21 +160,13 @@ function renderPanel(doc, panel, offsetX, y, spacing) {
       y += spacing;
     });
   }
-  // Reset font settings to default.
   doc.setFont('Helvetica', 'normal');
   doc.setFontSize(12);
   return y;
 }
 
-/**
- * Renders the phenotype information as a separate page if phenotype data exists.
- * Only phenotypes with state other than "no input" are rendered.
- *
- * @param {jsPDF} doc - The jsPDF document instance.
- */
 function renderPhenotypePage(doc) {
   let hasPhenotype = false;
-  // Check if any phenotype in any category is selected (state != "no input")
   for (const cat in props.phenotypeData) {
     for (const phen in props.phenotypeData[cat]) {
       if (props.phenotypeData[cat][phen] !== 'no input') {
@@ -261,60 +176,129 @@ function renderPhenotypePage(doc) {
     }
     if (hasPhenotype) break;
   }
-  if (hasPhenotype) {
-    doc.addPage();
-    let currentY = 40;
-    const leftMargin = 40;
-    // Render page header for phenotype information.
-    doc.setFont("Helvetica", "bold");
-    doc.setFontSize(14);
-    doc.text("Phenotype Information", leftMargin, currentY);
-    currentY += 20;
-    doc.setFont("Helvetica", "normal");
-    doc.setFontSize(12);
-    // Iterate over each category in phenotypeData.
-    for (const catId in props.phenotypeData) {
-      // Find the category from testsData.
-      const category = testsData.categories.find(cat => cat.id === catId);
-      if (!category || !category.phenotypes) continue;
-      // Filter phenotypes with a state other than "no input".
-      const phenotypes = category.phenotypes.filter(
-        phen => props.phenotypeData[catId][phen.id] !== "no input"
-      );
-      if (phenotypes.length > 0) {
-        // Render the category title.
-        doc.setFont("Helvetica", "bold");
-        doc.text(category.title, leftMargin, currentY);
-        currentY += 16;
-        doc.setFont("Helvetica", "normal");
-        // Render each phenotype's name, HPO code, and state.
-        phenotypes.forEach(phen => {
-          const state = props.phenotypeData[catId][phen.id];
-          const line = `${phen.name} (${phen.hpo}): ${state}`;
-          doc.text(line, leftMargin, currentY);
-          currentY += 14;
-          // If we exceed the page height, add a new page.
-          if (currentY > doc.internal.pageSize.getHeight() - 40) {
-            doc.addPage();
-            currentY = 40;
-          }
-        });
-        currentY += 10;
-      }
+  if (!hasPhenotype) return;
+  doc.addPage();
+  let currentY = 40;
+  const leftMargin = 40;
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.text('Phenotype Information', leftMargin, currentY);
+  currentY += 20;
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(12);
+  for (const catId in props.phenotypeData) {
+    const category = testsData.categories.find((c) => c.id === catId);
+    if (!category || !category.phenotypes) continue;
+    const phenotypes = category.phenotypes.filter(
+      (p) => props.phenotypeData[catId][p.id] !== 'no input'
+    );
+    if (phenotypes.length > 0) {
+      doc.setFont('Helvetica', 'bold');
+      doc.text(category.title, leftMargin, currentY);
+      currentY += 16;
+      doc.setFont('Helvetica', 'normal');
+      phenotypes.forEach((p) => {
+        const state = props.phenotypeData[catId][p.id];
+        const line = `${p.name} (${p.hpo}): ${state}`;
+        doc.text(line, leftMargin, currentY);
+        currentY += 14;
+        if (currentY > doc.internal.pageSize.getHeight() - 40) {
+          doc.addPage();
+          currentY = 40;
+        }
+      });
+      currentY += 10;
     }
   }
 }
 
 /**
+ * Renders the consent page in English using paragraphs and signature area from pdfConfig.consent.
+ */
+function renderConsentPage(doc) {
+  const consentConfig = pdfConfig.consent;
+  if (!consentConfig || !consentConfig.enabled) return;
+  
+  doc.addPage();
+  
+  // Render title in English (fallback title if not provided)
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.text(consentConfig.title ? consentConfig.title : "Consent for Genetic Analysis", 40, 50);
+  
+  doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(11);
+  
+  let currentY = 70;
+  const leftX = 40;
+  const maxWidth = doc.internal.pageSize.getWidth() - leftX * 2;
+  
+  // Build mapping using user consent data.
+  const userForm = props.consentData?.form || {};
+  
+  // Utility to convert yes/no to English
+  function toYesNo(value) {
+    return value === 'yes' ? 'yes' : 'no';
+  }
+  
+  const mapping = {
+    consentName: userForm.consentName || '____________',
+    zufallsbefundeLabel: toYesNo(userForm.questionSecondaryFindings),
+    materialLabel: toYesNo(userForm.questionMaterial),
+    extendedLabel: toYesNo(userForm.questionExtended),
+    researchLabel: toYesNo(userForm.questionResearch)
+  };
+  
+  // Render paragraphs from config (assumed to be in English)
+  const paragraphs = consentConfig.paragraphs || [];
+  paragraphs.forEach((para) => {
+    const text = mapTemplateString(para, mapping);
+    const lines = doc.splitTextToSize(text, maxWidth);
+    lines.forEach((line) => {
+      doc.text(line, leftX, currentY);
+      currentY += 14;
+    });
+    currentY += 10;
+    if (currentY > doc.internal.pageSize.getHeight() - 120) {
+      doc.addPage();
+      currentY = 70;
+    }
+  });
+  
+  // Render signature area.
+  currentY += 10;
+  doc.text(`Date: ${userForm.consentDate || '___________'}`, leftX, currentY);
+  currentY += 40;
+  // Patient signature line.
+  doc.line(leftX, currentY, leftX + 200, currentY);
+  doc.text(
+    consentConfig.signatureArea.patientLabel
+      ? consentConfig.signatureArea.patientLabel
+      : "Patient (print clearly)",
+    leftX,
+    currentY + 12
+  );
+  // Physician signature line.
+  doc.line(leftX + 280, currentY, leftX + 480, currentY);
+  doc.text(
+    consentConfig.signatureArea.physicianLabel
+      ? consentConfig.signatureArea.physicianLabel
+      : "Physician (print clearly)",
+    leftX + 280,
+    currentY + 12
+  );
+  currentY += 35;
+  doc.text(
+    consentConfig.signatureArea.signHint
+      ? consentConfig.signatureArea.signHint
+      : "Date / Signature",
+    leftX,
+    currentY
+  );
+}
+
+/**
  * Main function to generate the PDF document.
- *
- * Steps:
- * 1. Render main sections (header, body, panels, etc.).
- * 2. Wait for the QR code element to be rendered and add it to the first page.
- * 3. If phenotype data exists (i.e. any phenotype selected), add a new page for it.
- * 4. If available, load and add the pedigree image on a new page while preserving its aspect ratio.
- * 5. Add page numbering and schema version info to all pages.
- * 6. Save the final PDF document.
  */
 async function generatePdf() {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'A4' });
@@ -324,17 +308,12 @@ async function generatePdf() {
     ...pdfConfig.footer
   };
 
-  // Render header and body sections.
-  if (pdfConfig.header) {
-    renderSection(doc, pdfConfig.header, mapping);
-  }
-  if (pdfConfig.body) {
-    renderSection(doc, pdfConfig.body, mapping);
-  }
+  // 1. Render header and body sections.
+  if (pdfConfig.header) renderSection(doc, pdfConfig.header, mapping);
+  if (pdfConfig.body) renderSection(doc, pdfConfig.body, mapping);
 
-  // Render grouped test panels.
-  const { baseY = 350, maxHeight = 600, spacing = 14, offsetX = 60, secondPageBaseY = 50 } =
-    pdfConfig.panels || {};
+  // 2. Render grouped test panels.
+  const { baseY = 350, maxHeight = 600, spacing = 14, offsetX = 60, secondPageBaseY = 50 } = pdfConfig.panels || {};
   let y = baseY;
   groupedPanels.value.forEach((group) => {
     if (y + spacing > maxHeight) {
@@ -358,7 +337,7 @@ async function generatePdf() {
     });
   });
 
-  // Render variant segregation details if provided.
+  // 3. Render variant segregation details if provided.
   if (props.patientData.variantSegregationRequested && props.patientData.variantDetails) {
     if (y + spacing > maxHeight) {
       doc.addPage();
@@ -367,7 +346,7 @@ async function generatePdf() {
     doc.setFont('Helvetica', 'bold');
     doc.setFontSize(12);
     doc.setTextColor('#000000');
-    doc.text('Segregation familiärer Variante:', offsetX, y);
+    doc.text('Segregation of familial variant:', offsetX, y);
     y += spacing;
     doc.setFont('Helvetica', 'normal');
     const variantLines = doc.splitTextToSize(
@@ -380,11 +359,10 @@ async function generatePdf() {
     });
   }
 
-  if (pdfConfig.footer) {
-    renderSection(doc, pdfConfig.footer, mapping);
-  }
+  // 4. Render footer sections.
+  if (pdfConfig.footer) renderSection(doc, pdfConfig.footer, mapping);
 
-  // Wait until the QR code is rendered, then add it to page 1.
+  // 5. Wait for the QR code to render and add it to page 1.
   await nextTick();
   const canvas = qrContainer.value?.querySelector('canvas');
   if (canvas && pdfConfig.qr?.position && pdfConfig.qr?.size) {
@@ -399,10 +377,10 @@ async function generatePdf() {
     );
   }
 
-  // If phenotype data exists, add a new page with phenotype information.
+  // 6. Render phenotype page if available.
   renderPhenotypePage(doc);
 
-  // If a pedigree image exists, load it and add it as a new page.
+  // 7. Render pedigree image if available.
   if (props.pedigreeDataUrl && props.pedigreeDataUrl !== '') {
     await new Promise((resolve) => {
       const img = new Image();
@@ -423,16 +401,19 @@ async function generatePdf() {
         resolve();
       };
       img.onerror = () => {
-        console.error("Error loading pedigree image.");
+        console.error('Error loading pedigree image.');
         resolve();
       };
     });
   }
 
-  // Add page numbering and version info to all pages.
-  const totalPages = doc.internal.getNumberOfPages();
+  // 8. Render the consent page if the form was filled.
+  if (props.consentData && props.consentData.provided === 'fill') {
+    renderConsentPage(doc);
+  }
 
-  // Add page numbering if enabled.
+  // 9. Add page numbering and footer version info.
+  const totalPages = doc.internal.getNumberOfPages();
   if (pdfConfig.pageNumber && pdfConfig.pageNumber.enabled) {
     for (let p = 1; p <= totalPages; p++) {
       doc.setPage(p);
@@ -444,8 +425,6 @@ async function generatePdf() {
       doc.text(pageText, x, posY);
     }
   }
-
-  // Add schema version info on the left bottom of every page.
   const footerVersionText = `PDF Schema: v${pdfConfig.schema.version} | Test Schema: v${testsData.schema.version}`;
   for (let p = 1; p <= totalPages; p++) {
     doc.setPage(p);
@@ -455,7 +434,7 @@ async function generatePdf() {
     doc.text(footerVersionText, 40, doc.internal.pageSize.getHeight() - 10);
   }
 
-  // Save the final PDF document.
+  // 10. Save the final PDF document.
   doc.save('genetic_test_requisition.pdf');
 }
 </script>

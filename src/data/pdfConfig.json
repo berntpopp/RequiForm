@@ -288,5 +288,23 @@
     "fontStyle": "normal",
     "fontSize": 10,
     "color": "#000000"
+  },
+  "consent": {
+    "enabled": true,
+    "title": "Einwilligung zur genetischen Analyse nach GenDG",
+    "paragraphs": [
+      "Ich erkläre mich hiermit einverstanden, dass von mir bzw. meinem Kind entnommenes Probenmaterial auf genetische Veränderungen auf Basis einer Genpanel- oder Gesamt-Exom-Anreicherung untersucht wird. Ich wurde über Zweck, Art, Umfang und Aussagekraft der angeforderten genetischen Untersuchung aufgeklärt. Ich wurde informiert, dass die Proben oder die erhobenen Daten als Analyseauftrag an Dritte verschickt werden können. Dabei werden personenbezogene Daten pseudonymisiert auf Datenservern gespeichert, teilweise auf 'Cloud'-Servern innerhalb Europas. Weiterhin werden Daten ggf. für die Abrechnung der Diagnostik zur jeweiligen Krankenkasse übermittelt. Ebenso wurden die möglichen Konsequenzen, die sich aus den Ergebnissen der genetischen Untersuchung für mich oder auch andere Familienmitglieder ergeben können, ausführlich besprochen.",
+      "Ich bin damit einverstanden, dass die Befunde der Analyse(n) zusätzlich zur/zum anfordernden Ärztin/Arzt auch weitergeleitet werden an: {{consentName}} (Anschrift falls vorhanden).",
+      "Bei genetischen Untersuchungen kann es zu Ergebnissen kommen, die nicht im Zusammenhang mit der klinischen Fragestellung stehen, aber nach aktuellem Wissensstand (angelehnt an die Empfehlungen des ACMG https://www.laborberlin.com/Zufallsbefunde) eine Behandlungs- oder Vorsorgekonsequenz für mich oder Angehörige haben können. Zufallsbefunde mitteilen: {{zufallsbefundeLabel}}",
+      "Mit der Aufbewahrung von überschüssigem Untersuchungsmaterial für ggf. ergänzende Untersuchungen zur Diagnosefindung und für laboranalytische Kontrollmaßnahmen bin ich einverstanden. ({{materialLabel}})",
+      "Ich bin einverstanden, dass die Untersuchungsergebnisse über die gesetzlich vorgeschriebene Frist von 10 Jahren hinaus (maximal 30 Jahre) aufbewahrt werden können. ({{extendedLabel}})",
+      "Ich bin einverstanden, dass erhobene Daten/Ergebnisse über die infrage stehende Erkrankung in verschlüsselter (pseudonymisierter) Form für wissenschaftliche und qualitätssichernde Zwecke genutzt und anonymisiert in Fachzeitschriften veröffentlicht werden. ({{researchLabel}})",
+      "Ich wurde darauf hingewiesen, dass ich meine Einwilligung jederzeit ohne Angaben von Gründen ganz oder teilweise zurückziehen kann, ohne dass mir daraus Nachteile entstehen, und dass ich das Recht habe, Untersuchungsergebnisse nicht zu erfahren (Recht auf Nichtwissen)."
+    ],
+    "signatureArea": {
+      "patientLabel": "Patient*in / gesetzl. Vertreter*in (Druckbuchstaben)",
+      "physicianLabel": "Ärztin/Arzt (Druckbuchstaben)",
+      "signHint": "Datum / Unterschrift"
+    }
   }
 }

@@ -23,7 +23,6 @@
         />
       </v-col>
       <v-col cols="12" sm="6">
-        <!-- Using the LocaleDatePicker for Birthdate -->
         <LocaleDatePicker 
           v-model="patientData.birthdate" 
           label="Birthdate" 
@@ -103,26 +102,96 @@
     
     <v-divider class="my-1"></v-divider>
     
-    <!-- Group 4: Ordering Information -->
+    <!-- Group 4: Ordering Information and Consent Select -->
     <v-row dense>
       <v-col cols="12" sm="6">
-        <!-- Using LocaleDatePicker for Ordering Date -->
         <LocaleDatePicker 
           v-model="patientData.orderingDate" 
           label="Ordering Date" 
         />
       </v-col>
+      <v-col cols="12" sm="6">
+        <!-- Use the genDGConsentData field consistently -->
+        <v-select
+          density="compact"
+          outlined
+          label="Consent"
+          :items="consentOptions"
+          item-title="text"
+          item-value="value"
+          v-model="patientData.genDGConsentData.provided"
+        />
+      </v-col>
     </v-row>
 
+    <!-- If user chooses "Fill Form", show the additional Consent fields -->
+    <v-row dense v-if="patientData.genDGConsentData.provided === 'fill'" class="mt-2">
+      <v-col cols="12" sm="6">
+        <v-text-field
+          density="compact"
+          outlined
+          label="Consent Given By"
+          v-model="patientData.genDGConsentData.form.consentName"
+        />
+      </v-col>
+      <v-col cols="12" sm="6">
+        <LocaleDatePicker
+          v-model="patientData.genDGConsentData.form.consentDate"
+          label="Consent Date"
+        />
+      </v-col>
+      <v-col cols="12" sm="6">
+        <v-select
+          density="compact"
+          outlined
+          label="Report incidental findings?"
+          :items="yesNoOptions"
+          item-title="text"
+          item-value="value"
+          v-model="patientData.genDGConsentData.form.questionSecondaryFindings"
+        />
+      </v-col>
+      <v-col cols="12" sm="6">
+        <v-select
+          density="compact"
+          outlined
+          label="Store test material?"
+          :items="yesNoOptions"
+          item-title="text"
+          item-value="value"
+          v-model="patientData.genDGConsentData.form.questionMaterial"
+        />
+      </v-col>
+      <v-col cols="12" sm="6">
+        <v-select
+          density="compact"
+          outlined
+          label="Store results beyond 10 years (max. 30 years)?"
+          :items="yesNoOptions"
+          item-title="text"
+          item-value="value"
+          v-model="patientData.genDGConsentData.form.questionExtended"
+        />
+      </v-col>
+      <v-col cols="12" sm="6">
+        <v-select
+          density="compact"
+          outlined
+          label="Use for research/quality assurance purposes?"
+          :items="yesNoOptions"
+          item-title="text"
+          item-value="value"
+          v-model="patientData.genDGConsentData.form.questionResearch"
+        />
+      </v-col>
+    </v-row>
+    
     <v-divider class="my-1"></v-divider>
     
     <!-- Group 5: Variant Segregation Request -->
     <v-row dense>
       <v-col cols="12">
-        <v-checkbox
-          v-model="patientData.variantSegregationRequested"
-          label="Request Variant Segregation"
-        />
+        <v-checkbox v-model="patientData.variantSegregationRequested" label="Request Variant Segregation" />
       </v-col>
       <v-col cols="12" v-if="patientData.variantSegregationRequested">
         <v-text-field
@@ -150,13 +219,25 @@ import LocaleDatePicker from './LocaleDatePicker.vue'
 const props = defineProps({
   patientData: {
     type: Object,
-    required: true
-  }
+    required: true,
+  },
 })
 
 const sexOptions = ['male', 'female', 'undetermined']
 const familyHistoryOptions = ['conspicuous', 'inconspicuous', 'unknown']
 const consanguinityOptions = ['yes', 'no']
+
+// Options for the Consent select.
+const consentOptions = [
+  { text: 'Already Provided', value: 'provided' },
+  { text: 'Fill Form', value: 'fill' },
+]
+
+// Options for yes/no questions.
+const yesNoOptions = [
+  { text: 'Yes', value: 'yes' },
+  { text: 'No', value: 'no' },
+]
 </script>
 
 <style scoped>

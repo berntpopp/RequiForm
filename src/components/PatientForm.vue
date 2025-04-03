@@ -9,7 +9,7 @@
           density="compact"
           outlined
           label="Given Name"
-          v-model="patientData.givenName"
+          v-model="givenName"
           prepend-inner-icon="mdi-account"
         />
       </v-col>
@@ -18,13 +18,13 @@
           density="compact"
           outlined
           label="Family Name"
-          v-model="patientData.familyName"
+          v-model="familyName"
           prepend-inner-icon="mdi-account-group"
         />
       </v-col>
       <v-col cols="12" sm="6">
         <LocaleDatePicker 
-          v-model="patientData.birthdate" 
+          v-model="birthdate" 
           label="Birthdate" 
         />
       </v-col>
@@ -34,7 +34,7 @@
           outlined
           label="Sex"
           :items="sexOptions"
-          v-model="patientData.sex"
+          v-model="sex"
           prepend-inner-icon="mdi-gender-male-female"
         />
       </v-col>
@@ -49,7 +49,7 @@
           density="compact"
           outlined
           label="Insurance"
-          v-model="patientData.insurance"
+          v-model="insurance"
           prepend-inner-icon="mdi-card-account-details-outline"
         />
       </v-col>
@@ -58,7 +58,7 @@
           density="compact"
           outlined
           label="Physician Name"
-          v-model="patientData.physicianName"
+          v-model="physicianName"
           prepend-inner-icon="mdi-stethoscope"
         />
       </v-col>
@@ -74,7 +74,7 @@
           outlined
           label="Family History"
           :items="familyHistoryOptions"
-          v-model="patientData.familyHistory"
+          v-model="familyHistory"
           prepend-inner-icon="mdi-history"
         />
       </v-col>
@@ -84,7 +84,7 @@
           outlined
           label="Parental Consanguinity"
           :items="consanguinityOptions"
-          v-model="patientData.parentalConsanguinity"
+          v-model="parentalConsanguinity"
           prepend-inner-icon="mdi-human-male-female"
         />
       </v-col>
@@ -93,7 +93,7 @@
           density="compact"
           outlined
           label="Diagnosis / Suspicion"
-          v-model="patientData.diagnosis"
+          v-model="diagnosis"
           rows="2"
           prepend-inner-icon="mdi-file-document-edit-outline"
         />
@@ -106,7 +106,7 @@
     <v-row dense>
       <v-col cols="12" sm="6">
         <LocaleDatePicker 
-          v-model="patientData.orderingDate" 
+          v-model="orderingDate" 
           label="Ordering Date" 
         />
       </v-col>
@@ -119,24 +119,24 @@
           :items="consentOptions"
           item-title="text"
           item-value="value"
-          v-model="patientData.genDGConsentData.provided"
+          v-model="genDGProvided"
         />
       </v-col>
     </v-row>
 
     <!-- If user chooses "Fill Form", show the additional Consent fields -->
-    <v-row dense v-if="patientData.genDGConsentData.provided === 'fill'" class="mt-2">
+    <v-row dense v-if="genDGProvided === 'fill'" class="mt-2">
       <v-col cols="12" sm="6">
         <v-text-field
           density="compact"
           outlined
           label="Consent Given By"
-          v-model="patientData.genDGConsentData.form.consentName"
+          v-model="genDGConsentName"
         />
       </v-col>
       <v-col cols="12" sm="6">
         <LocaleDatePicker
-          v-model="patientData.genDGConsentData.form.consentDate"
+          v-model="genDGConsentDate"
           label="Consent Date"
         />
       </v-col>
@@ -148,7 +148,7 @@
           :items="yesNoOptions"
           item-title="text"
           item-value="value"
-          v-model="patientData.genDGConsentData.form.questionSecondaryFindings"
+          v-model="genDGSecondaryFindings"
         />
       </v-col>
       <v-col cols="12" sm="6">
@@ -159,7 +159,7 @@
           :items="yesNoOptions"
           item-title="text"
           item-value="value"
-          v-model="patientData.genDGConsentData.form.questionMaterial"
+          v-model="genDGMaterial"
         />
       </v-col>
       <v-col cols="12" sm="6">
@@ -170,7 +170,7 @@
           :items="yesNoOptions"
           item-title="text"
           item-value="value"
-          v-model="patientData.genDGConsentData.form.questionExtended"
+          v-model="genDGExtended"
         />
       </v-col>
       <v-col cols="12" sm="6">
@@ -181,7 +181,7 @@
           :items="yesNoOptions"
           item-title="text"
           item-value="value"
-          v-model="patientData.genDGConsentData.form.questionResearch"
+          v-model="genDGResearch"
         />
       </v-col>
     </v-row>
@@ -191,14 +191,14 @@
     <!-- Group 5: Variant Segregation Request -->
     <v-row dense>
       <v-col cols="12">
-        <v-checkbox v-model="patientData.variantSegregationRequested" label="Request Variant Segregation" />
+        <v-checkbox v-model="variantSegregationRequested" label="Request Variant Segregation" />
       </v-col>
-      <v-col cols="12" v-if="patientData.variantSegregationRequested">
+      <v-col cols="12" v-if="variantSegregationRequested">
         <v-text-field
           density="compact"
           outlined
           label="Variant Details"
-          v-model="patientData.variantDetails"
+          v-model="variantDetails"
           hint="Provide details for the variant segregation request"
           persistent-hint
         />
@@ -209,12 +209,14 @@
 
 <script setup>
 import LocaleDatePicker from './LocaleDatePicker.vue'
+import { computed } from 'vue';
 
 /**
  * PatientForm component to capture patient details.
- *
  * Props:
  * - patientData: Object with patient details.
+ * Emits:
+ * - update:patientData: Emitted when any patient data field changes.
  */
 const props = defineProps({
   patientData: {
@@ -222,6 +224,75 @@ const props = defineProps({
     required: true,
   },
 })
+
+// Define the emit function
+const emit = defineEmits(['update:patientData'])
+
+// Helper function to create computed properties for patient data fields
+// Accepts a variable number of arguments representing the path keys
+function createComputedField(...pathKeys) {
+  return computed({
+    get() {
+      let current = props.patientData;
+      for (const key of pathKeys) {
+        // Check if current is an object and has the key
+        if (current === null || typeof current !== 'object' || !(key in current)) {
+          // Special handling for boolean 'variantSegregationRequested'
+          if (pathKeys.length === 1 && pathKeys[0] === 'variantSegregationRequested') {
+            return false;
+          }
+          return ''; // Default to empty string for other missing paths
+        }
+        current = current[key];
+      }
+      // Ensure boolean is returned for variantSegregationRequested
+      if (pathKeys.length === 1 && pathKeys[0] === 'variantSegregationRequested') {
+        const result = typeof current === 'boolean' ? current : false;
+        return result;
+      }
+      return current ?? ''; // Return the final value or default to empty string
+    },
+    set(newValue) {
+      // Create a deep clone to avoid mutating the prop directly
+      const newData = JSON.parse(JSON.stringify(props.patientData));
+      let current = newData;
+      // Traverse the path, creating objects if they don't exist
+      for (let i = 0; i < pathKeys.length - 1; i++) {
+        const key = pathKeys[i];
+        if (current[key] === null || typeof current[key] !== 'object') {
+          current[key] = {}; // Ensure path exists
+        }
+        current = current[key];
+      }
+      // Set the value at the final key
+      current[pathKeys[pathKeys.length - 1]] = newValue;
+      emit('update:patientData', newData); // Emit the updated full object
+    },
+  });
+}
+
+// Computed properties for basic fields
+const givenName = createComputedField('givenName');
+const familyName = createComputedField('familyName');
+const birthdate = createComputedField('birthdate');
+const sex = createComputedField('sex');
+const insurance = createComputedField('insurance');
+const physicianName = createComputedField('physicianName');
+const familyHistory = createComputedField('familyHistory');
+const parentalConsanguinity = createComputedField('parentalConsanguinity');
+const diagnosis = createComputedField('diagnosis');
+const orderingDate = createComputedField('orderingDate');
+const variantSegregationRequested = createComputedField('variantSegregationRequested');
+const variantDetails = createComputedField('variantDetails');
+
+// Computed properties for GenDG Consent Data using the path
+const genDGProvided = createComputedField('genDGConsentData', 'provided');
+const genDGConsentName = createComputedField('genDGConsentData', 'form', 'consentName');
+const genDGConsentDate = createComputedField('genDGConsentData', 'form', 'consentDate');
+const genDGSecondaryFindings = createComputedField('genDGConsentData', 'form', 'questionSecondaryFindings');
+const genDGMaterial = createComputedField('genDGConsentData', 'form', 'questionMaterial');
+const genDGExtended = createComputedField('genDGConsentData', 'form', 'questionExtended');
+const genDGResearch = createComputedField('genDGConsentData', 'form', 'questionResearch');
 
 const sexOptions = ['male', 'female', 'undetermined']
 const familyHistoryOptions = ['conspicuous', 'inconspicuous', 'unknown']

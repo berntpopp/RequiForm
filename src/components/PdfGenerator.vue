@@ -17,13 +17,18 @@ import QrcodeVue from 'qrcode.vue';
 import pdfConfig from '../data/pdfConfig.json';
 import testsData from '../data/tests.json';
 
-// Define props – note the use of "consentData" instead of "genDGConsentData".
+// Define props
 const props = defineProps({
-  patientData: { type: Object, required: true },
-  selectedTests: { type: Array, required: true },
+  patientData: {
+    type: Object,
+    required: true,
+  },
+  selectedTests: {
+    type: Array,
+    required: true,
+  },
   pedigreeDataUrl: { type: String, required: false, default: '' },
   phenotypeData: { type: Object, required: false, default: () => ({}) },
-  consentData: { type: Object, required: false, default: () => null }
 });
 
 // Expose generatePdf for external calls.
@@ -54,6 +59,11 @@ function mapTemplateString(template, mapping) {
   return template.replace(/{{\s*([\w]+)\s*}}/g, (match, key) =>
     key in mapping ? mapping[key] : ''
   );
+}
+
+// Utility: Convert yes/no to German labels.
+function toYesNo(value) {
+  return value === 'yes' ? 'Ja' : 'Nein';
 }
 
 // ------------------------
@@ -216,226 +226,265 @@ function renderPhenotypePage(doc) {
  * Renders the consent page in English using paragraphs and signature area from pdfConfig.consent.
  */
 function renderConsentPage(doc) {
-  const consentConfig = pdfConfig.consent;
-  if (!consentConfig || !consentConfig.enabled) return;
-  
-  doc.addPage();
-  
-  // Render title in English (fallback title if not provided)
-  doc.setFont('Helvetica', 'bold');
-  doc.setFontSize(14);
-  doc.text(consentConfig.title ? consentConfig.title : "Consent for Genetic Analysis", 40, 50);
-  
-  doc.setFont('Helvetica', 'normal');
-  doc.setFontSize(11);
-  
-  let currentY = 70;
-  const leftX = 40;
-  const maxWidth = doc.internal.pageSize.getWidth() - leftX * 2;
-  
-  // Build mapping using user consent data.
-  const userForm = props.consentData?.form || {};
-  
-  // Utility to convert yes/no to English
-  function toYesNo(value) {
-    return value === 'yes' ? 'yes' : 'no';
-  }
-  
-  const mapping = {
-    consentName: userForm.consentName || '____________',
-    zufallsbefundeLabel: toYesNo(userForm.questionSecondaryFindings),
-    materialLabel: toYesNo(userForm.questionMaterial),
-    extendedLabel: toYesNo(userForm.questionExtended),
-    researchLabel: toYesNo(userForm.questionResearch)
-  };
-  
-  // Render paragraphs from config (assumed to be in English)
-  const paragraphs = consentConfig.paragraphs || [];
-  paragraphs.forEach((para) => {
-    const text = mapTemplateString(para, mapping);
-    const lines = doc.splitTextToSize(text, maxWidth);
-    lines.forEach((line) => {
-      doc.text(line, leftX, currentY);
-      currentY += 14;
-    });
-    currentY += 10;
-    if (currentY > doc.internal.pageSize.getHeight() - 120) {
-      doc.addPage();
-      currentY = 70;
+  console.log("Rendering consent page...");
+  try {
+    // Access consent data via patientData prop
+    if (!props.patientData.genDGConsentData || !props.patientData.genDGConsentData.form) {
+      console.error("Consent form data is missing in PdfGenerator");
+      return; // Don't attempt to render if data is missing
     }
-  });
-  
-  // Render signature area.
-  currentY += 10;
-  doc.text(`Date: ${userForm.consentDate || '___________'}`, leftX, currentY);
-  currentY += 40;
-  // Patient signature line.
-  doc.line(leftX, currentY, leftX + 200, currentY);
-  doc.text(
-    consentConfig.signatureArea.patientLabel
-      ? consentConfig.signatureArea.patientLabel
-      : "Patient (print clearly)",
-    leftX,
-    currentY + 12
-  );
-  // Physician signature line.
-  doc.line(leftX + 280, currentY, leftX + 480, currentY);
-  doc.text(
-    consentConfig.signatureArea.physicianLabel
-      ? consentConfig.signatureArea.physicianLabel
-      : "Physician (print clearly)",
-    leftX + 280,
-    currentY + 12
-  );
-  currentY += 35;
-  doc.text(
-    consentConfig.signatureArea.signHint
-      ? consentConfig.signatureArea.signHint
-      : "Date / Signature",
-    leftX,
-    currentY
-  );
+
+    // Use the nested form object from the patientData prop
+    const consentFormData = props.patientData.genDGConsentData.form;
+    const consentConfig = pdfConfig.consent;
+
+    console.log("Consent Form Data:", JSON.stringify(consentFormData));
+    console.log("Consent Config:", JSON.stringify(consentConfig));
+
+    // Map the form data to the placeholders used in pdfConfig.json
+    const mapping = {
+      consentName: consentFormData.consentName || '', // Used in paragraph 2
+      // Map form data (yes/no) to labels using the toYesNo helper
+      zufallsbefundeLabel: toYesNo(consentFormData.questionSecondaryFindings), // Used in paragraph 3
+      materialLabel: toYesNo(consentFormData.questionMaterial),           // Used in paragraph 4
+      extendedLabel: toYesNo(consentFormData.questionExtended),           // Used in paragraph 5
+      researchLabel: toYesNo(consentFormData.questionResearch),           // Used in paragraph 6
+    };
+
+    doc.addPage();
+    doc.setFont('Helvetica', 'normal');
+    doc.setFontSize(10);
+    let currentY = consentConfig.startY || 40; // Start Y position from config or default
+    const leftX = 40;
+    const rightMargin = 40;
+    const maxWidth = doc.internal.pageSize.getWidth() - leftX - rightMargin;
+    const lineSpacing = consentConfig.lineSpacing || 5;
+    const paragraphSpacing = consentConfig.paragraphSpacing || 10;
+
+    // Render title (Using German title from config)
+    if (consentConfig.title) {
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(consentConfig.title.fontSize || 14);
+      // Use the title directly from the config
+      const titleLines = doc.splitTextToSize(consentConfig.title, maxWidth);
+      titleLines.forEach((line) => {
+        doc.text(line, leftX, currentY);
+        currentY += (consentConfig.title.fontSize || 14) * 0.5; // Adjust spacing based on font size
+      });
+      currentY += lineSpacing; // Add spacing after title
+      doc.setFont('Helvetica', 'normal'); // Reset font
+      doc.setFontSize(10);
+    }
+
+    // Render each paragraph from the config
+    console.log("Rendering paragraphs...");
+    consentConfig.paragraphs.forEach((paragraphTemplate) => {
+      // Replace placeholders in the template from the config
+      const text = mapTemplateString(paragraphTemplate, mapping);
+      const lines = doc.splitTextToSize(text, maxWidth);
+      lines.forEach((line) => {
+        // Check for page break before rendering line
+        if (currentY + lineSpacing > doc.internal.pageSize.getHeight() - 60) { // Add some bottom margin
+          doc.addPage();
+          currentY = consentConfig.startY || 40; // Reset Y on new page
+        }
+        doc.text(line, leftX, currentY);
+        currentY += doc.getFontSize() * 1.2; // Use 1.2 line height multiplier
+      });
+      currentY += paragraphSpacing; // Add extra space after paragraph
+    });
+
+    // Start position for signature elements
+    let sigStartY = currentY + (consentConfig.signatureArea.marginTop || 20); // Add top margin
+
+    const lineStartX = consentConfig.signatureArea.lineStartX || leftX;
+    const patientLineEndX = consentConfig.signatureArea.patientLineEndX || lineStartX + 200;
+    const physicianLineStartX = consentConfig.signatureArea.physicianLineStartX || leftX + 250;
+    const physicianLineEndX = consentConfig.signatureArea.physicianLineEndX || physicianLineStartX + 200;
+
+    // Date text (using consent date from form data)
+    const dateText = `Date: ${consentFormData.consentDate || '___________'}`;
+    doc.text(dateText, lineStartX, sigStartY);
+    sigStartY += doc.getFontSize() * 1.4; // Increase spacing after date
+
+    // Patient Signature Line and Label
+    const patientSigLineY = sigStartY;
+    doc.line(lineStartX, patientSigLineY, patientLineEndX, patientSigLineY);
+    if (consentConfig.signatureArea.patientLabel) {
+        doc.text(consentConfig.signatureArea.patientLabel, lineStartX, patientSigLineY + doc.getFontSize() * 1.2); // Place label below line
+    }
+
+    // Physician Signature Line and Label
+    const physicianSigLineY = sigStartY; // Keep physician line at same Y as patient line for alignment
+    doc.line(physicianLineStartX, physicianSigLineY, physicianLineEndX, physicianSigLineY);
+    if (consentConfig.signatureArea.physicianLabel) {
+        doc.text(consentConfig.signatureArea.physicianLabel, physicianLineStartX, physicianSigLineY + doc.getFontSize() * 1.2); // Place label below line
+    }
+
+    // Sign Hint
+    const hintY = Math.max(patientSigLineY, physicianSigLineY) + doc.getFontSize() * 2.4; // Position hint below both labels
+    if (consentConfig.signatureArea.signHint) {
+        doc.text(consentConfig.signatureArea.signHint, lineStartX, hintY);
+    }
+    console.log("Finished rendering consent page content.");
+  } catch (error) {
+    console.error("Error during renderConsentPage:", error);
+    // Optionally re-throw or handle the error further
+  }
 }
 
 /**
  * Main function to generate the PDF document.
  */
 async function generatePdf() {
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'A4' });
-  const mapping = {
-    ...props.patientData,
-    ...pdfConfig.header,
-    ...pdfConfig.footer
-  };
+  try {
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'A4' });
+    const mapping = {
+      ...props.patientData,
+      ...pdfConfig.header,
+      ...pdfConfig.footer
+    };
 
-  // 1. Render header and body sections.
-  if (pdfConfig.header) renderSection(doc, pdfConfig.header, mapping);
-  if (pdfConfig.body) renderSection(doc, pdfConfig.body, mapping);
+    // 1. Render header and body sections.
+    if (pdfConfig.header) renderSection(doc, pdfConfig.header, mapping);
+    if (pdfConfig.body) renderSection(doc, pdfConfig.body, mapping);
 
-  // 2. Render grouped test panels.
-  const { baseY = 350, maxHeight = 600, spacing = 14, offsetX = 60, secondPageBaseY = 50 } = pdfConfig.panels || {};
-  let y = baseY;
-  groupedPanels.value.forEach((group) => {
-    if (y + spacing > maxHeight) {
-      doc.addPage();
-      y = secondPageBaseY;
-    }
-    y = renderCategoryHeader(doc, group.categoryTitle, offsetX, y, spacing);
-    group.tests.forEach((panel) => {
-      let requiredHeight = spacing;
-      if (panel.genes && panel.genes.length > 0) {
-        const geneText = panel.genes.join(', ');
-        const maxWidth = doc.internal.pageSize.getWidth() - offsetX - 40;
-        const lines = doc.splitTextToSize(geneText, maxWidth);
-        requiredHeight += lines.length * spacing;
-      }
-      if (y + requiredHeight > maxHeight) {
+    // 2. Render grouped test panels.
+    const { baseY = 350, maxHeight = 600, spacing = 14, offsetX = 60, secondPageBaseY = 50 } = pdfConfig.panels || {};
+    let y = baseY;
+    groupedPanels.value.forEach((group) => {
+      if (y + spacing > maxHeight) {
         doc.addPage();
         y = secondPageBaseY;
       }
-      y = renderPanel(doc, panel, offsetX, y, spacing);
+      y = renderCategoryHeader(doc, group.categoryTitle, offsetX, y, spacing);
+      group.tests.forEach((panel) => {
+        let requiredHeight = spacing;
+        if (panel.genes && panel.genes.length > 0) {
+          const geneText = panel.genes.join(', ');
+          const maxWidth = doc.internal.pageSize.getWidth() - offsetX - 40;
+          const lines = doc.splitTextToSize(geneText, maxWidth);
+          requiredHeight += lines.length * spacing;
+        }
+        if (y + requiredHeight > maxHeight) {
+          doc.addPage();
+          y = secondPageBaseY;
+        }
+        y = renderPanel(doc, panel, offsetX, y, spacing);
+      });
     });
-  });
 
-  // 3. Render variant segregation details if provided.
-  if (props.patientData.variantSegregationRequested && props.patientData.variantDetails) {
-    if (y + spacing > maxHeight) {
-      doc.addPage();
-      y = secondPageBaseY;
-    }
-    doc.setFont('Helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.setTextColor('#000000');
-    doc.text('Segregation of familial variant:', offsetX, y);
-    y += spacing;
-    doc.setFont('Helvetica', 'normal');
-    const variantLines = doc.splitTextToSize(
-      props.patientData.variantDetails,
-      doc.internal.pageSize.getWidth() - offsetX - 40
-    );
-    variantLines.forEach((line) => {
-      doc.text(line, offsetX, y);
-      y += spacing;
-    });
-  }
-
-  // 4. Render footer sections.
-  if (pdfConfig.footer) renderSection(doc, pdfConfig.footer, mapping);
-
-  // 5. Wait for the QR code to render and add it to page 1.
-  await nextTick();
-  const canvas = qrContainer.value?.querySelector('canvas');
-  if (canvas && pdfConfig.qr?.position && pdfConfig.qr?.size) {
-    doc.setPage(1);
-    doc.addImage(
-      canvas.toDataURL('image/png'),
-      'PNG',
-      pdfConfig.qr.position.x,
-      pdfConfig.qr.position.y,
-      pdfConfig.qr.size.width,
-      pdfConfig.qr.size.height
-    );
-  }
-
-  // 6. Render phenotype page if available.
-  renderPhenotypePage(doc);
-
-  // 7. Render pedigree image if available.
-  if (props.pedigreeDataUrl && props.pedigreeDataUrl !== '') {
-    await new Promise((resolve) => {
-      const img = new Image();
-      img.src = props.pedigreeDataUrl;
-      img.onload = () => {
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const pageHeight = doc.internal.pageSize.getHeight();
-        const margin = 40;
-        const maxWidth = pageWidth - margin * 2;
-        const maxHeight = pageHeight - margin * 2;
-        const scale = Math.min(maxWidth / img.width, maxHeight / img.height, 1);
-        const drawWidth = img.width * scale;
-        const drawHeight = img.height * scale;
-        const offsetXImg = (pageWidth - drawWidth) / 2;
-        const offsetYImg = (pageHeight - drawHeight) / 2;
+    // 3. Render variant segregation details if provided.
+    if (props.patientData.variantSegregationRequested && props.patientData.variantDetails) {
+      if (y + spacing > maxHeight) {
         doc.addPage();
-        doc.addImage(props.pedigreeDataUrl, 'PNG', offsetXImg, offsetYImg, drawWidth, drawHeight);
-        resolve();
-      };
-      img.onerror = () => {
-        console.error('Error loading pedigree image.');
-        resolve();
-      };
-    });
-  }
+        y = secondPageBaseY;
+      }
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.setTextColor('#000000');
+      doc.text('Segregation of familial variant:', offsetX, y);
+      y += spacing;
+      doc.setFont('Helvetica', 'normal');
+      const variantLines = doc.splitTextToSize(
+        props.patientData.variantDetails,
+        doc.internal.pageSize.getWidth() - offsetX - 40
+      );
+      variantLines.forEach((line) => {
+        doc.text(line, offsetX, y);
+        y += spacing;
+      });
+    }
 
-  // 8. Render the consent page if the form was filled.
-  if (props.consentData && props.consentData.provided === 'fill') {
-    renderConsentPage(doc);
-  }
+    // 4. Render footer sections.
+    if (pdfConfig.footer) renderSection(doc, pdfConfig.footer, mapping);
 
-  // 9. Add page numbering and footer version info.
-  const totalPages = doc.internal.getNumberOfPages();
-  if (pdfConfig.pageNumber && pdfConfig.pageNumber.enabled) {
+    // 5. Wait for the QR code to render and add it to page 1.
+    await nextTick();
+    const canvas = qrContainer.value?.querySelector('canvas');
+    if (canvas && pdfConfig.qr?.position && pdfConfig.qr?.size) {
+      doc.setPage(1);
+      doc.addImage(
+        canvas.toDataURL('image/png'),
+        'PNG',
+        pdfConfig.qr.position.x,
+        pdfConfig.qr.position.y,
+        pdfConfig.qr.size.width,
+        pdfConfig.qr.size.height
+      );
+    }
+
+    // 6. Render phenotype page if available.
+    renderPhenotypePage(doc);
+
+    // 7. Render pedigree image if available.
+    if (props.pedigreeDataUrl && props.pedigreeDataUrl !== '') {
+      await new Promise((resolve) => {
+        const img = new Image();
+        img.src = props.pedigreeDataUrl;
+        img.onload = () => {
+          const pageWidth = doc.internal.pageSize.getWidth();
+          const pageHeight = doc.internal.pageSize.getHeight();
+          const margin = 40;
+          const maxWidth = pageWidth - margin * 2;
+          const maxHeight = pageHeight - margin * 2;
+          const scale = Math.min(maxWidth / img.width, maxHeight / img.height, 1);
+          const drawWidth = img.width * scale;
+          const drawHeight = img.height * scale;
+          const offsetXImg = (pageWidth - drawWidth) / 2;
+          const offsetYImg = (pageHeight - drawHeight) / 2;
+          doc.addPage();
+          doc.addImage(props.pedigreeDataUrl, 'PNG', offsetXImg, offsetYImg, drawWidth, drawHeight);
+          resolve();
+        };
+        img.onerror = () => {
+          console.error('Error loading pedigree image.');
+          resolve();
+        };
+      });
+    }
+
+    // 8. Render the consent page if the form was filled within patientData.
+    console.log('generatePdf in PdfGenerator: Checking props.patientData.genDGConsentData:', JSON.stringify(props.patientData.genDGConsentData));
+    if (props.patientData.genDGConsentData && props.patientData.genDGConsentData.provided === 'fill') {
+      console.log("Attempting to render consent page...");
+      try {
+        renderConsentPage(doc);
+      } catch (renderError) {
+        console.error("Caught error during renderConsentPage call:", renderError);
+      }
+    }
+
+    // 9. Add page numbering and footer version info.
+    const totalPages = doc.internal.getNumberOfPages();
+    if (pdfConfig.pageNumber && pdfConfig.pageNumber.enabled) {
+      for (let p = 1; p <= totalPages; p++) {
+        doc.setPage(p);
+        const { x, y: posY } = pdfConfig.pageNumber.position;
+        const pageText = `Page ${p} of ${totalPages}`;
+        doc.setFont(pdfConfig.pageNumber.font || 'Helvetica', pdfConfig.pageNumber.fontStyle || 'normal');
+        doc.setFontSize(pdfConfig.pageNumber.fontSize || 10);
+        doc.setTextColor(pdfConfig.pageNumber.color || '#000000');
+        doc.text(pageText, x, posY);
+      }
+    }
+    const footerVersionText = `PDF Schema: v${pdfConfig.schema.version} | Test Schema: v${testsData.schema.version}`;
     for (let p = 1; p <= totalPages; p++) {
       doc.setPage(p);
-      const { x, y: posY } = pdfConfig.pageNumber.position;
-      const pageText = `Page ${p} of ${totalPages}`;
-      doc.setFont(pdfConfig.pageNumber.font || 'Helvetica', pdfConfig.pageNumber.fontStyle || 'normal');
-      doc.setFontSize(pdfConfig.pageNumber.fontSize || 10);
-      doc.setTextColor(pdfConfig.pageNumber.color || '#000000');
-      doc.text(pageText, x, posY);
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor('#000000');
+      doc.text(footerVersionText, 40, doc.internal.pageSize.getHeight() - 10);
     }
-  }
-  const footerVersionText = `PDF Schema: v${pdfConfig.schema.version} | Test Schema: v${testsData.schema.version}`;
-  for (let p = 1; p <= totalPages; p++) {
-    doc.setPage(p);
-    doc.setFont('Helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor('#000000');
-    doc.text(footerVersionText, 40, doc.internal.pageSize.getHeight() - 10);
-  }
 
-  // 10. Save the final PDF document.
-  doc.save('genetic_test_requisition.pdf');
+    // 10. Save the final PDF document.
+    doc.save('genetic_test_requisition.pdf');
+    console.log("PDF generation process completed.");
+  } catch (error) {
+    console.error("Error during PDF generation process:", error);
+    // Potentially show an error message to the user
+    alert("An error occurred while generating the PDF. Please check the console for details.");
+  }
 }
 </script>
 

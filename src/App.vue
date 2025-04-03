@@ -17,7 +17,11 @@
     <v-main>
       <v-container>
         <!-- PatientForm now includes both the basic fields and the GenDG Consent select/form (if chosen). -->
-        <PatientForm :patientData="patientData" />
+        <PatientForm 
+          :patientData="patientData" 
+          @update:patientData="handlePatientDataUpdate"
+          :pdfConfig="pdfConfig" 
+        />
 
         <!-- Pedigree Option -->
         <v-checkbox v-model="showPedigree" label="Include Pedigree Chart" class="mb-4" />
@@ -37,7 +41,7 @@
             :selectedTests="selectedTests"
             :pedigreeDataUrl="pedigreeDataUrl"
             :phenotypeData="phenotypeData"
-            :consentData="patientData.genDGConsentData"
+            :pdfConfig="pdfConfig"
           />
         </div>
 
@@ -158,7 +162,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, nextTick } from 'vue';
 import TopBar from './components/TopBar.vue';
 import PatientForm from './components/PatientForm.vue';
 import TestSelector from './components/TestSelector.vue';
@@ -166,7 +170,6 @@ import PdfGenerator from './components/PdfGenerator.vue';
 import PedigreeDrawer from './components/PedigreeDrawer.vue';
 import PhenotypeSelector from './components/PhenotypeSelector.vue';
 import VersionFooter from './components/Footer.vue';
-import GenDGConsentForm from './components/ConsentForm.vue';
 import testsData from './data/tests.json';
 import {
   mergeUrlParameters,
@@ -295,6 +298,10 @@ const faqContent = ref([
 const pdfGen = ref(null);
 const pedigreeDrawer = ref(null);
 
+const pdfConfig = ref({
+  // Add your pdfConfig data here
+});
+
 /**
  * Groups selected panels by category.
  * @return {Array<Object>} Grouped panel details.
@@ -337,7 +344,7 @@ function validatePatientData() {
 /**
  * Main PDF generation handler.
  */
-const handleGeneratePdf = async () => {
+async function handleGeneratePdf() {
   const errors = validatePatientData();
   if (errors.length > 0) {
     validationErrors.value = errors;
@@ -351,6 +358,7 @@ const handleGeneratePdf = async () => {
         console.error('Error retrieving pedigree image:', error);
       }
     }
+    await nextTick();
     if (pdfGen.value && typeof pdfGen.value.generatePdf === 'function') {
       pdfGen.value.generatePdf();
     }
@@ -365,9 +373,7 @@ function cancelValidation() {
 /** Proceed with PDF generation even if incomplete data. */
 function proceedValidation() {
   validationDialog.value = false;
-  if (pdfGen.value && typeof pdfGen.value.generatePdf === 'function') {
-    pdfGen.value.generatePdf();
-  }
+  handleGeneratePdf();
 }
 
 /** Create a plain hash-based URL for the current data. */
@@ -517,6 +523,11 @@ onMounted(() => {
     clearUrlParameters();
   }
 });
+
+function handlePatientDataUpdate(newData) {
+  console.log("App.vue received update:", JSON.stringify(newData)); // Log received data
+  patientData.value = newData; // Update the reactive state
+}
 </script>
 
 <style>

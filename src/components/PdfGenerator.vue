@@ -3,19 +3,15 @@
     <v-btn @click="generatePdf" color="primary" dark>
       Generate PDF
     </v-btn>
-    <!-- Hidden container for the QR code -->
-    <div ref="qrContainer" class="hidden">
-      <qrcode-vue :value="qrContent" :size="128" />
-    </div>
   </div>
 </template>
 
 <script setup>
 import { jsPDF } from 'jspdf';
-import { defineProps, ref, nextTick, computed, defineExpose } from 'vue';
-import QrcodeVue from 'qrcode.vue';
+import { defineProps, computed, defineExpose } from 'vue';
 import pdfConfig from '../data/pdfConfig.json';
 import testsData from '../data/tests.json';
+import { generateQrCodeDataUrl } from '../utils/qrGenerator';
 
 // Define props
 const props = defineProps({
@@ -33,9 +29,6 @@ const props = defineProps({
 
 // Expose generatePdf for external calls.
 defineExpose({ generatePdf });
-
-// Reference for the hidden QR code.
-const qrContainer = ref(null);
 
 // Compute grouped test panels.
 const groupedPanels = computed(() =>
@@ -338,7 +331,12 @@ function renderConsentPage(doc) {
  */
 async function generatePdf() {
   try {
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'A4' });
+    console.log("Starting PDF generation process...");
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'pt',
+      format: 'A4'
+    });
     const mapping = {
       ...props.patientData,
       ...pdfConfig.header,
@@ -399,19 +397,25 @@ async function generatePdf() {
     // 4. Render footer sections.
     if (pdfConfig.footer) renderSection(doc, pdfConfig.footer, mapping);
 
-    // 5. Wait for the QR code to render and add it to page 1.
-    await nextTick();
-    const canvas = qrContainer.value?.querySelector('canvas');
-    if (canvas && pdfConfig.qr?.position && pdfConfig.qr?.size) {
-      doc.setPage(1);
-      doc.addImage(
-        canvas.toDataURL('image/png'),
-        'PNG',
-        pdfConfig.qr.position.x,
-        pdfConfig.qr.position.y,
-        pdfConfig.qr.size.width,
-        pdfConfig.qr.size.height
-      );
+    // 5. Generate QR code and add it to page 1.
+    if (pdfConfig.qr?.position && pdfConfig.qr?.size) {
+      try {
+        const qrDataUrl = await generateQrCodeDataUrl(qrContent.value, {
+          width: 128, // Specify desired size if needed
+        });
+        doc.setPage(1); // Ensure we are on the first page
+        doc.addImage(
+          qrDataUrl,
+          'PNG',
+          pdfConfig.qr.position.x,
+          pdfConfig.qr.position.y,
+          pdfConfig.qr.size.width, // Use config size for placement
+          pdfConfig.qr.size.height
+        );
+      } catch (qrError) {
+        console.error("Failed to generate or add QR code:", qrError);
+        // Optionally inform the user or handle the error
+      }
     }
 
     // 6. Render phenotype page if available.
@@ -487,9 +491,3 @@ async function generatePdf() {
   }
 }
 </script>
-
-<style scoped>
-.hidden {
-  display: none;
-}
-</style>

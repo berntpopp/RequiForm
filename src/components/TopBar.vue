@@ -52,6 +52,23 @@
           Copy Encrypted URL
         </v-tooltip>
       </v-btn>
+      
+      <!-- Save Data Button -->
+      <v-btn icon @click="$emit('save-data')" aria-label="Save Data" id="save-data-btn">
+        <v-icon>mdi-content-save</v-icon>
+        <v-tooltip activator="parent" location="bottom">
+          Save Data
+        </v-tooltip>
+      </v-btn>
+      
+      <!-- Load Data Button -->
+      <v-btn icon @click="$emit('load-data')" aria-label="Load Data" id="load-data-btn">
+        <v-icon>mdi-folder-open</v-icon>
+        <v-tooltip activator="parent" location="bottom">
+          Load Data
+        </v-tooltip>
+      </v-btn>
+      
       <!-- Generate PDF Button -->
       <v-btn icon @click="$emit('generate-pdf')" aria-label="Generate PDF" id="generate-pdf-btn">
         <v-icon>mdi-file-pdf-box</v-icon>
@@ -81,7 +98,7 @@
  *   isDark {Boolean} - Whether the dark theme is active.
  *
  * Emits:
- *   toggle-theme, reset-form, open-faq, start-tour, copy-url, copy-encrypted-url, generate-pdf.
+ *   toggle-theme, reset-form, open-faq, start-tour, copy-url, copy-encrypted-url, generate-pdf, save-data, load-data.
  */
 defineProps({
   isDark: {

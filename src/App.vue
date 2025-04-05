@@ -10,6 +10,8 @@
       @copy-url="handleCopyUrl"
       @copy-encrypted-url="openEncryptionDialog"
       @start-tour="startTour"
+      @save-data="openSaveDataDialog"
+      @load-data="openLoadDataDialog"
     />
 
     <!-- Disclaimer Modal: shown if not yet acknowledged or if reopened -->
@@ -169,6 +171,59 @@
           </v-card-actions>
         </v-card>
       </v-dialog>
+      
+      <!-- Save Data Dialog -->
+      <v-dialog v-model="saveDataDialog" max-width="500">
+        <v-card>
+          <v-card-title class="headline">Save Form Data</v-card-title>
+          <v-card-text>
+            <p>Enter a filename for your form data:</p>
+            <v-text-field 
+              v-model="saveDataName" 
+              label="Filename (Optional)"
+              hint="If blank, a default name with the current date will be used."
+              persistent-hint
+              class="mt-3"
+            />
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn text @click="cancelSaveData">Cancel</v-btn>
+            <v-btn color="primary" text @click="confirmSaveData">Export</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+      
+      <!-- Load Data Dialog -->
+      <v-dialog v-model="loadDataDialog" max-width="500">
+        <v-card>
+          <v-card-title class="headline">Load Form Data</v-card-title>
+          <v-card-text>
+            <p>Select a JSON file to import:</p>
+            <v-file-input
+              v-model="importedFile"
+              accept=".json"
+              label="Select a JSON file"
+              prepend-icon="mdi-file-import"
+              show-size
+              truncate-length="15"
+              class="mt-3"
+            />
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn text @click="cancelLoadData">Cancel</v-btn>
+            <v-btn 
+              color="primary" 
+              text 
+              @click="confirmLoadData"
+              :disabled="!importedFile"
+            >
+              Import
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
     </v-main>
 
     <!-- Footer with disclaimer acknowledgement button -->
@@ -325,6 +380,14 @@ const isDark = ref(false);
 
 /** Reset confirmation dialog state. */
 const resetConfirmationDialog = ref(false);
+
+/** Save data dialog state and related variables. */
+const saveDataDialog = ref(false);
+const saveDataName = ref('');
+
+/** Load data dialog state and related variables. */
+const loadDataDialog = ref(false);
+const importedFile = ref(null);
 
 /** FAQ modal state. */
 const showFAQModal = ref(false);
@@ -538,6 +601,149 @@ function cancelReset() {
 function confirmReset() {
   resetConfirmationDialog.value = false;
   performApplicationReset();
+}
+
+
+
+/**
+ * Opens the save data dialog
+ */
+function openSaveDataDialog() {
+  // Default save name with date and time
+  saveDataName.value = `RequiForm_Data_${new Date().toISOString().split('T')[0]}`;
+  saveDataDialog.value = true;
+}
+
+/**
+ * Cancels saving data
+ */
+function cancelSaveData() {
+  saveDataDialog.value = false;
+}
+
+/**
+ * Confirms saving data to a file
+ */
+function confirmSaveData() {
+  saveToFile();
+  saveDataDialog.value = false;
+  
+  // Clear URL parameters for security
+  clearUrlParameters();
+}
+
+/**
+ * Opens the load data dialog
+ */
+function openLoadDataDialog() {
+  loadDataDialog.value = true;
+}
+
+/**
+ * Cancels loading data
+ */
+function cancelLoadData() {
+  loadDataDialog.value = false;
+  importedFile.value = null;
+}
+
+/**
+ * Confirms loading data from a file
+ */
+function confirmLoadData() {
+  loadFromFile();
+  loadDataDialog.value = false;
+  
+  // Clear URL parameters for security
+  clearUrlParameters();
+}
+
+
+
+/**
+ * Saves the current form data to a file
+ */
+function saveToFile() {
+  try {
+    // Get the current data
+    const data = exportPatientData();
+    
+    // Convert to a JSON string
+    const jsonString = JSON.stringify(data, null, 2);
+    
+    // Create a blob
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    
+    // Create a download link
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    
+    // Set the filename
+    const filename = saveDataName.value.trim() || `RequiForm_Data_${new Date().toISOString().split('T')[0]}.json`;
+    link.download = filename.endsWith('.json') ? filename : `${filename}.json`;
+    
+    // Append to the document, click it, and clean up
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Show success message
+    snackbarMessage.value = `Data successfully exported to "${link.download}".`;
+    snackbar.value = true;
+    
+    // Clear URL parameters to prevent sensitive data exposure
+    clearUrlParameters();
+  } catch (error) {
+    console.error('Error saving to file:', error);
+    snackbarMessage.value = `Error exporting data: ${error.message}`;
+    snackbar.value = true;
+  }
+}
+
+
+
+/**
+ * Loads form data from a file
+ */
+function loadFromFile() {
+  if (!importedFile.value) {
+    snackbarMessage.value = 'No file selected.';
+    snackbar.value = true;
+    return;
+  }
+  
+  const fileReader = new FileReader();
+  
+  fileReader.onload = (event) => {
+    try {
+      // Parse the JSON
+      const data = JSON.parse(event.target.result);
+      
+      // First, clear URL parameters to prevent sensitive data exposure
+      clearUrlParameters();
+      
+      // Load the data into the application
+      initializeFromExternalData(data, true);
+      
+      // Sync with legacy formats
+      syncLegacyPatientData();
+      
+      // Show success message
+      snackbarMessage.value = 'Data successfully loaded from file.';
+      snackbar.value = true;
+    } catch (error) {
+      console.error('Error parsing file:', error);
+      snackbarMessage.value = `Error loading file: ${error.message}`;
+      snackbar.value = true;
+    }
+  };
+  
+  fileReader.onerror = () => {
+    snackbarMessage.value = 'Error reading file.';
+    snackbar.value = true;
+  };
+  
+  fileReader.readAsText(importedFile.value);
 }
 
 /**

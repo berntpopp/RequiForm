@@ -12,6 +12,7 @@
       @start-tour="startTour"
       @save-data="openSaveDataDialog"
       @load-data="openLoadDataDialog"
+      @open-paste-data="openPasteDataDialog"
     />
 
     <!-- Disclaimer Modal: shown if not yet acknowledged or if reopened -->
@@ -224,6 +225,13 @@
           </v-card-actions>
         </v-card>
       </v-dialog>
+      
+      <!-- Paste Data Modal -->
+      <PasteDataModal
+        v-model="pasteDataDialog"
+        @close="closePasteDataDialog"
+        @import="handlePastedDataImport"
+      />
     </v-main>
 
     <!-- Footer with disclaimer acknowledgement button -->
@@ -240,6 +248,7 @@ import { ref, computed, onMounted, nextTick, provide } from 'vue';
 import TopBar from './components/TopBar.vue';
 import PatientForm from './components/PatientForm.vue';
 import TestSelector from './components/TestSelector.vue';
+import PasteDataModal from './components/modals/PasteDataModal.vue';
 import PdfGenerator from './components/PdfGenerator.vue';
 import PedigreeDrawer from './components/PedigreeDrawer.vue';
 import PhenotypeSelector from './components/PhenotypeSelector.vue';
@@ -388,6 +397,9 @@ const saveDataName = ref('');
 /** Load data dialog state and related variables. */
 const loadDataDialog = ref(false);
 const importedFile = ref(null);
+
+/** Paste data dialog state */
+const pasteDataDialog = ref(false);
 
 /** FAQ modal state. */
 const showFAQModal = ref(false);
@@ -656,6 +668,45 @@ function confirmLoadData() {
   
   // Clear URL parameters for security
   clearUrlParameters();
+}
+
+/**
+ * Opens the paste data dialog
+ */
+function openPasteDataDialog() {
+  pasteDataDialog.value = true;
+}
+
+/**
+ * Closes the paste data dialog without applying changes
+ */
+function closePasteDataDialog() {
+  pasteDataDialog.value = false;
+}
+
+/**
+ * Handles importing data from the paste data dialog
+ * @param {Object} data - The parsed patient data
+ */
+function handlePastedDataImport(data) {
+  try {
+    // First, clear URL parameters to prevent sensitive data exposure
+    clearUrlParameters();
+    
+    // Load the data into the application using the existing function
+    initializeFromExternalData(data, true);
+    
+    // Sync with legacy formats for backward compatibility
+    syncLegacyPatientData();
+    
+    // Show success message
+    snackbarMessage.value = 'Data successfully imported from pasted text.';
+    snackbar.value = true;
+  } catch (error) {
+    console.error('Error importing pasted data:', error);
+    snackbarMessage.value = `Error importing data: ${error.message}`;
+    snackbar.value = true;
+  }
 }
 
 

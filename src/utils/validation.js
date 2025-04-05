@@ -1,6 +1,15 @@
 /**
  * @fileoverview Validation utilities for the RequiForm application.
- * Provides functions to validate the unified patient data model.
+ * 
+ * Provides functions to validate the unified patient data model including
+ * personal information, test panels, phenotype data, and consent information.
+ * 
+ * Validation rules include:
+ * - Personal information: firstName, lastName, and diagnosis fields are required
+ * - Test panel selection: completely optional
+ * - Category selection: optional
+ * - Phenotype data: validation for structure only
+ * - Consent: all consent fields are optional
  */
 
 /**
@@ -46,7 +55,17 @@ export function isValidDate(date) {
 }
 
 /**
- * Validates personal information fields
+ * Validates personal information fields in the patient data model
+ * 
+ * This validates the following required fields:
+ * - First name: Patient identifier
+ * - Last name: Patient identifier
+ * - Birthdate: Patient identifier
+ * - Sex: Required for medical analysis
+ * - Insurance: Required for administrative purposes
+ * - Referring physician: Required for medical coordination
+ * - Diagnosis/Suspicion: Essential clinical context for genetic testing
+ * 
  * @param {Object} personalInfo - The personal information object
  * @return {Object} Validation result object with field-specific errors
  */
@@ -89,10 +108,16 @@ export function validatePersonalInfo(personalInfo) {
 
 /**
  * Validates the selected test panels
- * @return {Object} Validation result
+ * 
+ * Note: As of April 2025, test panel selection is completely optional.
+ * Users can proceed without selecting any panels, which allows maximum
+ * flexibility in the form workflow. This change was made to streamline
+ * the data collection process.
+ * 
+ * @return {Object} Validation result with always valid=true
  */
 export function validateSelectedPanels() {
-  // Make panel selection completely optional (no validation required)
+  // Panel selection is completely optional (no validation required)
   return {
     valid: true,
     errors: {}
@@ -102,11 +127,15 @@ export function validateSelectedPanels() {
 // Removed the unused helper function to fix the lint error
 
 /**
- * Validates category selection - now optional
- * @return {Object} Validation result
+ * Validates category selection
+ * 
+ * Category selection is optional in the patient data form.
+ * This allows users to submit data without categorization when appropriate.
+ * 
+ * @return {Object} Validation result with always valid=true
  */
 export function validateCategory() {
-  // Category is now optional, so always return valid
+  // Category is optional, so always return valid
   return {
     valid: true,
     errors: {}

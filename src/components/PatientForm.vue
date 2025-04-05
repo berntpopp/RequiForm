@@ -92,10 +92,14 @@
         <v-text-field
           density="compact"
           outlined
-          label="Diagnosis / Suspicion"
+          label="Diagnosis / Suspicion *"
           v-model="diagnosis"
           rows="2"
           prepend-inner-icon="mdi-file-document-edit-outline"
+          hint="Required field - please provide a diagnosis or suspicion"
+          persistent-hint
+          :error="!!diagnosisError"
+          :error-messages="diagnosisError"
         />
       </v-col>
     </v-row>
@@ -231,6 +235,17 @@ const emit = defineEmits(['update:patientData'])
 // Inject the unified patient data and update functions
 const unifiedPatientData = inject('patientData')
 const updatePersonalInfo = inject('updatePersonalInfo')
+
+// Inject validation-related functions
+const getFieldErrors = inject('getFieldErrors', () => ({})) // Fallback to empty object if not provided
+
+// Computed property for diagnosis validation error - ensures proper type for Vuetify
+const diagnosisError = computed(() => {
+  // Get all personal info field errors
+  const errors = getFieldErrors('personalInfo');
+  // Return the diagnosis error message as a string if it exists
+  return errors && errors.diagnosis ? errors.diagnosis : ''
+})
 
 /**
  * Helper function to create computed properties with dual data binding

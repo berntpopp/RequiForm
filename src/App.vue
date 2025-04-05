@@ -477,11 +477,32 @@ async function handleGeneratePdf() {
   }
   
   // Attempt to get pedigree data if requested
-  if (showPedigree.value && pedigreeDrawer.value?.getPedigreeDataUrl) {
+  if (showPedigree.value && pedigreeDrawer.value) {
     try {
-      pedigreeDataUrl.value = await pedigreeDrawer.value.getPedigreeDataUrl();
+      // Get the pedigree image URL
+      if (pedigreeDrawer.value.getPedigreeDataUrl) {
+        pedigreeDataUrl.value = await pedigreeDrawer.value.getPedigreeDataUrl();
+      }
+      
+      // Get the pedigree data structure for the QR code
+      if (pedigreeDrawer.value.getPedigreeData) {
+        // If we have unified patient data model, add pedigree data to it
+        if (patientData.value) {
+          if (!patientData.value.pedigree) {
+            patientData.value.pedigree = {};
+          }
+          const pedData = pedigreeDrawer.value.getPedigreeData();
+          console.log('[App] Retrieved pedigree data for QR code:', JSON.stringify(pedData));
+          patientData.value.pedigree.data = pedData;
+          console.log('[App] Updated patientData with pedigree:', JSON.stringify(patientData.value.pedigree));
+        } else {
+          console.warn('[App] No patientData object available to store pedigree data');
+        }
+      } else {
+        console.warn('[App] getPedigreeData method not available');
+      }
     } catch (error) {
-      console.error('Error retrieving pedigree image:', error);
+      console.error('Error retrieving pedigree data:', error);
     }
   }
   

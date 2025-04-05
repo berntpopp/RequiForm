@@ -1,0 +1,119 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Compact QR Code Data Mapping Schema",
+  "description": "This schema defines a compact format for QR codes with abbreviated property names to reduce QR code size",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Schema version for backward compatibility",
+      "default": "1.0"
+    },
+    "v": {
+      "type": "string",
+      "description": "Compact version property",
+      "default": "1.0"
+    },
+    "type": {
+      "type": "string",
+      "description": "Type of data contained in the QR code",
+      "enum": ["patient", "phenotype", "pedigree", "complete"],
+      "default": "complete"
+    },
+    "t": {
+      "type": "string",
+      "description": "Compact type property",
+      "enum": ["p", "ph", "pd", "c"],
+      "default": "c"
+    },
+    "patient": {
+      "type": "object",
+      "properties": {
+        "firstName": { "type": "string" },
+        "lastName": { "type": "string" },
+        "birthdate": { "type": "string", "format": "date" },
+        "sex": { "type": "string" },
+        "insurance": { "type": "string" },
+        "insuranceId": { "type": "string" },
+        "referrer": { "type": "string" },
+        "diagnosis": { "type": "string" }
+      }
+    },
+    "p": {
+      "type": "object",
+      "description": "Compact patient data",
+      "properties": {
+        "fn": { "type": "string", "description": "First name" },
+        "ln": { "type": "string", "description": "Last name" },
+        "bd": { "type": "string", "description": "Birthdate" },
+        "sx": { "type": "string", "description": "Sex" },
+        "ins": { "type": "string", "description": "Insurance" },
+        "iid": { "type": "string", "description": "Insurance ID" },
+        "ref": { "type": "string", "description": "Referrer" },
+        "diag": { "type": "string", "description": "Diagnosis" }
+      }
+    },
+    "selectedTests": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "List of selected test panel IDs"
+    },
+    "ts": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Compact selected tests array"
+    },
+    "phenotypes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "term": { "type": "string" },
+          "present": { "type": "boolean" }
+        },
+        "required": ["id"]
+      },
+      "description": "Phenotype data with HPO terms"
+    },
+    "ph": {
+      "type": "array",
+      "description": "Compact phenotype data",
+      "items": {
+        "type": "object",
+        "properties": {
+          "i": { "type": "string", "description": "HPO ID (compressed)" },
+          "t": { "type": "string", "description": "Term name" },
+          "p": { "type": "integer", "enum": [0, 1], "description": "Present flag (1=true, 0=false)" }
+        },
+        "required": ["i"]
+      }
+    },
+    "pedigree": {
+      "type": "object",
+      "properties": {
+        "data": { "type": "array", "items": { "type": "object" } },
+        "format": { 
+          "type": "string", 
+          "enum": ["table", "image"], 
+          "default": "table" 
+        }
+      },
+      "description": "Pedigree data formatted for PDF inclusion"
+    },
+    "pd": {
+      "type": "object",
+      "description": "Compact pedigree data",
+      "properties": {
+        "d": { "type": "object", "description": "Pedigree data" },
+        "f": { 
+          "type": "string", 
+          "enum": ["t", "i"], 
+          "description": "Format (t=table, i=image)",
+          "default": "t" 
+        }
+      }
+    }
+  },
+  "required": ["v", "t"]
+}

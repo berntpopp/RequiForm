@@ -569,9 +569,30 @@ function performApplicationReset() {
   encryptionPassword.value = '';
   decryptionPassword.value = '';
   
-  // Reset any URL parameters
-  if (window.history && window.history.replaceState) {
-    window.history.replaceState({}, document.title, window.location.pathname);
+  // Reset any URL parameters - enhanced implementation to ensure both query and hash parameters are removed
+  const baseUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;
+  
+  try {
+    // First specifically clear the query parameters (everything after ?)
+    if (window.location.search) {
+      history.pushState("", document.title, window.location.pathname + window.location.hash);
+    }
+    
+    // Then clear any hash parameters
+    if (window.location.hash) {
+      history.pushState("", document.title, window.location.pathname);
+    }
+    
+    // Final verification - explicitly set to base URL to ensure everything is cleared
+    window.history.replaceState(null, document.title, baseUrl);
+    console.log('URL parameters cleared successfully');
+  } catch (error) {
+    console.error('Error clearing URL parameters:', error);
+    
+    // Fallback method for older browsers
+    if (window.location.href !== baseUrl) {
+      window.location.href = baseUrl;
+    }
   }
   
   // Reset any global state that might have been set
@@ -651,6 +672,36 @@ onMounted(() => {
     
     // Sync with legacy patient data format for backward compatibility
     syncLegacyPatientData();
+    
+    // Clear URL parameters after loading to prevent sensitive data exposure
+    // Wait a moment to ensure data is fully loaded before clearing URL
+    setTimeout(() => {
+      // Reset any URL parameters - explicit handling for both query and hash parameters
+      const baseUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;
+      
+      try {
+        // First clear query parameters (everything after ?)
+        if (window.location.search) {
+          history.pushState("", document.title, window.location.pathname + window.location.hash);
+        }
+        
+        // Then clear hash parameters
+        if (window.location.hash) {
+          history.pushState("", document.title, window.location.pathname);
+        }
+        
+        // Final explicit set to the base URL
+        window.history.replaceState(null, document.title, baseUrl);
+        console.log('URL parameters cleared after initialization');
+      } catch (error) {
+        console.error('Error clearing URL parameters:', error);
+        
+        // Fallback method
+        if (window.location.href !== baseUrl) {
+          window.location.href = baseUrl;
+        }
+      }
+    }, 500); // 500ms delay to ensure data is fully loaded
   }
   
   // Handle URL parameters and initialize data

@@ -17,6 +17,21 @@
 
     <v-main>
       <v-container>
+        <!-- Validation Summary Component - shows all validation errors in one place -->
+        <div class="d-flex align-center mb-4" v-if="showValidation">
+          <ValidationSummary :showValidation="showValidation" />
+          <v-btn 
+            color="primary" 
+            variant="text" 
+            class="ml-auto" 
+            size="small" 
+            @click="resetValidation"
+          >
+            <v-icon left>mdi-close</v-icon>
+            Hide Validation
+          </v-btn>
+        </div>
+        
         <!-- PatientForm now includes both the basic fields and the GenDG Consent select/form (if chosen). -->
         <PatientForm 
           :patientData="patientData" 
@@ -119,27 +134,7 @@
         </v-card>
       </v-dialog>
 
-      <!-- Validation Warning Dialog -->
-      <v-dialog v-model="validationDialog" max-width="500">
-        <v-card>
-          <v-card-title class="headline">Incomplete or Invalid Data</v-card-title>
-          <v-card-text>
-            <p>The following required fields are missing or invalid:</p>
-            <ul>
-              <li v-for="(error, index) in validationErrors" :key="index">{{ error }}</li>
-            </ul>
-            <p>
-              Generating the PDF with incomplete data may result in errors.
-              Please review and correct the data if necessary.
-            </p>
-          </v-card-text>
-          <v-card-actions>
-            <v-spacer></v-spacer>
-            <v-btn text @click="cancelValidation">Cancel</v-btn>
-            <v-btn color="primary" text @click="proceedValidation">Proceed Anyway</v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
+      <!-- Validation is now handled by ValidationSummary component -->
 
       <!-- FAQ Modal -->
       <v-dialog v-model="showFAQModal" persistent max-width="600">
@@ -171,30 +166,66 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue';
+import { ref, computed, onMounted, nextTick, provide } from 'vue';
 import TopBar from './components/TopBar.vue';
 import PatientForm from './components/PatientForm.vue';
 import TestSelector from './components/TestSelector.vue';
 import PdfGenerator from './components/PdfGenerator.vue';
 import PedigreeDrawer from './components/PedigreeDrawer.vue';
 import PhenotypeSelector from './components/PhenotypeSelector.vue';
+import ValidationSummary from './components/ValidationSummary.vue';
 import VersionFooter from './components/Footer.vue';
 import testsData from './data/tests.json';
 import {
-  mergeUrlParameters,
   getUrlParameter,
   clearUrlParameters,
   encryptParams,
   decryptParams,
-  generateUrlWithHash,
+  parsePatientDataFromUrl,
+  createUrlWithPatientData,
 } from './utils/url.js';
 import Disclaimer from './components/Disclaimer.vue';
 
 // Tour Service
 import { initializeTour, shouldShowTour } from './services/tourService';
+import { usePatientData } from './composables/usePatientData';
 
 // Tour instance ref
 const tourInstance = ref(null);
+
+// Initialize unified patient data composable
+const {
+  patientData: unifiedPatientData,
+  updatePersonalInfo,
+  updateSelectedPanels,
+  updatePhenotypeData,
+  updateCategory,
+  updateConsent,
+  resetPatientData: resetUnifiedPatientData,
+  initializeFromExternalData,
+  exportPatientData,
+  // Validation-related functions
+  isValid,
+  validationErrors: unifiedValidationErrors,
+  sectionValidation,
+  validateForm,
+  getFieldErrors
+} = usePatientData();
+
+// Provide patient data and update methods to child components
+provide('patientData', unifiedPatientData);
+provide('updatePersonalInfo', updatePersonalInfo);
+provide('updateSelectedPanels', updateSelectedPanels);
+provide('updatePhenotypeData', updatePhenotypeData);
+provide('updateCategory', updateCategory);
+provide('updateConsent', updateConsent);
+
+// Provide validation-related methods and data
+provide('isValid', isValid);
+provide('validationErrors', unifiedValidationErrors);
+provide('sectionValidation', sectionValidation);
+provide('validateForm', validateForm);
+provide('getFieldErrors', getFieldErrors);
 
 /**
  * Returns the current date in ISO format (YYYY-MM-DD).
@@ -252,6 +283,9 @@ const phenotypeData = ref({});
 const snackbar = ref(false);
 const snackbarMessage = ref('');
 
+/** Validation state */
+const showValidation = ref(false);
+
 /** Encryption dialog state and password. */
 const encryptionDialog = ref(false);
 const encryptionPassword = ref('');
@@ -262,9 +296,6 @@ const decryptionPassword = ref('');
 const decryptionError = ref('');
 
 /** Validation dialog state and error messages. */
-const validationDialog = ref(false);
-const validationErrors = ref([]);
-
 /** Used to store the encrypted string from the URL for decryption. */
 const pendingEncryptedValue = ref(null);
 
@@ -331,76 +362,64 @@ const groupedPanelDetails = computed(() => {
     .filter((group) => group.tests.length > 0);
 });
 
-/**
- * Validate required fields in patient data.
- * @return {Array<string>} List of error messages.
- */
-function validatePatientData() {
-  const errors = [];
-  const requiredFields = {
-    givenName: 'Given Name',
-    familyName: 'Family Name',
-    birthdate: 'Birthdate',
-    sex: 'Sex',
-    physicianName: 'Physician Name',
-    orderingDate: 'Ordering Date',
-  };
-  for (const [field, label] of Object.entries(requiredFields)) {
-    if (!patientData.value[field] || patientData.value[field].trim() === '') {
-      errors.push(`${label} is required.`);
-    }
-  }
-  if (patientData.value.birthdate && !/^\d{4}-\d{2}-\d{2}$/.test(patientData.value.birthdate)) {
-    errors.push('Birthdate must be in YYYY-MM-DD format.');
-  }
-  return errors;
-}
+// Validation is now handled by the validation utility in src/utils/validation.js
 
 /**
  * Main PDF generation handler.
  */
 async function handleGeneratePdf() {
-  const errors = validatePatientData();
-  if (errors.length > 0) {
-    validationErrors.value = errors;
-    validationDialog.value = true;
-  } else {
-    // Attempt to get pedigree data if requested
-    if (showPedigree.value && pedigreeDrawer.value?.getPedigreeDataUrl) {
-      try {
-        pedigreeDataUrl.value = await pedigreeDrawer.value.getPedigreeDataUrl();
-      } catch (error) {
-        console.error('Error retrieving pedigree image:', error);
-      }
-    }
-    await nextTick();
-    if (pdfGen.value && typeof pdfGen.value.generatePdf === 'function') {
-      pdfGen.value.generatePdf();
+  // Use the new validation system
+  const isFormValid = validateForm(true);
+  if (!isFormValid) {
+    // Show the validation summary
+    showValidation.value = true;
+    
+    // Show a snackbar message
+    snackbar.value = true;
+    snackbarMessage.value = 'Please correct the errors before generating the PDF.';
+    
+    // Scroll to top to make validation summary visible
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
+  
+  // Attempt to get pedigree data if requested
+  if (showPedigree.value && pedigreeDrawer.value?.getPedigreeDataUrl) {
+    try {
+      pedigreeDataUrl.value = await pedigreeDrawer.value.getPedigreeDataUrl();
+    } catch (error) {
+      console.error('Error retrieving pedigree image:', error);
     }
   }
-};
-
-/** Cancel the validation dialog. */
-function cancelValidation() {
-  validationDialog.value = false;
+  
+  await nextTick();
+  if (pdfGen.value && typeof pdfGen.value.generatePdf === 'function') {
+    pdfGen.value.generatePdf();
+  }
 }
 
-/** Proceed with PDF generation even if incomplete data. */
-function proceedValidation() {
-  validationDialog.value = false;
-  handleGeneratePdf();
+/** Reset the validation state */
+function resetValidation() {
+  showValidation.value = false;
 }
 
-/** Create a plain hash-based URL for the current data. */
-const generatePlainUrl = () => generateUrlWithHash(patientData.value, selectedTests.value);
+// Removed the proceedValidation function as it's now handled directly within the handleGeneratePdf function
 
-/** Copy the hash-based URL to the clipboard. */
+// The following function is kept for reference but now using unified data model for URL generation
+// const generatePlainUrl = () => generateUrlWithHash(patientData.value, selectedTests.value);
+
+/** Copy the URL with patient data to the clipboard. */
 function handleCopyUrl() {
-  const urlToCopy = generatePlainUrl();
+  // Ensure unified model is up to date with current form state
+  syncUnifiedPatientData();
+  
+  // Generate URL using unified patient data
+  const unifiedUrl = createUrlWithPatientData(exportPatientData());
+  
   navigator.clipboard
-    .writeText(urlToCopy)
+    .writeText(unifiedUrl)
     .then(() => {
-      snackbarMessage.value = 'Hash URL copied to clipboard!';
+      snackbarMessage.value = 'URL copied to clipboard!';
       snackbar.value = true;
     })
     .catch(() => {
@@ -482,10 +501,15 @@ function toggleTheme() {
 
 /** Resets the form to its initial state. */
 function resetForm() {
+  // Reset legacy format
   patientData.value = initialPatientData();
   selectedTests.value = [];
   phenotypeData.value = {};
   showPedigree.value = false;
+  
+  // Also reset unified patient data model
+  resetUnifiedPatientData();
+  
   snackbarMessage.value = 'Form has been reset.';
   snackbar.value = true;
 }
@@ -533,30 +557,158 @@ onMounted(() => {
       console.error("Failed to initialize or start tour:", error);
     }
   });
-  // Existing onMounted logic:
+  
+  // Initialize unified patient data from URL parameters
+  const parsedData = parsePatientDataFromUrl();
+  
+  // Only initialize if there's actual data in the URL
+  const hasUrlData = Object.values(parsedData).some(value => {
+    if (Array.isArray(value)) return value.length > 0;
+    if (typeof value === 'object') return Object.keys(value).length > 0;
+    return !!value;
+  });
+  
+  if (hasUrlData) {
+    // Initialize the unified patient data model
+    initializeFromExternalData(parsedData, false);
+    
+    // Sync with legacy patient data format for backward compatibility
+    syncLegacyPatientData();
+  }
+  
+  // Handle URL parameters and initialize data
   const encryptedValue = getUrlParameter('encrypted');
   if (encryptedValue) {
     pendingEncryptedValue.value = encryptedValue;
     decryptionDialog.value = true;
   } else {
-    const params = mergeUrlParameters();
-    patientData.value.givenName = params.get('givenName') || '';
-    patientData.value.familyName = params.get('familyName') || '';
-    patientData.value.birthdate = params.get('birthdate') || '';
-    patientData.value.insurance = params.get('insurance') || '';
-    patientData.value.sex = (params.get('sex') || '').toLowerCase();
-    patientData.value.physicianName = params.get('physicianName') || '';
-    patientData.value.familyHistory = (params.get('familyHistory') || '').toLowerCase();
-    patientData.value.parentalConsanguinity = (params.get('parentalConsanguinity') || '').toLowerCase();
-    patientData.value.diagnosis = params.get('diagnosis') || '';
-    patientData.value.orderingDate = params.get('orderingDate') || getCurrentIsoDate();
-    clearUrlParameters();
+    // Direct hash parameter handling for debugging
+    const hash = window.location.hash.substring(1);
+    console.log('URL Hash:', hash);
+    
+    if (hash) {
+      try {
+        // Parse the hash parameters manually
+        const hashParams = new URLSearchParams(hash);
+        console.log('Hash params:', Object.fromEntries(hashParams.entries()));
+        
+        // Directly populate the legacy patient data object
+        if (hashParams.get('givenName')) patientData.value.givenName = hashParams.get('givenName');
+        if (hashParams.get('familyName')) patientData.value.familyName = hashParams.get('familyName');
+        if (hashParams.get('birthdate')) patientData.value.birthdate = hashParams.get('birthdate');
+        if (hashParams.get('insurance')) patientData.value.insurance = hashParams.get('insurance');
+        if (hashParams.get('sex')) patientData.value.sex = hashParams.get('sex').toLowerCase();
+        if (hashParams.get('physicianName')) patientData.value.physicianName = hashParams.get('physicianName');
+        
+        // Directly handle category and diagnosis
+        if (hashParams.get('category')) {
+          const categoryValue = hashParams.get('category');
+          console.log('Setting category from URL:', categoryValue);
+          patientData.value.category = categoryValue;
+          // Ensure category is properly updated in the unified model
+          updateCategory(categoryValue);
+        }
+        
+        if (hashParams.get('diagnosis')) {
+          patientData.value.diagnosis = hashParams.get('diagnosis');
+        }
+        
+        // Don't handle panels here - let parsePatientDataFromUrl and the TestSelector component handle it
+        // This avoids competing updates that cause reactivity issues
+        if (hashParams.get('panels')) {
+          const panelsValue = hashParams.get('panels');
+          console.log('Found panels in URL:', panelsValue);
+          // We'll let the shared global state and parsePatientDataFromUrl handle this
+        }
+        
+        // After setting all the values, sync with the unified model
+        syncUnifiedPatientData();
+        
+        console.log('Populated patient data from URL:', patientData.value);
+      } catch (error) {
+        console.error('Error parsing URL parameters:', error);
+      }
+      
+      // Clean up URL parameters
+      clearUrlParameters();
+    }
   }
 });
 
 function handlePatientDataUpdate(newData) {
   console.log("App.vue received update:", JSON.stringify(newData)); // Log received data
-  patientData.value = newData; // Update the reactive state
+  patientData.value = newData; // Update the legacy reactive state
+  
+  // Also update unified patient data model
+  syncUnifiedPatientData();
+}
+
+/**
+ * Synchronizes the legacy patient data format with the unified model
+ */
+function syncUnifiedPatientData() {
+  // Map the legacy patient data to the unified format
+  updatePersonalInfo({
+    firstName: patientData.value.givenName || '',
+    lastName: patientData.value.familyName || '',
+    birthdate: patientData.value.birthdate || '',
+    sex: patientData.value.sex || '',
+    insurance: patientData.value.insurance || '',
+    referrer: patientData.value.physicianName || '',
+    diagnosis: patientData.value.diagnosis || ''
+  });
+  
+  // Update selected panels - ensure we're passing the actual panel IDs
+  console.log('Syncing panels to unified model:', selectedTests.value);
+  updateSelectedPanels(selectedTests.value || []);
+  
+  // For panels, do a direct update as well for immediate reactivity
+  if (unifiedPatientData && selectedTests.value && selectedTests.value.length > 0) {
+    unifiedPatientData.selectedPanels = [...selectedTests.value];
+  }
+  
+  // Update phenotype data
+  updatePhenotypeData(phenotypeData.value ? Object.values(phenotypeData.value) : []);
+  
+  // Update category if present - ensure it's explicitly called
+  if (patientData.value.category) {
+    console.log('Syncing category to unified model:', patientData.value.category);
+    updateCategory(patientData.value.category);
+    
+    // Force immediate update in the unified patient data for components to detect
+    unifiedPatientData.category = patientData.value.category;
+  }
+}
+
+/**
+ * Synchronizes the unified patient data model with the legacy format
+ */
+function syncLegacyPatientData() {
+  // Map unified model back to legacy format
+  patientData.value.givenName = unifiedPatientData.personalInfo.firstName || '';
+  patientData.value.familyName = unifiedPatientData.personalInfo.lastName || '';
+  patientData.value.birthdate = unifiedPatientData.personalInfo.birthdate || '';
+  patientData.value.sex = unifiedPatientData.personalInfo.sex || '';
+  patientData.value.insurance = unifiedPatientData.personalInfo.insurance || '';
+  patientData.value.physicianName = unifiedPatientData.personalInfo.referrer || '';
+  
+  // Update selected tests - ensure a clean copy is made
+  if (unifiedPatientData && unifiedPatientData.selectedPanels) {
+    console.log('Syncing from unified model to legacy model - panels:', unifiedPatientData.selectedPanels);
+    selectedTests.value = [...unifiedPatientData.selectedPanels];
+  }
+  
+  // Process phenotype data
+  if (unifiedPatientData.phenotypeData && unifiedPatientData.phenotypeData.length > 0) {
+    // Convert array format to object format expected by legacy code
+    const newPhenotypeData = {};
+    unifiedPatientData.phenotypeData.forEach(item => {
+      if (item.id) {
+        newPhenotypeData[item.id] = item;
+      }
+    });
+    phenotypeData.value = newPhenotypeData;
+  }
 }
 
 // --- Tour Method --- 

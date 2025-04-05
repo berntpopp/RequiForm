@@ -6,6 +6,8 @@
 
 1. **Patient Data Entry**  
    - Collect core patient information such as name, birthdate, and insurance details.  
+   - Required fields limited to patient identifiers (first/last name) and diagnosis/suspicion.  
+   - Other fields including test panels and category are optional for flexibility.  
    - All data is handled locally (browser or Electron app) for security.
 
 2. **Test Selection**  
@@ -29,7 +31,7 @@
 - **Security & Privacy**: Keep sensitive patient data strictly within the client environment.  
 - **Ease of Use**: Provide a clean, intuitive form-based interface powered by Vue/Vuetify.  
 - **Extensibility**: Allow easy updates to the list of genetic tests through a simple JSON file.  
-- **Interoperability**: Accept URL parameters so other systems (e.g., EHRs) can link directly into RequiForm with pre-populated data.
+- **Interoperability**: Accept URL parameters so other systems (e.g., EHRs) can link directly into RequiForm with pre-populated data. See [URL Parameters](#url-parameters) section for details.
 
 ## FAQ: Approach and Security Measures
 
@@ -54,6 +56,48 @@ You can access this FAQ directly within the application via the top menu bar.
 - **Clone or Download**: Obtain a copy of this repository.  
 - **Static Hosting**: Serve the app as static files in a secure environment, or run it locally in a browser.  
 - **Electron Option**: Package the app for desktop use with Electron if an offline, self-contained application is preferred.
+
+## URL Parameters
+
+RequiForm supports URL parameters to pre-populate form fields, allowing integration with other systems such as Electronic Health Records (EHRs). Parameters can be passed via hash fragment (preferred) or query string.
+
+### Basic Usage
+
+Parameters are passed after a hash (`#`) in the URL. For example:
+
+```url
+http://localhost:5173/#givenName=John&familyName=Doe&diagnosis=Suspected%20Renal%20Disease
+```
+
+### Supported Parameters
+
+#### Patient Information
+
+- `givenName` or `firstName`: Patient's given/first name
+- `familyName` or `lastName`: Patient's family/last name
+- `birthdate`: Patient's birthdate in YYYY-MM-DD format
+- `sex`: Patient's sex ("male", "female", or "other")
+- `insurance`: Insurance provider name
+- `insuranceId`: Insurance ID number
+- `physicianName` or `referrer`: Referring physician's name
+
+#### Clinical Information
+
+- `diagnosis`: Patient's diagnosis or clinical suspicion (required field)
+- `category`: Test category (e.g., "nephrology", "cancer", "neurology")
+- `panels`: Comma-separated list of panel IDs to select (e.g., "nephronophthise,alport_thin_basement")
+
+#### Legacy Parameters
+
+- `selectedTests`: Alias for `panels` (maintained for backward compatibility)
+
+### Example URL
+
+```url
+http://localhost:5173/#givenName=Jane&familyName=Doe&birthdate=1990-02-01&insurance=ABC&physicianName=Bernt+Popp&sex=female&category=nephrology&diagnosis=Suspected+Chronic+Kidney+Disease&panels=nephronophthise,alport_thin_basement
+```
+
+This URL will pre-populate the form with Jane Doe's information and select the specified panels in the nephrology category.
 
 ## Downloading Local Assets
 

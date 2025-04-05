@@ -8,12 +8,12 @@
 
 <script setup>
 import { jsPDF } from 'jspdf';
-import { defineProps, computed, defineExpose } from 'vue';
+import { defineProps, computed, defineExpose, inject } from 'vue';
 import pdfConfig from '../data/pdfConfig.json';
 import testsData from '../data/tests.json';
 import { generateQrCodeDataUrl } from '../utils/qrGenerator';
 
-// Define props
+// Define props for backward compatibility
 const props = defineProps({
   patientData: {
     type: Object,
@@ -27,25 +27,41 @@ const props = defineProps({
   phenotypeData: { type: Object, required: false, default: () => ({}) },
 });
 
+// Inject the unified patient data model
+const unifiedPatientData = inject('patientData', null);
+
 // Expose generatePdf for external calls.
 defineExpose({ generatePdf });
 
-// Compute grouped test panels.
-const groupedPanels = computed(() =>
-  testsData.categories
+// Compute grouped test panels from either unified model or legacy props
+const groupedPanels = computed(() => {
+  // Determine which tests to use (prefer unified model if available)
+  const testsToUse = unifiedPatientData?.selectedPanels || props.selectedTests || [];
+  
+  return testsData.categories
     .map((category) => ({
       categoryTitle: category.title,
+      id: category.id,
       tests: category.tests.filter((test) =>
-        props.selectedTests.includes(test.id)
+        testsToUse.includes(test.id)
       )
     }))
-    .filter((group) => group.tests.length > 0)
-);
+    .filter((group) => group.tests.length > 0);
+});
 
-// Compute QR code content.
-const qrContent = computed(() =>
-  `Given Name: ${props.patientData.givenName}, Family Name: ${props.patientData.familyName}, Birthdate: ${props.patientData.birthdate}, Insurance: ${props.patientData.insurance}, Tests: ${props.selectedTests.join(', ')}`
-);
+// Compute QR code content using either unified model or legacy props
+const qrContent = computed(() => {
+  // Prefer unified model if available
+  if (unifiedPatientData?.personalInfo) {
+    const personalInfo = unifiedPatientData.personalInfo;
+    const testsToUse = unifiedPatientData.selectedPanels || props.selectedTests || [];
+    
+    return `Given Name: ${personalInfo.firstName || ''}, Family Name: ${personalInfo.lastName || ''}, Birthdate: ${personalInfo.birthdate || ''}, Insurance: ${personalInfo.insurance || ''}, Tests: ${testsToUse.join(', ')}`;
+  }
+  
+  // Fallback to legacy props
+  return `Given Name: ${props.patientData.givenName || ''}, Family Name: ${props.patientData.familyName || ''}, Birthdate: ${props.patientData.birthdate || ''}, Insurance: ${props.patientData.insurance || ''}, Tests: ${props.selectedTests.join(', ')}`;
+});
 
 // Utility: Replace placeholders in a template string with values from mapping.
 function mapTemplateString(template, mapping) {
@@ -169,10 +185,33 @@ function renderPanel(doc, panel, offsetX, y, spacing) {
 }
 
 function renderPhenotypePage(doc) {
+  // Determine which phenotype data to use (prefer unified model if available)
+  const phenotypeDataToUse = unifiedPatientData?.phenotypeData?.length > 0
+    ? convertUnifiedPhenotypeDataToMap(unifiedPatientData.phenotypeData)
+    : props.phenotypeData;
+    
+  /**
+   * Helper function to convert unified phenotype data array to the map format needed for rendering
+   * @param {Array} phenotypeArray - Unified format: [{categoryId, phenotypeId, status}]
+   * @return {Object} - Format: {categoryId: {phenotypeId: status}}
+   */
+  function convertUnifiedPhenotypeDataToMap(phenotypeArray) {
+    if (!phenotypeArray || !Array.isArray(phenotypeArray)) return {};
+    
+    return phenotypeArray.reduce((result, item) => {
+      if (!result[item.categoryId]) {
+        result[item.categoryId] = {};
+      }
+      result[item.categoryId][item.phenotypeId] = item.status;
+      return result;
+    }, {});
+  }
+  
+  // Check if we have any non-empty phenotype data to render
   let hasPhenotype = false;
-  for (const cat in props.phenotypeData) {
-    for (const phen in props.phenotypeData[cat]) {
-      if (props.phenotypeData[cat][phen] !== 'no input') {
+  for (const cat in phenotypeDataToUse) {
+    for (const phen in phenotypeDataToUse[cat]) {
+      if (phenotypeDataToUse[cat][phen] !== 'no input') {
         hasPhenotype = true;
         break;
       }
@@ -189,11 +228,11 @@ function renderPhenotypePage(doc) {
   currentY += 20;
   doc.setFont('Helvetica', 'normal');
   doc.setFontSize(12);
-  for (const catId in props.phenotypeData) {
+  for (const catId in phenotypeDataToUse) {
     const category = testsData.categories.find((c) => c.id === catId);
     if (!category || !category.phenotypes) continue;
     const phenotypes = category.phenotypes.filter(
-      (p) => props.phenotypeData[catId][p.id] !== 'no input'
+      (p) => phenotypeDataToUse[catId][p.id] !== 'no input'
     );
     if (phenotypes.length > 0) {
       doc.setFont('Helvetica', 'bold');
@@ -201,7 +240,7 @@ function renderPhenotypePage(doc) {
       currentY += 16;
       doc.setFont('Helvetica', 'normal');
       phenotypes.forEach((p) => {
-        const state = props.phenotypeData[catId][p.id];
+        const state = phenotypeDataToUse[catId][p.id];
         const line = `${p.name} (${p.hpo}): ${state}`;
         doc.text(line, leftMargin, currentY);
         currentY += 14;
@@ -337,8 +376,20 @@ async function generatePdf() {
       unit: 'pt',
       format: 'A4'
     });
+    // Create mapping object for template values using either unified model or legacy props
     const mapping = {
+      // Personal info (prefer unified model, fall back to legacy props)
+      givenName: unifiedPatientData?.personalInfo?.firstName || props.patientData.givenName || '',
+      familyName: unifiedPatientData?.personalInfo?.lastName || props.patientData.familyName || '',
+      birthdate: unifiedPatientData?.personalInfo?.birthdate || props.patientData.birthdate || '',
+      sex: unifiedPatientData?.personalInfo?.sex || props.patientData.sex || '',
+      insurance: unifiedPatientData?.personalInfo?.insurance || props.patientData.insurance || '',
+      physicianName: unifiedPatientData?.personalInfo?.referrer || props.patientData.physicianName || '',
+      
+      // Include other legacy fields that aren't yet in unified model
       ...props.patientData,
+      
+      // Include config values
       ...pdfConfig.header,
       ...pdfConfig.footer
     };
@@ -373,7 +424,11 @@ async function generatePdf() {
     });
 
     // 3. Render variant segregation details if provided.
-    if (props.patientData.variantSegregationRequested && props.patientData.variantDetails) {
+    // Check for variant details in either unified model or legacy props
+    const variantSegregationRequested = props.patientData.variantSegregationRequested;
+    const variantDetails = props.patientData.variantDetails;
+    
+    if (variantSegregationRequested && variantDetails) {
       if (y + spacing > maxHeight) {
         doc.addPage();
         y = secondPageBaseY;
@@ -448,9 +503,13 @@ async function generatePdf() {
       });
     }
 
-    // 8. Render the consent page if the form was filled within patientData.
-    console.log('generatePdf in PdfGenerator: Checking props.patientData.genDGConsentData:', JSON.stringify(props.patientData.genDGConsentData));
-    if (props.patientData.genDGConsentData && props.patientData.genDGConsentData.provided === 'fill') {
+    // 8. Render the consent page if the form was filled within patientData or unified model.
+    // Check consent in unified model first, then fall back to legacy model
+    const consentDataExists = unifiedPatientData?.consent?.dataProcessing || 
+                          (props.patientData.genDGConsentData && props.patientData.genDGConsentData.provided === 'fill');
+    
+    console.log('generatePdf in PdfGenerator: Checking consent data availability:', consentDataExists);
+    if (consentDataExists) {
       console.log("Attempting to render consent page...");
       try {
         renderConsentPage(doc);

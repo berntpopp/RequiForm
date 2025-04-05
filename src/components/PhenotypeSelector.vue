@@ -29,7 +29,7 @@
                 v-model="localPhenotypeData[group.id][phenotype.id]"
                 inline
                 density="compact"
-                @change="updatePhenotypeData(group.id, phenotype.id)"
+                @change="handlePhenotypeChange(group.id, phenotype.id)"
                 class="radio-group"
               >
                 <v-radio label="No Input" value="no input" density="compact" />
@@ -48,9 +48,10 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, inject } from 'vue'
 import testsData from '../data/tests.json'
 
+// Props for backward compatibility
 const props = defineProps({
   groupedPanelDetails: {
     type: Array,
@@ -61,7 +62,13 @@ const props = defineProps({
     default: () => ({})
   }
 })
+
+// Emit for backward compatibility
 const emit = defineEmits(['update:modelValue'])
+
+// Inject the unified patient data and update functions
+const unifiedPatientData = inject('patientData', null)
+const updatePhenotypeData = inject('updatePhenotypeData', null)
 
 const showPanel = ref(false)
 
@@ -70,6 +77,17 @@ const showPanel = ref(false)
  * { categoryId: { phenotypeId: 'no input' | 'present' | 'absent', ... }, ... }
  */
 const localPhenotypeData = ref({})
+
+// Initialize from unified model if available
+if (unifiedPatientData && unifiedPatientData.phenotypeData && unifiedPatientData.phenotypeData.length > 0) {
+  // Convert array format to map format for internal use
+  unifiedPatientData.phenotypeData.forEach(item => {
+    if (!localPhenotypeData.value[item.categoryId]) {
+      localPhenotypeData.value[item.categoryId] = {}
+    }
+    localPhenotypeData.value[item.categoryId][item.phenotypeId] = item.status
+  })
+}
 
 // Ensure each category in groupedPanelDetails has its phenotype states initialized to "no input".
 watch(
@@ -87,7 +105,7 @@ watch(
         }
       }
     })
-    emit('update:modelValue', localPhenotypeData.value)
+    updateBothModels()
   },
   { immediate: true, deep: true }
 )
@@ -101,9 +119,33 @@ function categoryPhenotypes(categoryId) {
   return category?.phenotypes || []
 }
 
-function updatePhenotypeData(categoryId, phenotypeId) {
-  // The v-model already updates localPhenotypeData.
+function handlePhenotypeChange() {
+  // The v-model already updates localPhenotypeData, but we need to update both models
+  updateBothModels()
+}
+
+/**
+ * Updates both the legacy model (via emit) and the unified model (via inject)
+ */
+function updateBothModels() {
+  // Update legacy model via emit
   emit('update:modelValue', localPhenotypeData.value)
+  
+  // Update unified model if available
+  if (updatePhenotypeData) {
+    // Convert from map format to array format for the unified model
+    const phenotypeArray = []
+    Object.entries(localPhenotypeData.value).forEach(([categoryId, phenotypes]) => {
+      Object.entries(phenotypes).forEach(([phenotypeId, status]) => {
+        phenotypeArray.push({
+          categoryId,
+          phenotypeId,
+          status
+        })
+      })
+    })
+    updatePhenotypeData(phenotypeArray)
+  }
 }
 
 const groupedPanelDetails = computed(() => props.groupedPanelDetails)

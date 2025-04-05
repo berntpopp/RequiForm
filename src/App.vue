@@ -171,7 +171,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from 'vue';
+import { ref, computed, onMounted, nextTick, provide } from 'vue';
 import TopBar from './components/TopBar.vue';
 import PatientForm from './components/PatientForm.vue';
 import TestSelector from './components/TestSelector.vue';
@@ -186,15 +186,38 @@ import {
   clearUrlParameters,
   encryptParams,
   decryptParams,
-  generateUrlWithHash,
+  parsePatientDataFromUrl,
+  createUrlWithPatientData,
 } from './utils/url.js';
 import Disclaimer from './components/Disclaimer.vue';
 
 // Tour Service
 import { initializeTour, shouldShowTour } from './services/tourService';
+import { usePatientData } from './composables/usePatientData';
 
 // Tour instance ref
 const tourInstance = ref(null);
+
+// Initialize unified patient data composable
+const {
+  patientData: unifiedPatientData,
+  updatePersonalInfo,
+  updateSelectedPanels,
+  updatePhenotypeData,
+  updateCategory,
+  updateConsent,
+  resetPatientData: resetUnifiedPatientData,
+  initializeFromExternalData,
+  exportPatientData
+} = usePatientData();
+
+// Provide patient data and update methods to child components
+provide('patientData', unifiedPatientData);
+provide('updatePersonalInfo', updatePersonalInfo);
+provide('updateSelectedPanels', updateSelectedPanels);
+provide('updatePhenotypeData', updatePhenotypeData);
+provide('updateCategory', updateCategory);
+provide('updateConsent', updateConsent);
 
 /**
  * Returns the current date in ISO format (YYYY-MM-DD).
@@ -391,16 +414,21 @@ function proceedValidation() {
   handleGeneratePdf();
 }
 
-/** Create a plain hash-based URL for the current data. */
-const generatePlainUrl = () => generateUrlWithHash(patientData.value, selectedTests.value);
+// The following function is kept for reference but now using unified data model for URL generation
+// const generatePlainUrl = () => generateUrlWithHash(patientData.value, selectedTests.value);
 
-/** Copy the hash-based URL to the clipboard. */
+/** Copy the URL with patient data to the clipboard. */
 function handleCopyUrl() {
-  const urlToCopy = generatePlainUrl();
+  // Ensure unified model is up to date with current form state
+  syncUnifiedPatientData();
+  
+  // Generate URL using unified patient data
+  const unifiedUrl = createUrlWithPatientData(exportPatientData());
+  
   navigator.clipboard
-    .writeText(urlToCopy)
+    .writeText(unifiedUrl)
     .then(() => {
-      snackbarMessage.value = 'Hash URL copied to clipboard!';
+      snackbarMessage.value = 'URL copied to clipboard!';
       snackbar.value = true;
     })
     .catch(() => {
@@ -482,10 +510,15 @@ function toggleTheme() {
 
 /** Resets the form to its initial state. */
 function resetForm() {
+  // Reset legacy format
   patientData.value = initialPatientData();
   selectedTests.value = [];
   phenotypeData.value = {};
   showPedigree.value = false;
+  
+  // Also reset unified patient data model
+  resetUnifiedPatientData();
+  
   snackbarMessage.value = 'Form has been reset.';
   snackbar.value = true;
 }
@@ -533,6 +566,25 @@ onMounted(() => {
       console.error("Failed to initialize or start tour:", error);
     }
   });
+  
+  // Initialize unified patient data from URL parameters
+  const parsedData = parsePatientDataFromUrl();
+  
+  // Only initialize if there's actual data in the URL
+  const hasUrlData = Object.values(parsedData).some(value => {
+    if (Array.isArray(value)) return value.length > 0;
+    if (typeof value === 'object') return Object.keys(value).length > 0;
+    return !!value;
+  });
+  
+  if (hasUrlData) {
+    // Initialize the unified patient data model
+    initializeFromExternalData(parsedData, false);
+    
+    // Sync with legacy patient data format for backward compatibility
+    syncLegacyPatientData();
+  }
+  
   // Existing onMounted logic:
   const encryptedValue = getUrlParameter('encrypted');
   if (encryptedValue) {
@@ -552,11 +604,66 @@ onMounted(() => {
     patientData.value.orderingDate = params.get('orderingDate') || getCurrentIsoDate();
     clearUrlParameters();
   }
+  
+  // Sync with the new unified model
+  syncUnifiedPatientData();
 });
 
 function handlePatientDataUpdate(newData) {
   console.log("App.vue received update:", JSON.stringify(newData)); // Log received data
-  patientData.value = newData; // Update the reactive state
+  patientData.value = newData; // Update the legacy reactive state
+  
+  // Also update unified patient data model
+  syncUnifiedPatientData();
+}
+
+/**
+ * Synchronizes the legacy patient data format with the unified model
+ */
+function syncUnifiedPatientData() {
+  // Map the legacy patient data to the unified format
+  updatePersonalInfo({
+    firstName: patientData.value.givenName || '',
+    lastName: patientData.value.familyName || '',
+    birthdate: patientData.value.birthdate || '',
+    sex: patientData.value.sex || '',
+    insurance: patientData.value.insurance || '',
+    referrer: patientData.value.physicianName || ''
+  });
+  
+  // Update selected panels
+  updateSelectedPanels(selectedTests.value || []);
+  
+  // Update phenotype data
+  updatePhenotypeData(phenotypeData.value ? Object.values(phenotypeData.value) : []);
+}
+
+/**
+ * Synchronizes the unified patient data model with the legacy format
+ */
+function syncLegacyPatientData() {
+  // Map unified model back to legacy format
+  patientData.value.givenName = unifiedPatientData.personalInfo.firstName || '';
+  patientData.value.familyName = unifiedPatientData.personalInfo.lastName || '';
+  patientData.value.birthdate = unifiedPatientData.personalInfo.birthdate || '';
+  patientData.value.sex = unifiedPatientData.personalInfo.sex || '';
+  patientData.value.insurance = unifiedPatientData.personalInfo.insurance || '';
+  patientData.value.physicianName = unifiedPatientData.personalInfo.referrer || '';
+  
+  // Update selected tests
+  selectedTests.value = [...unifiedPatientData.selectedPanels];
+  
+  // Process phenotype data
+  if (unifiedPatientData.phenotypeData && unifiedPatientData.phenotypeData.length > 0) {
+    // Convert array format to object format expected by legacy code
+    const newPhenotypeData = {};
+    unifiedPatientData.phenotypeData.forEach(item => {
+      if (item.id) {
+        newPhenotypeData[item.id] = item;
+      }
+    });
+    phenotypeData.value = newPhenotypeData;
+  }
 }
 
 // --- Tour Method --- 

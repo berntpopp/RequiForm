@@ -1,6 +1,7 @@
 /**
  * @file url.js
  * @description Utility module for URL parameter handling and encryption/decryption operations.
+ * Enhanced with patient data parsing and URL parameter generation functions.
  */
 
 import CryptoJS from 'crypto-js';
@@ -78,7 +79,7 @@ export function decryptParams(encryptedStr, password) {
       return null;
     }
     return new URLSearchParams(decryptedStr);
-  } catch (error) {
+  } catch {    // Empty catch block for errors
     return null;
   }
 }
@@ -104,4 +105,120 @@ export function generateUrlWithHash(data, selectedTests) {
   }
   url.hash = hashParams.toString();
   return url.toString();
+}
+
+/**
+ * Parses URL parameters into a patient data object
+ * @param {URL|string} url - URL object or string to parse
+ * @return {Object} Parsed patient data from URL parameters
+ */
+export function parsePatientDataFromUrl() {
+  // Use existing function to merge query and hash params
+  const params = mergeUrlParameters();
+  
+  const patientData = {
+    personalInfo: {},
+    selectedPanels: [],
+    phenotypeData: [],
+    category: '',
+    consent: {},
+  };
+  
+  // Parse personal information
+  if (params.has('firstName')) patientData.personalInfo.firstName = params.get('firstName');
+  if (params.has('lastName')) patientData.personalInfo.lastName = params.get('lastName');
+  if (params.has('birthdate')) patientData.personalInfo.birthdate = params.get('birthdate');
+  if (params.has('sex')) patientData.personalInfo.sex = params.get('sex');
+  if (params.has('insurance')) patientData.personalInfo.insurance = params.get('insurance');
+  if (params.has('insuranceId')) patientData.personalInfo.insuranceId = params.get('insuranceId');
+  if (params.has('referrer')) patientData.personalInfo.referrer = params.get('referrer');
+  
+  // Parse selected panels (comma-separated list)
+  if (params.has('panels')) {
+    patientData.selectedPanels = params.get('panels').split(',').filter(Boolean);
+  }
+  // For backward compatibility, also check selectedTests parameter
+  else if (params.has('selectedTests')) {
+    patientData.selectedPanels = params.get('selectedTests').split(',').filter(Boolean);
+  }
+  
+  // Parse phenotype data (JSON-encoded string)
+  if (params.has('phenotypes')) {
+    try {
+      const phenotypesParam = params.get('phenotypes');
+      patientData.phenotypeData = JSON.parse(decodeURIComponent(phenotypesParam));
+    } catch (error) {
+      console.error('Failed to parse phenotypes from URL:', error);
+    }
+  }
+  
+  // Parse category
+  if (params.has('category')) patientData.category = params.get('category');
+  
+  // Parse consent information
+  if (params.has('consentDataProcessing')) {
+    patientData.consent.dataProcessing = params.get('consentDataProcessing') === 'true';
+  }
+  if (params.has('consentIncidentalFindings')) {
+    patientData.consent.incidentalFindings = params.get('consentIncidentalFindings') === 'true';
+  }
+
+  return patientData;
+}
+
+/**
+ * Converts patient data to URL parameters
+ * @param {Object} patientData - Patient data object
+ * @return {URLSearchParams} URL parameters
+ */
+export function patientDataToUrlParams(patientData) {
+  const params = new URLSearchParams();
+  
+  // Add personal information
+  const { personalInfo } = patientData;
+  if (personalInfo) {
+    if (personalInfo.firstName) params.set('firstName', personalInfo.firstName);
+    if (personalInfo.lastName) params.set('lastName', personalInfo.lastName);
+    if (personalInfo.birthdate) params.set('birthdate', personalInfo.birthdate);
+    if (personalInfo.sex) params.set('sex', personalInfo.sex);
+    if (personalInfo.insurance) params.set('insurance', personalInfo.insurance);
+    if (personalInfo.insuranceId) params.set('insuranceId', personalInfo.insuranceId);
+    if (personalInfo.referrer) params.set('referrer', personalInfo.referrer);
+  }
+  
+  // Add selected panels
+  if (patientData.selectedPanels && patientData.selectedPanels.length > 0) {
+    params.set('panels', patientData.selectedPanels.join(','));
+  }
+  
+  // Add phenotype data (JSON-encoded)
+  if (patientData.phenotypeData && patientData.phenotypeData.length > 0) {
+    params.set('phenotypes', encodeURIComponent(JSON.stringify(patientData.phenotypeData)));
+  }
+  
+  // Add category
+  if (patientData.category) params.set('category', patientData.category);
+  
+  // Add consent information
+  if (patientData.consent) {
+    if (patientData.consent.dataProcessing !== undefined) {
+      params.set('consentDataProcessing', patientData.consent.dataProcessing.toString());
+    }
+    if (patientData.consent.incidentalFindings !== undefined) {
+      params.set('consentIncidentalFindings', patientData.consent.incidentalFindings.toString());
+    }
+  }
+  
+  return params;
+}
+
+/**
+ * Creates a URL with patient data parameters
+ * @param {Object} patientData - Patient data object
+ * @param {string} baseUrl - Base URL (defaults to current location)
+ * @return {string} URL with patient data parameters
+ */
+export function createUrlWithPatientData(patientData, baseUrl = window.location.href.split('?')[0]) {
+  const params = patientDataToUrlParams(patientData);
+  return `${baseUrl}?${params.toString()}`;
 }

@@ -11,7 +11,11 @@ import { jsPDF } from 'jspdf';
 import { defineProps, computed, defineExpose, inject } from 'vue';
 import pdfConfig from '../data/pdfConfig.json';
 import testsData from '../data/tests.json';
-import { generateQrCodeDataUrl } from '../utils/qrGenerator';
+import { 
+  generatePatientQrCode,
+  generatePhenotypeQrCode,
+  generatePedigreeQrCode
+} from '../utils/qrService';
 
 // Define props for backward compatibility
 const props = defineProps({
@@ -49,18 +53,97 @@ const groupedPanels = computed(() => {
     .filter((group) => group.tests.length > 0);
 });
 
-// Compute QR code content using either unified model or legacy props
-const qrContent = computed(() => {
+// Compute patient data for QR code using either unified model or legacy props
+const patientQrData = computed(() => {
   // Prefer unified model if available
   if (unifiedPatientData?.personalInfo) {
     const personalInfo = unifiedPatientData.personalInfo;
     const testsToUse = unifiedPatientData.selectedPanels || props.selectedTests || [];
     
-    return `Given Name: ${personalInfo.firstName || ''}, Family Name: ${personalInfo.lastName || ''}, Birthdate: ${personalInfo.birthdate || ''}, Insurance: ${personalInfo.insurance || ''}, Tests: ${testsToUse.join(', ')}`;
+    return {
+      patient: {
+        firstName: personalInfo.firstName || '',
+        lastName: personalInfo.lastName || '',
+        birthdate: personalInfo.birthdate || '',
+        sex: personalInfo.sex || '',
+        insurance: personalInfo.insurance || '',
+        insuranceId: personalInfo.insuranceId || '',
+        referrer: personalInfo.referrer || '',
+        diagnosis: personalInfo.diagnosis || ''
+      },
+      selectedTests: testsToUse
+    };
   }
   
   // Fallback to legacy props
-  return `Given Name: ${props.patientData.givenName || ''}, Family Name: ${props.patientData.familyName || ''}, Birthdate: ${props.patientData.birthdate || ''}, Insurance: ${props.patientData.insurance || ''}, Tests: ${props.selectedTests.join(', ')}`;
+  return {
+    patient: {
+      firstName: props.patientData.givenName || '',
+      lastName: props.patientData.familyName || '',
+      birthdate: props.patientData.birthdate || '',
+      sex: props.patientData.sex || '',
+      insurance: props.patientData.insurance || '',
+      insuranceId: props.patientData.insuranceId || '',
+      referrer: props.patientData.referrer || '',
+      diagnosis: props.patientData.clinicalDiagnosis || ''
+    },
+    selectedTests: props.selectedTests || []
+  };
+});
+
+// Compute phenotype data for QR code
+const phenotypeQrData = computed(() => {
+  if (unifiedPatientData?.phenotypes) {
+    return unifiedPatientData.phenotypes;
+  }
+  
+  // Fallback to legacy props format if needed
+  if (props.phenotypeData) {
+    // Convert from legacy format to unified format if necessary
+    const phenotypeItems = [];
+    
+    // Extract phenotype data from legacy format with HPO IDs
+    Object.entries(props.phenotypeData).forEach(([catId, phenotypes]) => {
+      Object.entries(phenotypes).forEach(([phenotypeId, status]) => {
+        // Skip any 'no input' values entirely
+        if (status === 'no input') return;
+        
+        // Find the phenotype in testsData to get its HPO ID
+        const category = testsData.categories.find(c => c.id === catId);
+        if (category) {
+          const phenotype = category.phenotypes.find(p => p.id === phenotypeId);
+          if (phenotype && phenotype.hpo) {
+            phenotypeItems.push({
+              id: phenotype.hpo, // Use the actual HPO ID (e.g., HP:0000123)
+              present: status === 'present' || status === 'yes'
+            });
+          }
+        }
+      });
+    });
+    
+    return phenotypeItems;
+  }
+  
+  return [];
+});
+
+// Compute pedigree data for QR code
+const pedigreeQrData = computed(() => {
+  // Prefer unified model if available
+  if (unifiedPatientData?.pedigree?.data) {
+    return unifiedPatientData.pedigree.data;
+  }
+  
+  // If we only have the image URL, we'll create a minimal object
+  if (props.pedigreeDataUrl) {
+    return {
+      hasImage: true,
+      // We can't include the full image in QR code, so we note its existence
+    };
+  }
+  
+  return null;
 });
 
 // Utility: Replace placeholders in a template string with values from mapping.
@@ -184,17 +267,23 @@ function renderPanel(doc, panel, offsetX, y, spacing) {
   return y;
 }
 
-function renderPhenotypePage(doc) {
+async function renderPhenotypePage(doc) {
+  // Ensure we add a new page for phenotype data
+  doc.addPage();
+  const currentPage = doc.internal.getNumberOfPages();
+  doc.setPage(currentPage);
+  
+  // Add a title to the phenotype page
+  doc.setFont('Helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.text('Phenotype Data', 40, 40);
+  
   // Determine which phenotype data to use (prefer unified model if available)
   const phenotypeDataToUse = unifiedPatientData?.phenotypeData?.length > 0
     ? convertUnifiedPhenotypeDataToMap(unifiedPatientData.phenotypeData)
     : props.phenotypeData;
-    
-  /**
-   * Helper function to convert unified phenotype data array to the map format needed for rendering
-   * @param {Array} phenotypeArray - Unified format: [{categoryId, phenotypeId, status}]
-   * @return {Object} - Format: {categoryId: {phenotypeId: status}}
-   */
+  
+  // Helper function to convert unified phenotype data array to the map format needed for rendering
   function convertUnifiedPhenotypeDataToMap(phenotypeArray) {
     if (!phenotypeArray || !Array.isArray(phenotypeArray)) return {};
     
@@ -218,15 +307,54 @@ function renderPhenotypePage(doc) {
     }
     if (hasPhenotype) break;
   }
+  
+  // If no phenotype data, don't render anything
   if (!hasPhenotype) return;
-  doc.addPage();
-  let currentY = 40;
+  
+  // Start rendering phenotype information on the current page
+  let currentY = 70; // Start below the title
   const leftMargin = 40;
-  doc.setFont('Helvetica', 'bold');
-  doc.setFontSize(14);
-  doc.text('Phenotype Information', leftMargin, currentY);
-  currentY += 20;
   doc.setFont('Helvetica', 'normal');
+  doc.setFontSize(12);
+  
+  // Add QR code for phenotype data if available
+  try {
+    // Use the prepared phenotype data for the QR code
+    // Make sure we have valid phenotype data before trying to generate a QR code
+    if (phenotypeQrData.value && phenotypeQrData.value.length > 0) {
+      console.log('Generating phenotype QR code with', phenotypeQrData.value.length, 'items');
+      
+      // Generate phenotype QR code with minimal configuration for better size efficiency
+      const phenotypeQrDataUrl = await generatePhenotypeQrCode(phenotypeQrData.value, {
+        qrOptions: {
+          width: pdfConfig.qr.size.width, 
+          margin: 1,  // Smaller margin for better scanning
+          errorCorrectionLevel: 'M' // Medium error correction for balance
+        }
+      });
+      
+      // Add QR code label ABOVE the QR code
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.text('Phenotype QR Code', 
+               pdfConfig.qr.position.x + pdfConfig.qr.size.width/2 - 40, 
+               pdfConfig.qr.position.y - 10); // 10pt above the QR code
+      
+      // Position the QR code according to pdfConfig settings
+      doc.addImage(
+        phenotypeQrDataUrl,
+        'PNG',
+        pdfConfig.qr.position.x,
+        pdfConfig.qr.position.y,
+        pdfConfig.qr.size.width,
+        pdfConfig.qr.size.height
+      );
+    } else {
+      console.log('No phenotype data available for QR code generation');
+    }
+  } catch (qrError) {
+    console.error("Failed to generate or add phenotype QR code:", qrError);
+  }
   doc.setFontSize(12);
   for (const catId in phenotypeDataToUse) {
     const category = testsData.categories.find((c) => c.id === catId);
@@ -241,6 +369,8 @@ function renderPhenotypePage(doc) {
       doc.setFont('Helvetica', 'normal');
       phenotypes.forEach((p) => {
         const state = phenotypeDataToUse[catId][p.id];
+        
+        // Keep original format with name, HPO ID and state
         const line = `${p.name} (${p.hpo}): ${state}`;
         doc.text(line, leftMargin, currentY);
         currentY += 14;
@@ -452,15 +582,41 @@ async function generatePdf() {
     // 4. Render footer sections.
     if (pdfConfig.footer) renderSection(doc, pdfConfig.footer, mapping);
 
-    // 5. Generate QR code and add it to page 1.
+    // 5. Generate patient QR code and add it to page 1.
     if (pdfConfig.qr?.position && pdfConfig.qr?.size) {
       try {
-        const qrDataUrl = await generateQrCodeDataUrl(qrContent.value, {
-          width: 128, // Specify desired size if needed
-        });
+        // Generate patient QR code using the new QR service
+        const qrOptions = {
+          qrOptions: {
+            width: 128,
+            margin: 2,
+            color: {
+              dark: '#000000',
+              light: '#ffffff'
+            }
+          }
+        };
+        
+        const patientQrDataUrl = await generatePatientQrCode(
+          patientQrData.value.patient, 
+          { 
+            selectedTests: patientQrData.value.selectedTests,
+            ...qrOptions
+          }
+        );
+        
         doc.setPage(1); // Ensure we are on the first page
+        
+        // Add QR code label ABOVE the QR code
+        doc.setFont('Helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.text('Patient QR Code', 
+                pdfConfig.qr.position.x + pdfConfig.qr.size.width/2 - 40, 
+                pdfConfig.qr.position.y - 10); // 10pt above
+        
+        // Add the QR code image
         doc.addImage(
-          qrDataUrl,
+          patientQrDataUrl,
           'PNG',
           pdfConfig.qr.position.x,
           pdfConfig.qr.position.y,
@@ -468,34 +624,97 @@ async function generatePdf() {
           pdfConfig.qr.size.height
         );
       } catch (qrError) {
-        console.error("Failed to generate or add QR code:", qrError);
+        console.error("Failed to generate or add patient QR code:", qrError);
         // Optionally inform the user or handle the error
       }
     }
 
     // 6. Render phenotype page if available.
-    renderPhenotypePage(doc);
+    try {
+      await renderPhenotypePage(doc);
+    } catch (phenotypeError) {
+      console.error('Error rendering phenotype page:', phenotypeError);
+      // Continue with PDF generation even if phenotype page fails
+    }
 
-    // 7. Render pedigree image if available.
+    // 7. Render pedigree image and QR code if available.
     if (props.pedigreeDataUrl && props.pedigreeDataUrl !== '') {
+      // First, generate a QR code for the pedigree data if available
+      let pedigreeQrDataUrl = null;
+      if (pedigreeQrData.value) {
+        try {
+          pedigreeQrDataUrl = await generatePedigreeQrCode(pedigreeQrData.value, {
+            format: 't', // Compact format: t=table
+            qrOptions: {
+              width: 100, // Smaller size for better scanning
+              margin: 1,  // Minimize margins for smaller code
+              errorCorrectionLevel: 'M' // Medium error correction for balance
+            }
+          });
+          console.log('Generated pedigree QR code');
+        } catch (qrError) {
+          console.error('Error generating pedigree QR code:', qrError);
+          // Continue even if QR generation fails
+        }
+      }
+      
+      // Then load and render the pedigree image
       await new Promise((resolve) => {
         const img = new Image();
         img.src = props.pedigreeDataUrl;
+        
         img.onload = () => {
-          const pageWidth = doc.internal.pageSize.getWidth();
-          const pageHeight = doc.internal.pageSize.getHeight();
-          const margin = 40;
-          const maxWidth = pageWidth - margin * 2;
-          const maxHeight = pageHeight - margin * 2;
-          const scale = Math.min(maxWidth / img.width, maxHeight / img.height, 1);
-          const drawWidth = img.width * scale;
-          const drawHeight = img.height * scale;
-          const offsetXImg = (pageWidth - drawWidth) / 2;
-          const offsetYImg = (pageHeight - drawHeight) / 2;
-          doc.addPage();
-          doc.addImage(props.pedigreeDataUrl, 'PNG', offsetXImg, offsetYImg, drawWidth, drawHeight);
+          try {
+            // Add a new page for the pedigree
+            doc.addPage();
+            const currentPage = doc.internal.getNumberOfPages();
+            doc.setPage(currentPage);
+            
+            // Add a title to the pedigree page
+            doc.setFont('Helvetica', 'bold');
+            doc.setFontSize(16);
+            doc.text('Family Pedigree', 40, 40);
+            
+            // Calculate image dimensions
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            const margin = 40;
+            const maxWidth = pageWidth - margin * 2;
+            const maxHeight = pageHeight - margin * 2 - 40; // Account for title
+            const scale = Math.min(maxWidth / img.width, maxHeight / img.height, 1);
+            const drawWidth = img.width * scale;
+            const drawHeight = img.height * scale;
+            const offsetXImg = (pageWidth - drawWidth) / 2;
+            const offsetYImg = 80; // Start below the title
+            
+            // Add the pedigree image
+            doc.addImage(props.pedigreeDataUrl, 'PNG', offsetXImg, offsetYImg, drawWidth, drawHeight);
+            
+            // Add the QR code according to pdfConfig settings
+            if (pedigreeQrDataUrl) {
+              // Add QR code label ABOVE the QR code
+              doc.setFont('Helvetica', 'bold');
+              doc.setFontSize(10);
+              doc.text('Pedigree QR Code', 
+                      pdfConfig.qr.position.x + pdfConfig.qr.size.width/2 - 40, 
+                      pdfConfig.qr.position.y - 10); // 10pt above
+              
+              // Add the QR code image
+              doc.addImage(
+                pedigreeQrDataUrl,
+                'PNG',
+                pdfConfig.qr.position.x,
+                pdfConfig.qr.position.y,
+                pdfConfig.qr.size.width,
+                pdfConfig.qr.size.height
+              );
+            }
+          } catch (renderError) {
+            console.error('Error rendering pedigree:', renderError);
+          }
           resolve();
         };
+        
         img.onerror = () => {
           console.error('Error loading pedigree image.');
           resolve();

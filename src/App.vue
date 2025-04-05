@@ -17,6 +17,21 @@
 
     <v-main>
       <v-container>
+        <!-- Validation Summary Component - shows all validation errors in one place -->
+        <div class="d-flex align-center mb-4" v-if="showValidation">
+          <ValidationSummary :showValidation="showValidation" />
+          <v-btn 
+            color="primary" 
+            variant="text" 
+            class="ml-auto" 
+            size="small" 
+            @click="resetValidation"
+          >
+            <v-icon left>mdi-close</v-icon>
+            Hide Validation
+          </v-btn>
+        </div>
+        
         <!-- PatientForm now includes both the basic fields and the GenDG Consent select/form (if chosen). -->
         <PatientForm 
           :patientData="patientData" 
@@ -119,27 +134,7 @@
         </v-card>
       </v-dialog>
 
-      <!-- Validation Warning Dialog -->
-      <v-dialog v-model="validationDialog" max-width="500">
-        <v-card>
-          <v-card-title class="headline">Incomplete or Invalid Data</v-card-title>
-          <v-card-text>
-            <p>The following required fields are missing or invalid:</p>
-            <ul>
-              <li v-for="(error, index) in validationErrors" :key="index">{{ error }}</li>
-            </ul>
-            <p>
-              Generating the PDF with incomplete data may result in errors.
-              Please review and correct the data if necessary.
-            </p>
-          </v-card-text>
-          <v-card-actions>
-            <v-spacer></v-spacer>
-            <v-btn text @click="cancelValidation">Cancel</v-btn>
-            <v-btn color="primary" text @click="proceedValidation">Proceed Anyway</v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
+      <!-- Validation is now handled by ValidationSummary component -->
 
       <!-- FAQ Modal -->
       <v-dialog v-model="showFAQModal" persistent max-width="600">
@@ -178,6 +173,7 @@ import TestSelector from './components/TestSelector.vue';
 import PdfGenerator from './components/PdfGenerator.vue';
 import PedigreeDrawer from './components/PedigreeDrawer.vue';
 import PhenotypeSelector from './components/PhenotypeSelector.vue';
+import ValidationSummary from './components/ValidationSummary.vue';
 import VersionFooter from './components/Footer.vue';
 import testsData from './data/tests.json';
 import {
@@ -208,7 +204,13 @@ const {
   updateConsent,
   resetPatientData: resetUnifiedPatientData,
   initializeFromExternalData,
-  exportPatientData
+  exportPatientData,
+  // Validation-related functions
+  isValid,
+  validationErrors: unifiedValidationErrors,
+  sectionValidation,
+  validateForm,
+  getFieldErrors
 } = usePatientData();
 
 // Provide patient data and update methods to child components
@@ -218,6 +220,13 @@ provide('updateSelectedPanels', updateSelectedPanels);
 provide('updatePhenotypeData', updatePhenotypeData);
 provide('updateCategory', updateCategory);
 provide('updateConsent', updateConsent);
+
+// Provide validation-related methods and data
+provide('isValid', isValid);
+provide('validationErrors', unifiedValidationErrors);
+provide('sectionValidation', sectionValidation);
+provide('validateForm', validateForm);
+provide('getFieldErrors', getFieldErrors);
 
 /**
  * Returns the current date in ISO format (YYYY-MM-DD).
@@ -275,6 +284,9 @@ const phenotypeData = ref({});
 const snackbar = ref(false);
 const snackbarMessage = ref('');
 
+/** Validation state */
+const showValidation = ref(false);
+
 /** Encryption dialog state and password. */
 const encryptionDialog = ref(false);
 const encryptionPassword = ref('');
@@ -285,9 +297,6 @@ const decryptionPassword = ref('');
 const decryptionError = ref('');
 
 /** Validation dialog state and error messages. */
-const validationDialog = ref(false);
-const validationErrors = ref([]);
-
 /** Used to store the encrypted string from the URL for decryption. */
 const pendingEncryptedValue = ref(null);
 
@@ -354,65 +363,48 @@ const groupedPanelDetails = computed(() => {
     .filter((group) => group.tests.length > 0);
 });
 
-/**
- * Validate required fields in patient data.
- * @return {Array<string>} List of error messages.
- */
-function validatePatientData() {
-  const errors = [];
-  const requiredFields = {
-    givenName: 'Given Name',
-    familyName: 'Family Name',
-    birthdate: 'Birthdate',
-    sex: 'Sex',
-    physicianName: 'Physician Name',
-    orderingDate: 'Ordering Date',
-  };
-  for (const [field, label] of Object.entries(requiredFields)) {
-    if (!patientData.value[field] || patientData.value[field].trim() === '') {
-      errors.push(`${label} is required.`);
-    }
-  }
-  if (patientData.value.birthdate && !/^\d{4}-\d{2}-\d{2}$/.test(patientData.value.birthdate)) {
-    errors.push('Birthdate must be in YYYY-MM-DD format.');
-  }
-  return errors;
-}
+// Validation is now handled by the validation utility in src/utils/validation.js
 
 /**
  * Main PDF generation handler.
  */
 async function handleGeneratePdf() {
-  const errors = validatePatientData();
-  if (errors.length > 0) {
-    validationErrors.value = errors;
-    validationDialog.value = true;
-  } else {
-    // Attempt to get pedigree data if requested
-    if (showPedigree.value && pedigreeDrawer.value?.getPedigreeDataUrl) {
-      try {
-        pedigreeDataUrl.value = await pedigreeDrawer.value.getPedigreeDataUrl();
-      } catch (error) {
-        console.error('Error retrieving pedigree image:', error);
-      }
-    }
-    await nextTick();
-    if (pdfGen.value && typeof pdfGen.value.generatePdf === 'function') {
-      pdfGen.value.generatePdf();
+  // Use the new validation system
+  const isFormValid = validateForm(true);
+  if (!isFormValid) {
+    // Show the validation summary
+    showValidation.value = true;
+    
+    // Show a snackbar message
+    snackbar.value = true;
+    snackbarMessage.value = 'Please correct the errors before generating the PDF.';
+    
+    // Scroll to top to make validation summary visible
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return;
+  }
+  
+  // Attempt to get pedigree data if requested
+  if (showPedigree.value && pedigreeDrawer.value?.getPedigreeDataUrl) {
+    try {
+      pedigreeDataUrl.value = await pedigreeDrawer.value.getPedigreeDataUrl();
+    } catch (error) {
+      console.error('Error retrieving pedigree image:', error);
     }
   }
-};
-
-/** Cancel the validation dialog. */
-function cancelValidation() {
-  validationDialog.value = false;
+  
+  await nextTick();
+  if (pdfGen.value && typeof pdfGen.value.generatePdf === 'function') {
+    pdfGen.value.generatePdf();
+  }
 }
 
-/** Proceed with PDF generation even if incomplete data. */
-function proceedValidation() {
-  validationDialog.value = false;
-  handleGeneratePdf();
+/** Reset the validation state */
+function resetValidation() {
+  showValidation.value = false;
 }
+
+// Removed the proceedValidation function as it's now handled directly within the handleGeneratePdf function
 
 // The following function is kept for reference but now using unified data model for URL generation
 // const generatePlainUrl = () => generateUrlWithHash(patientData.value, selectedTests.value);

@@ -16,6 +16,7 @@
  * @property {string} personalInfo.insurance - Insurance information
  * @property {string} personalInfo.insuranceId - Insurance ID
  * @property {string} personalInfo.referrer - Referring physician
+ * @property {string} personalInfo.diagnosis - Diagnosis or suspicion
  * @property {Array<string>} selectedPanels - Array of selected test panel IDs
  * @property {Array<Object>} phenotypeData - Array of phenotype information
  * @property {string} category - Selected category
@@ -38,6 +39,7 @@ export function createDefaultPatientData() {
       insurance: '',
       insuranceId: '',
       referrer: '',
+      diagnosis: '',
     },
     selectedPanels: [],
     phenotypeData: [],

@@ -351,10 +351,13 @@ const physicianName = createDualBindingField('physicianName', 'referrer');
 // so they use the legacy data model only
 const familyHistory = createLegacyField('familyHistory');
 const parentalConsanguinity = createLegacyField('parentalConsanguinity');
-const diagnosis = createLegacyField('diagnosis');
+// Diagnosis now uses the unified data model
+const diagnosis = createDualBindingField('diagnosis', 'diagnosis');
 const orderingDate = createLegacyField('orderingDate');
 const variantSegregationRequested = createLegacyField('variantSegregationRequested');
 const variantDetails = createLegacyField('variantDetails');
+
+// Functions were previously added here but caused errors - reverting to original state
 
 // Computed properties for GenDG Consent Data using legacy paths only
 const genDGProvided = createLegacyField('genDGConsentData', 'provided');
@@ -364,6 +367,11 @@ const genDGSecondaryFindings = createLegacyField('genDGConsentData', 'form', 'qu
 const genDGMaterial = createLegacyField('genDGConsentData', 'form', 'questionMaterial');
 const genDGExtended = createLegacyField('genDGConsentData', 'form', 'questionExtended');
 const genDGResearch = createLegacyField('genDGConsentData', 'form', 'questionResearch');
+
+// Note: Data processing consent has been removed as it's out of scope
+
+// Note: Incidental findings consent is already handled via the genDGSecondaryFindings field
+// in the GenDG consent section
 
 const sexOptions = ['male', 'female', 'undetermined']
 const familyHistoryOptions = ['conspicuous', 'inconspicuous', 'unknown']

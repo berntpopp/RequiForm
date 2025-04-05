@@ -108,9 +108,19 @@ export function generateUrlWithHash(data, selectedTests) {
 }
 
 /**
- * Parses URL parameters into a patient data object
- * @param {URL|string} url - URL object or string to parse
- * @return {Object} Parsed patient data from URL parameters
+ * Parses URL parameters into a patient data object. Supports both hash parameters and query string parameters.
+ * 
+ * Recognized parameters:
+ * - Patient Info: givenName/firstName, familyName/lastName, birthdate, sex, insurance, insuranceId, physicianName/referrer
+ * - Clinical Info: diagnosis, category
+ * - Test Selection: panels (or selectedTests for backward compatibility) - comma-separated list of panel IDs
+ *
+ * @example
+ * // URL: http://localhost:5173/#givenName=Jane&diagnosis=Suspected+Renal+Disease&panels=nephronophthise,alport_thin_basement
+ * const patientData = parsePatientDataFromUrl();
+ * // patientData will contain personalInfo with givenName, diagnosis field, and selectedPanels array
+ * 
+ * @return {Object|null} Parsed patient data from URL parameters or null if no parameters are found
  */
 export function parsePatientDataFromUrl() {
   // Use existing function to merge query and hash params

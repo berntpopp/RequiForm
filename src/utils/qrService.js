@@ -387,31 +387,75 @@ export async function generatePhenotypeQrCode(phenotypeData, options = {}) {
 }
 
 /**
- * Generates ultra-compact QR code for pedigree data
+ * Generates ultra-compact QR code for pedigree data in array format
  *
- * @param {Object} pedigreeData - Pedigree data object
+ * @param {Object|Array} pedigreeData - Pedigree data (array for ultra-compact format)
  * @param {Object} [options={}] - Additional options
- * @param {string} [options.format='t'] - Format of pedigree data ('t'=table or 'i'=image)
+ * @param {string} [options.format='c'] - Format code ('c'=compact, 'i'=image)
  * @param {Object} [options.qrOptions={}] - QR code generation options
  * @return {Promise<string>} Data URL of the generated QR code
  */
 export async function generatePedigreeQrCode(pedigreeData, options = {}) {
-  // Ultra-compact array format: [version, type, [data, format]]
-  // 1=v1.0, 3=pedigree
-  const qrData = [
-    1, 
-    3, 
-    [
-      pedigreeData || {}, 
-      options.format || 't'
-    ]
-  ];
+  if (!pedigreeData) {
+    return generateQrCodeDataUrl('{}', options.qrOptions || {});
+  }
 
-  // Convert to JSON with no whitespace
-  const jsonStr = JSON.stringify(qrData).replace(/\s/g, '');
-  console.log('Pedigree QR data size:', jsonStr.length, 'characters');
+  let d = pedigreeData; // d=data (short variable)
+  
+  // Detect data format
+  // 1. Array format [1, [...]] (ultra-compact numeric arrays)
+  // 2. Object with f/d properties (compact object format)
+  // 3. Legacy object format with format/data
+  // 4. Image reference only (h:1 or hasImage:true)
+  
+  if (Array.isArray(pedigreeData)) {
+    // Check if this is our standard PED format array [2, pedData]
+    if (pedigreeData.length >= 2 && pedigreeData[0] === 2) {
+      console.log('[qrService] Using standard PED format');
+      // Already in PED format - use as is
+      d = pedigreeData;
+    } else {
+      console.log('[qrService] Using array format');
+      // Some other array format, use as is
+      d = pedigreeData;
+    }
+  } else if (pedigreeData.f === 'c' || pedigreeData.format === 'compact') {
+    // Legacy object format - convert to array if needed
+    console.log('[qrService] Converting legacy object format to array');
+    d = pedigreeData;
+  } else if (pedigreeData.h || pedigreeData.hasImage) {
+    // Only reference to image - use simplest format
+    console.log('[qrService] Using image reference only');
+    d = [0]; // Format code 0 = image reference only
+  } else {
+    // Unknown format - use as is but log for debugging
+    console.log('[qrService] Unknown format:', typeof pedigreeData);
+    d = pedigreeData;
+  }
 
-  return generateQrCodeDataUrl(jsonStr, options.qrOptions || {});
+  // For ultra-compact encoding, just use the data directly if it's already an array
+  // This skips extra wrapping that would add characters
+  try {
+    // Use our flat array format directly for maximum compression
+    const js = Array.isArray(d) ? JSON.stringify(d) : JSON.stringify([3, d]);
+    const compressed = js.replace(/\s/g, '');
+    const size = compressed.length;
+    
+    console.log('[qrService] Final pedigree data size:', size, 'chars');
+    
+    // Check if data is too large for a reliable QR code (typical limit ~4000 chars)
+    if (size > 4000) {
+      console.warn('Pedigree data exceeds limit');
+      // Fall back to image reference
+      return generatePedigreeQrCode([0], { qrOptions: options.qrOptions });
+    }
+    
+    return generateQrCodeDataUrl(compressed, options.qrOptions || {});
+  } catch (error) {
+    console.error('Error generating pedigree QR:', error);
+    // Fallback to empty QR code
+    return generateQrCodeDataUrl('{}', options.qrOptions || {});
+  }
 }
 
 /**

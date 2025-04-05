@@ -12,7 +12,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref, defineExpose } from 'vue'
+import { onMounted, defineExpose } from 'vue'
 // Import pedigreejs functions from the ES module build now located in src/vendor.
 import { 
   pedigreejs, 
@@ -20,8 +20,6 @@ import {
   pedigreejs_pedcache, 
   pedigreejs_io 
 } from '@/vendor/pedigreejs.es.v3.0.0-rc8.js'
-
-const isFullScreen = ref(false)
 
 function initPedigree() {
   if (!pedigreejs || !pedigreejs_pedcache || !pedigreejs_io) {
@@ -118,12 +116,101 @@ function getPedigreeDataUrl() {
   })
 }
 
+/**
+ * Gets the pedigree data structure in a PED format representation.
+ * This extracts the actual pedigree data structure that can be encoded in a QR code.
+ * 
+ * @return {Object} The pedigree data object containing family relationships and properties
+ */
+function getPedigreeData() {
+  try {
+    // Get the pedigree dataset from the cache using pedigreejs_pedcache
+    const opts = {
+      targetDiv: 'pedigree',
+      btn_target: 'pedigree_history'
+    };
+    
+    // Get the current dataset from the cache
+    const dataset = pedigreejs_pedcache.current(opts);
+    console.log('[PedigreeDrawer] Raw pedigree dataset:', JSON.stringify(dataset));
+    
+    if (!dataset || dataset.length === 0) {
+      console.warn('[PedigreeDrawer] No pedigree data found in cache');
+      return null;
+    }
+    
+    // Create a standardized PED format array while keeping it ultra-compact
+    // Standard PED format has 6 columns:
+    // 1. Family ID
+    // 2. Individual ID
+    // 3. Paternal ID
+    // 4. Maternal ID
+    // 5. Sex (1=male, 2=female, other=unknown)
+    // 6. Phenotype (-9/0=missing, 1=unaffected, 2=affected)
+    
+    // First, assign numeric IDs to all persons for compact representation
+    const personIds = {};
+    let idCounter = 1;
+    
+    // First pass - assign numeric IDs
+    dataset.forEach(person => {
+      const name = person.name || person.id || `p${idCounter}`;
+      if (!personIds[name]) {
+        personIds[name] = idCounter++;
+      }
+    });
+    
+    // Second pass - create PED format arrays for each person
+    // We'll use arrays instead of objects for ultra-compact representation
+    // Format: [famId, indId, patId, matId, sex, pheno]
+    const pedData = [];
+    
+    dataset.forEach(person => {
+      const name = person.name || person.id || `p${idCounter}`;
+      const indId = personIds[name];
+      
+      // Standard PED format sex: 1=male, 2=female, other=unknown
+      // This already matches our needed format
+      const sex = person.sex === 'M' ? 1 : (person.sex === 'F' ? 2 : 0);
+      
+      // Get father ID if exists, or 0
+      const patId = person.father ? (personIds[person.father] || 0) : 0;
+      
+      // Get mother ID if exists, or 0
+      const matId = person.mother ? (personIds[person.mother] || 0) : 0;
+      
+      // Phenotype in PED: 2=affected, 1=unaffected, 0/−9=missing
+      // Convert our affected status to standard PED phenotype
+      const phenotype = person.affected ? 2 : 1;
+      
+      // For QR code, we use numeric family ID to save space
+      const fam = 1; // Use constant family ID for simplicity
+      
+      // Create the ultra-compact PED format array
+      // [famId, indId, patId, matId, sex, phenotype]
+      pedData.push([fam, indId, patId, matId, sex, phenotype]);
+    });
+    
+    // Sort by individual ID for consistency
+    pedData.sort((a, b) => a[1] - b[1]);
+    
+    // Format code 2 = standard PED format
+    const result = [2, pedData];
+    
+    console.log('[PedigreeDrawer] Final compact pedigree data:', JSON.stringify(result));
+    return result;
+  } catch (error) {
+    console.error('[PedigreeDrawer] Error extracting pedigree data:', error);
+    return null;
+  }
+}
+
 onMounted(() => {
   initPedigree()
 })
 
-// Expose getPedigreeDataUrl so that parent components can retrieve the pedigree image.
-defineExpose({ getPedigreeDataUrl })
+// Expose both the image URL and data structure functions for parent components
+defineExpose({ getPedigreeDataUrl, getPedigreeData })
 </script>
 
 <style scoped>

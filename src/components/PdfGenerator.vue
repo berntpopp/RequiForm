@@ -130,19 +130,34 @@ const phenotypeQrData = computed(() => {
 
 // Compute pedigree data for QR code
 const pedigreeQrData = computed(() => {
-  // Prefer unified model if available
+  // First check direct props.patientData for pedigree data
+  // Log the entire patient data structure to debug
+  console.log('[PdfGenerator] Direct patientData props:', JSON.stringify(props.patientData || {}));
+  
+  // Check for pedigree data in props.patientData first (direct pass from App.vue)
+  if (props.patientData?.pedigree?.data) {
+    const pedData = props.patientData.pedigree.data;
+    console.log('[PdfGenerator] Using pedigree data from props:', JSON.stringify(pedData));
+    return pedData;
+  }
+  
+  // Fallback to unified model if available
   if (unifiedPatientData?.pedigree?.data) {
-    return unifiedPatientData.pedigree.data;
+    const pedData = unifiedPatientData.pedigree.data;
+    console.log('[PdfGenerator] Using pedigree data from unified model:', JSON.stringify(pedData));
+    return pedData;
   }
   
   // If we only have the image URL, we'll create a minimal object
   if (props.pedigreeDataUrl) {
+    console.log('[PdfGenerator] No pedigree data available, using hasImage fallback');
     return {
       hasImage: true,
       // We can't include the full image in QR code, so we note its existence
     };
   }
   
+  console.log('[PdfGenerator] No pedigree data or image URL available');
   return null;
 });
 
@@ -643,17 +658,50 @@ async function generatePdf() {
       let pedigreeQrDataUrl = null;
       if (pedigreeQrData.value) {
         try {
-          pedigreeQrDataUrl = await generatePedigreeQrCode(pedigreeQrData.value, {
-            format: 't', // Compact format: t=table
-            qrOptions: {
-              width: 100, // Smaller size for better scanning
-              margin: 1,  // Minimize margins for smaller code
-              errorCorrectionLevel: 'M' // Medium error correction for balance
-            }
-          });
-          console.log('Generated pedigree QR code');
+          // Debug the actual pedigree data we're about to send to QR code
+          console.log('[PdfGenerator] Actual pedigree data being sent to QR generator:', 
+              JSON.stringify(pedigreeQrData.value));
+              
+          // Calculate QR code size based on data complexity
+          const estimatedDataSize = JSON.stringify(pedigreeQrData.value).length;
+          const qrSize = estimatedDataSize > 1000 ? 120 : 
+                       estimatedDataSize > 500 ? 100 : 80;
+          
+          // Make sure we have valid pedigree data
+          if (pedigreeQrData.value) {
+            // Our QR service now automatically detects the format
+            // This supports array-based PED format (most compact)
+            pedigreeQrDataUrl = await generatePedigreeQrCode(pedigreeQrData.value, {
+              qrOptions: {
+                width: qrSize, // Dynamic size based on data complexity
+                margin: 1,  
+                errorCorrectionLevel: 'M' 
+              }
+            });
+          } else {
+            console.error('[PdfGenerator] Invalid pedigree data format:', pedigreeQrData.value);
+            // Fallback to image reference with ultra-compact array code [0]
+            pedigreeQrDataUrl = await generatePedigreeQrCode([0], {
+              qrOptions: { width: 80, margin: 1, errorCorrectionLevel: 'M' }
+            });
+          }
+          console.log('Generated pedigree QR code with PED format data');
         } catch (qrError) {
           console.error('Error generating pedigree QR code:', qrError);
+          // If compact PED format fails, try with just image reference
+          try {
+            pedigreeQrDataUrl = await generatePedigreeQrCode({ hasImage: true }, {
+              format: 'image',
+              qrOptions: {
+                width: 80,
+                margin: 1,
+                errorCorrectionLevel: 'M'
+              }
+            });
+            console.log('Generated fallback pedigree QR code (image reference only)');
+          } catch (fallbackError) {
+            console.error('Error generating fallback pedigree QR code:', fallbackError);
+          }
           // Continue even if QR generation fails
         }
       }

@@ -6,6 +6,8 @@
 
 1. **Patient Data Entry**  
    - Collect core patient information such as name, birthdate, and insurance details.  
+   - Required fields limited to patient identifiers (first/last name) and diagnosis/suspicion.  
+   - Other fields including test panels and category are optional for flexibility.  
    - All data is handled locally (browser or Electron app) for security.
 
 2. **Test Selection**  

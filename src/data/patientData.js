@@ -4,25 +4,29 @@
  * This file defines a centralized data structure for all patient-related
  * information, including personal details, test panels, phenotypes,
  * category, and consent information.
+ * 
+ * Validation requirements:
+ * - Required fields: firstName, lastName, diagnosis
+ * - Optional fields: all other fields including test panels and category
  */
 
 /**
  * @typedef {Object} PatientData
  * @property {Object} personalInfo - Patient's personal information
- * @property {string} personalInfo.firstName - Patient's first name
- * @property {string} personalInfo.lastName - Patient's last name
+ * @property {string} personalInfo.firstName - Patient's first name (required)
+ * @property {string} personalInfo.lastName - Patient's last name (required)
  * @property {string} personalInfo.birthdate - Patient's birthdate
  * @property {string} personalInfo.sex - Patient's biological sex
  * @property {string} personalInfo.insurance - Insurance information
  * @property {string} personalInfo.insuranceId - Insurance ID
  * @property {string} personalInfo.referrer - Referring physician
- * @property {string} personalInfo.diagnosis - Diagnosis or suspicion
- * @property {Array<string>} selectedPanels - Array of selected test panel IDs
+ * @property {string} personalInfo.diagnosis - Diagnosis or suspicion (required)
+ * @property {Array<string>} selectedPanels - Array of selected test panel IDs (optional)
  * @property {Array<Object>} phenotypeData - Array of phenotype information
- * @property {string} category - Selected category
+ * @property {string} category - Selected category (optional)
  * @property {Object} consent - Consent information
- * @property {boolean} consent.dataProcessing - Consent to data processing
- * @property {boolean} consent.incidentalFindings - Consent to incidental findings
+ * @property {boolean} consent.dataProcessing - Consent to data processing (optional)
+ * @property {boolean} consent.incidentalFindings - Consent to incidental findings (optional)
  */
 
 /**

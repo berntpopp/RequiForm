@@ -177,7 +177,6 @@ import ValidationSummary from './components/ValidationSummary.vue';
 import VersionFooter from './components/Footer.vue';
 import testsData from './data/tests.json';
 import {
-  mergeUrlParameters,
   getUrlParameter,
   clearUrlParameters,
   encryptParams,
@@ -577,28 +576,63 @@ onMounted(() => {
     syncLegacyPatientData();
   }
   
-  // Existing onMounted logic:
+  // Handle URL parameters and initialize data
   const encryptedValue = getUrlParameter('encrypted');
   if (encryptedValue) {
     pendingEncryptedValue.value = encryptedValue;
     decryptionDialog.value = true;
   } else {
-    const params = mergeUrlParameters();
-    patientData.value.givenName = params.get('givenName') || '';
-    patientData.value.familyName = params.get('familyName') || '';
-    patientData.value.birthdate = params.get('birthdate') || '';
-    patientData.value.insurance = params.get('insurance') || '';
-    patientData.value.sex = (params.get('sex') || '').toLowerCase();
-    patientData.value.physicianName = params.get('physicianName') || '';
-    patientData.value.familyHistory = (params.get('familyHistory') || '').toLowerCase();
-    patientData.value.parentalConsanguinity = (params.get('parentalConsanguinity') || '').toLowerCase();
-    patientData.value.diagnosis = params.get('diagnosis') || '';
-    patientData.value.orderingDate = params.get('orderingDate') || getCurrentIsoDate();
-    clearUrlParameters();
+    // Direct hash parameter handling for debugging
+    const hash = window.location.hash.substring(1);
+    console.log('URL Hash:', hash);
+    
+    if (hash) {
+      try {
+        // Parse the hash parameters manually
+        const hashParams = new URLSearchParams(hash);
+        console.log('Hash params:', Object.fromEntries(hashParams.entries()));
+        
+        // Directly populate the legacy patient data object
+        if (hashParams.get('givenName')) patientData.value.givenName = hashParams.get('givenName');
+        if (hashParams.get('familyName')) patientData.value.familyName = hashParams.get('familyName');
+        if (hashParams.get('birthdate')) patientData.value.birthdate = hashParams.get('birthdate');
+        if (hashParams.get('insurance')) patientData.value.insurance = hashParams.get('insurance');
+        if (hashParams.get('sex')) patientData.value.sex = hashParams.get('sex').toLowerCase();
+        if (hashParams.get('physicianName')) patientData.value.physicianName = hashParams.get('physicianName');
+        
+        // Directly handle category and diagnosis
+        if (hashParams.get('category')) {
+          const categoryValue = hashParams.get('category');
+          console.log('Setting category from URL:', categoryValue);
+          patientData.value.category = categoryValue;
+          // Ensure category is properly updated in the unified model
+          updateCategory(categoryValue);
+        }
+        
+        if (hashParams.get('diagnosis')) {
+          patientData.value.diagnosis = hashParams.get('diagnosis');
+        }
+        
+        // Don't handle panels here - let parsePatientDataFromUrl and the TestSelector component handle it
+        // This avoids competing updates that cause reactivity issues
+        if (hashParams.get('panels')) {
+          const panelsValue = hashParams.get('panels');
+          console.log('Found panels in URL:', panelsValue);
+          // We'll let the shared global state and parsePatientDataFromUrl handle this
+        }
+        
+        // After setting all the values, sync with the unified model
+        syncUnifiedPatientData();
+        
+        console.log('Populated patient data from URL:', patientData.value);
+      } catch (error) {
+        console.error('Error parsing URL parameters:', error);
+      }
+      
+      // Clean up URL parameters
+      clearUrlParameters();
+    }
   }
-  
-  // Sync with the new unified model
-  syncUnifiedPatientData();
 });
 
 function handlePatientDataUpdate(newData) {
@@ -620,14 +654,30 @@ function syncUnifiedPatientData() {
     birthdate: patientData.value.birthdate || '',
     sex: patientData.value.sex || '',
     insurance: patientData.value.insurance || '',
-    referrer: patientData.value.physicianName || ''
+    referrer: patientData.value.physicianName || '',
+    diagnosis: patientData.value.diagnosis || ''
   });
   
-  // Update selected panels
+  // Update selected panels - ensure we're passing the actual panel IDs
+  console.log('Syncing panels to unified model:', selectedTests.value);
   updateSelectedPanels(selectedTests.value || []);
+  
+  // For panels, do a direct update as well for immediate reactivity
+  if (unifiedPatientData && selectedTests.value && selectedTests.value.length > 0) {
+    unifiedPatientData.selectedPanels = [...selectedTests.value];
+  }
   
   // Update phenotype data
   updatePhenotypeData(phenotypeData.value ? Object.values(phenotypeData.value) : []);
+  
+  // Update category if present - ensure it's explicitly called
+  if (patientData.value.category) {
+    console.log('Syncing category to unified model:', patientData.value.category);
+    updateCategory(patientData.value.category);
+    
+    // Force immediate update in the unified patient data for components to detect
+    unifiedPatientData.category = patientData.value.category;
+  }
 }
 
 /**
@@ -642,8 +692,11 @@ function syncLegacyPatientData() {
   patientData.value.insurance = unifiedPatientData.personalInfo.insurance || '';
   patientData.value.physicianName = unifiedPatientData.personalInfo.referrer || '';
   
-  // Update selected tests
-  selectedTests.value = [...unifiedPatientData.selectedPanels];
+  // Update selected tests - ensure a clean copy is made
+  if (unifiedPatientData && unifiedPatientData.selectedPanels) {
+    console.log('Syncing from unified model to legacy model - panels:', unifiedPatientData.selectedPanels);
+    selectedTests.value = [...unifiedPatientData.selectedPanels];
+  }
   
   // Process phenotype data
   if (unifiedPatientData.phenotypeData && unifiedPatientData.phenotypeData.length > 0) {

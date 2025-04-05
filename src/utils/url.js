@@ -125,21 +125,40 @@ export function parsePatientDataFromUrl() {
   };
   
   // Parse personal information
-  if (params.has('firstName')) patientData.personalInfo.firstName = params.get('firstName');
-  if (params.has('lastName')) patientData.personalInfo.lastName = params.get('lastName');
+  if (params.has('firstName') || params.has('givenName')) {
+    patientData.personalInfo.firstName = params.get('firstName') || params.get('givenName');
+  }
+  if (params.has('lastName') || params.has('familyName')) {
+    patientData.personalInfo.lastName = params.get('lastName') || params.get('familyName');
+  }
   if (params.has('birthdate')) patientData.personalInfo.birthdate = params.get('birthdate');
   if (params.has('sex')) patientData.personalInfo.sex = params.get('sex');
   if (params.has('insurance')) patientData.personalInfo.insurance = params.get('insurance');
   if (params.has('insuranceId')) patientData.personalInfo.insuranceId = params.get('insuranceId');
-  if (params.has('referrer')) patientData.personalInfo.referrer = params.get('referrer');
+  if (params.has('referrer') || params.has('physicianName')) {
+    patientData.personalInfo.referrer = params.get('referrer') || params.get('physicianName');
+  }
+  if (params.has('diagnosis')) patientData.personalInfo.diagnosis = params.get('diagnosis');
   
   // Parse selected panels (comma-separated list)
   if (params.has('panels')) {
-    patientData.selectedPanels = params.get('panels').split(',').filter(Boolean);
+    const panelIds = params.get('panels').split(',').filter(Boolean);
+    patientData.selectedPanels = panelIds;
+    
+    // Also store in global state for component access
+    window.requiFormData = window.requiFormData || {};
+    window.requiFormData.directPanels = [...panelIds];
+    console.log('URL parser: Found panels in URL and stored globally:', panelIds);
   }
   // For backward compatibility, also check selectedTests parameter
   else if (params.has('selectedTests')) {
-    patientData.selectedPanels = params.get('selectedTests').split(',').filter(Boolean);
+    const panelIds = params.get('selectedTests').split(',').filter(Boolean);
+    patientData.selectedPanels = panelIds;
+    
+    // Also store in global state
+    window.requiFormData = window.requiFormData || {};
+    window.requiFormData.directPanels = [...panelIds];
+    console.log('URL parser: Found selectedTests in URL and stored globally:', panelIds);
   }
   
   // Parse phenotype data (JSON-encoded string)
@@ -184,6 +203,7 @@ export function patientDataToUrlParams(patientData) {
     if (personalInfo.insurance) params.set('insurance', personalInfo.insurance);
     if (personalInfo.insuranceId) params.set('insuranceId', personalInfo.insuranceId);
     if (personalInfo.referrer) params.set('referrer', personalInfo.referrer);
+    if (personalInfo.diagnosis) params.set('diagnosis', personalInfo.diagnosis);
   }
   
   // Add selected panels

@@ -209,14 +209,14 @@
 
 <script setup>
 import LocaleDatePicker from './LocaleDatePicker.vue'
-import { computed } from 'vue';
+import { computed, inject } from 'vue';
 
 /**
  * PatientForm component to capture patient details.
- * Props:
- * - patientData: Object with patient details.
- * Emits:
- * - update:patientData: Emitted when any patient data field changes.
+ * 
+ * This component now has dual functionality:
+ * 1. It can work with the legacy patientData prop (for backward compatibility)
+ * 2. It can work with the unified patient data model using inject
  */
 const props = defineProps({
   patientData: {
@@ -225,74 +225,145 @@ const props = defineProps({
   },
 })
 
-// Define the emit function
+// Define the emit function for backward compatibility
 const emit = defineEmits(['update:patientData'])
 
-// Helper function to create computed properties for patient data fields
-// Accepts a variable number of arguments representing the path keys
-function createComputedField(...pathKeys) {
+// Inject the unified patient data and update functions
+const unifiedPatientData = inject('patientData')
+const updatePersonalInfo = inject('updatePersonalInfo')
+
+/**
+ * Helper function to create computed properties with dual data binding
+ * - Binds to both legacy patientData prop (via emit)
+ * - Updates unified patient data model (via inject)
+ * 
+ * @param {string} legacyKey - Key in the legacy patientData object
+ * @param {string} unifiedKey - Key in the unified personalInfo object
+ * @param {...string} nestedKeys - Additional keys for nested legacy objects
+ * @return {import('vue').ComputedRef} Computed property with dual binding
+ */
+function createDualBindingField(legacyKey, unifiedKey, ...nestedKeys) {
   return computed({
     get() {
+      // First try to get from unified data model if it exists
+      if (unifiedPatientData && unifiedKey && unifiedPatientData.personalInfo) {
+        const unifiedValue = unifiedPatientData.personalInfo[unifiedKey];
+        if (unifiedValue !== undefined) return unifiedValue;
+      }
+      
+      // Fallback to legacy data model
       let current = props.patientData;
-      for (const key of pathKeys) {
+      const keys = [legacyKey, ...nestedKeys];
+      
+      for (const key of keys) {
         // Check if current is an object and has the key
         if (current === null || typeof current !== 'object' || !(key in current)) {
           // Special handling for boolean 'variantSegregationRequested'
-          if (pathKeys.length === 1 && pathKeys[0] === 'variantSegregationRequested') {
+          if (keys.length === 1 && keys[0] === 'variantSegregationRequested') {
             return false;
           }
           return ''; // Default to empty string for other missing paths
         }
         current = current[key];
       }
+      
       // Ensure boolean is returned for variantSegregationRequested
-      if (pathKeys.length === 1 && pathKeys[0] === 'variantSegregationRequested') {
-        const result = typeof current === 'boolean' ? current : false;
-        return result;
+      if (keys.length === 1 && keys[0] === 'variantSegregationRequested') {
+        return typeof current === 'boolean' ? current : false;
       }
+      
       return current ?? ''; // Return the final value or default to empty string
     },
     set(newValue) {
-      // Create a deep clone to avoid mutating the prop directly
+      // Update the unified model if it exists
+      if (updatePersonalInfo && unifiedKey) {
+        updatePersonalInfo({ [unifiedKey]: newValue });
+      }
+      
+      // Also update the legacy model for backward compatibility
       const newData = JSON.parse(JSON.stringify(props.patientData));
       let current = newData;
+      const keys = [legacyKey, ...nestedKeys];
+      
       // Traverse the path, creating objects if they don't exist
-      for (let i = 0; i < pathKeys.length - 1; i++) {
-        const key = pathKeys[i];
+      for (let i = 0; i < keys.length - 1; i++) {
+        const key = keys[i];
         if (current[key] === null || typeof current[key] !== 'object') {
           current[key] = {}; // Ensure path exists
         }
         current = current[key];
       }
+      
       // Set the value at the final key
-      current[pathKeys[pathKeys.length - 1]] = newValue;
+      current[keys[keys.length - 1]] = newValue;
       emit('update:patientData', newData); // Emit the updated full object
     },
   });
 }
 
-// Computed properties for basic fields
-const givenName = createComputedField('givenName');
-const familyName = createComputedField('familyName');
-const birthdate = createComputedField('birthdate');
-const sex = createComputedField('sex');
-const insurance = createComputedField('insurance');
-const physicianName = createComputedField('physicianName');
-const familyHistory = createComputedField('familyHistory');
-const parentalConsanguinity = createComputedField('parentalConsanguinity');
-const diagnosis = createComputedField('diagnosis');
-const orderingDate = createComputedField('orderingDate');
-const variantSegregationRequested = createComputedField('variantSegregationRequested');
-const variantDetails = createComputedField('variantDetails');
+/**
+ * Helper function for legacy fields that don't have a unified model equivalent
+ * Uses only the legacy data path
+ */
+function createLegacyField(...pathKeys) {
+  return computed({
+    get() {
+      let current = props.patientData;
+      for (const key of pathKeys) {
+        if (current === null || typeof current !== 'object' || !(key in current)) {
+          if (pathKeys.length === 1 && pathKeys[0] === 'variantSegregationRequested') {
+            return false;
+          }
+          return ''; 
+        }
+        current = current[key];
+      }
+      if (pathKeys.length === 1 && pathKeys[0] === 'variantSegregationRequested') {
+        return typeof current === 'boolean' ? current : false;
+      }
+      return current ?? '';
+    },
+    set(newValue) {
+      const newData = JSON.parse(JSON.stringify(props.patientData));
+      let current = newData;
+      for (let i = 0; i < pathKeys.length - 1; i++) {
+        const key = pathKeys[i];
+        if (current[key] === null || typeof current[key] !== 'object') {
+          current[key] = {};
+        }
+        current = current[key];
+      }
+      current[pathKeys[pathKeys.length - 1]] = newValue;
+      emit('update:patientData', newData);
+    },
+  });
+}
 
-// Computed properties for GenDG Consent Data using the path
-const genDGProvided = createComputedField('genDGConsentData', 'provided');
-const genDGConsentName = createComputedField('genDGConsentData', 'form', 'consentName');
-const genDGConsentDate = createComputedField('genDGConsentData', 'form', 'consentDate');
-const genDGSecondaryFindings = createComputedField('genDGConsentData', 'form', 'questionSecondaryFindings');
-const genDGMaterial = createComputedField('genDGConsentData', 'form', 'questionMaterial');
-const genDGExtended = createComputedField('genDGConsentData', 'form', 'questionExtended');
-const genDGResearch = createComputedField('genDGConsentData', 'form', 'questionResearch');
+// Computed properties for patient personal information (dual binding to both models)
+const givenName = createDualBindingField('givenName', 'firstName');
+const familyName = createDualBindingField('familyName', 'lastName');
+const birthdate = createDualBindingField('birthdate', 'birthdate');
+const sex = createDualBindingField('sex', 'sex');
+const insurance = createDualBindingField('insurance', 'insurance');
+const physicianName = createDualBindingField('physicianName', 'referrer');
+
+// The following fields don't have unified model equivalents yet,
+// so they use the legacy data model only
+const familyHistory = createLegacyField('familyHistory');
+const parentalConsanguinity = createLegacyField('parentalConsanguinity');
+const diagnosis = createLegacyField('diagnosis');
+const orderingDate = createLegacyField('orderingDate');
+const variantSegregationRequested = createLegacyField('variantSegregationRequested');
+const variantDetails = createLegacyField('variantDetails');
+
+// Computed properties for GenDG Consent Data using legacy paths only
+const genDGProvided = createLegacyField('genDGConsentData', 'provided');
+const genDGConsentName = createLegacyField('genDGConsentData', 'form', 'consentName');
+const genDGConsentDate = createLegacyField('genDGConsentData', 'form', 'consentDate');
+const genDGSecondaryFindings = createLegacyField('genDGConsentData', 'form', 'questionSecondaryFindings');
+const genDGMaterial = createLegacyField('genDGConsentData', 'form', 'questionMaterial');
+const genDGExtended = createLegacyField('genDGConsentData', 'form', 'questionExtended');
+const genDGResearch = createLegacyField('genDGConsentData', 'form', 'questionResearch');
 
 const sexOptions = ['male', 'female', 'undetermined']
 const familyHistoryOptions = ['conspicuous', 'inconspicuous', 'unknown']

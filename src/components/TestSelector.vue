@@ -88,7 +88,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed } from 'vue';
+import { ref, onMounted, watch, computed, inject } from 'vue';
 import testsData from '../data/tests.json';
 
 /**
@@ -116,6 +116,11 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue']);
 
+// Inject the unified patient data and update functions
+const unifiedPatientData = inject('patientData', null);
+const updateSelectedPanels = inject('updateSelectedPanels', null);
+const updateCategory = inject('updateCategory', null);
+
 const categories = ref([]);
 const selectedTests = ref([]);
 const selectedCategory = ref('');
@@ -139,11 +144,36 @@ const tab = ref('Category Selection');
 
 onMounted(() => {
   categories.value = testsData.categories;
-  selectedTests.value = [...props.modelValue];
+  
+  // Initialize from either unified model or legacy v-model prop
+  if (unifiedPatientData && unifiedPatientData.selectedPanels) {
+    selectedTests.value = [...unifiedPatientData.selectedPanels];
+  } else {
+    selectedTests.value = [...props.modelValue];
+  }
+  
+  // If category is set in unified model, initialize it
+  if (unifiedPatientData && unifiedPatientData.category) {
+    selectedCategory.value = unifiedPatientData.category;
+  }
 });
 
+// Watch for changes in selected tests and update both models
 watch(selectedTests, newVal => {
+  // Update the legacy model via emit
   emit('update:modelValue', newVal);
+  
+  // Update the unified model if available
+  if (updateSelectedPanels) {
+    updateSelectedPanels(newVal);
+  }
+});
+
+// Watch for changes in category and update the unified model
+watch(selectedCategory, newVal => {
+  if (updateCategory && newVal) {
+    updateCategory(newVal);
+  }
 });
 
 /**

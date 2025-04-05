@@ -17,11 +17,11 @@
           {{ isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme' }}
         </v-tooltip>
       </v-btn>
-      <!-- Reset Form Button -->
-      <v-btn icon @click="$emit('reset-form')" aria-label="Reset Form">
-        <v-icon>mdi-refresh</v-icon>
+      <!-- Reset Application Button -->
+      <v-btn icon @click="$emit('reset-form')" aria-label="Reset Application">
+        <v-icon>mdi-restart</v-icon>
         <v-tooltip activator="parent" location="bottom">
-          Reset Form
+          Reset Application
         </v-tooltip>
       </v-btn>
       <!-- FAQ Modal Button -->

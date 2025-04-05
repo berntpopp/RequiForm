@@ -4,7 +4,7 @@
     <TopBar
       :isDark="isDark"
       @toggle-theme="toggleTheme"
-      @reset-form="resetForm"
+      @reset-form="resetApplicationState"
       @open-faq="openFAQ"
       @generate-pdf="handleGeneratePdf"
       @copy-url="handleCopyUrl"
@@ -151,6 +151,21 @@
           <v-card-actions>
             <v-spacer></v-spacer>
             <v-btn @click="closeFAQ">Close</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
+      <!-- Reset Confirmation Modal -->
+      <v-dialog v-model="resetConfirmationDialog" max-width="500">
+        <v-card>
+          <v-card-title class="headline">Reset Application</v-card-title>
+          <v-card-text>
+            <p class="mt-3">Are you sure you want to reset the entire application? All data will be lost.</p>
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn text @click="cancelReset">Cancel</v-btn>
+            <v-btn color="error" text @click="confirmReset">Reset</v-btn>
           </v-card-actions>
         </v-card>
       </v-dialog>
@@ -307,6 +322,9 @@ const pedigreeDataUrl = ref('');
 
 /** Theme state: true = dark theme, false = light theme. */
 const isDark = ref(false);
+
+/** Reset confirmation dialog state. */
+const resetConfirmationDialog = ref(false);
 
 /** FAQ modal state. */
 const showFAQModal = ref(false);
@@ -499,18 +517,77 @@ function toggleTheme() {
   isDark.value = !isDark.value;
 }
 
-/** Resets the form to its initial state. */
-function resetForm() {
-  // Reset legacy format
+/**
+ * Shows a confirmation modal dialog before resetting the application state
+ */
+function resetApplicationState() {
+  // Show confirmation dialog
+  resetConfirmationDialog.value = true;
+}
+
+/**
+ * Handles the cancel action from the reset confirmation dialog
+ */
+function cancelReset() {
+  resetConfirmationDialog.value = false;
+}
+
+/**
+ * Handles the confirm action from the reset confirmation dialog
+ */
+function confirmReset() {
+  resetConfirmationDialog.value = false;
+  performApplicationReset();
+}
+
+/**
+ * Performs the actual reset of the entire application state to its initial values.
+ * This includes all patient data, UI flags, pedigree state, and validation.
+ */
+function performApplicationReset() {
+  // Reset patient data models
   patientData.value = initialPatientData();
   selectedTests.value = [];
   phenotypeData.value = {};
-  showPedigree.value = false;
   
-  // Also reset unified patient data model
+  // Reset unified patient data model
   resetUnifiedPatientData();
   
-  snackbarMessage.value = 'Form has been reset.';
+  // Reset UI flags and component states
+  showPedigree.value = false;
+  showValidation.value = false;
+  pdfConfig.value = {}; // Reset to empty object as there's no default config defined
+  pedigreeDataUrl.value = '';
+  
+  // Reset any active dialog windows
+  showFAQModal.value = false;
+  encryptionDialog.value = false;
+  decryptionDialog.value = false;
+  showDisclaimerModal.value = false;
+  
+  // Reset input fields in dialogs
+  encryptionPassword.value = '';
+  decryptionPassword.value = '';
+  
+  // Reset any URL parameters
+  if (window.history && window.history.replaceState) {
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+  
+  // Reset any global state that might have been set
+  if (window.requiFormData) {
+    window.requiFormData = {};
+  }
+  
+  // Reset pedigree drawer if the component exists
+  nextTick(() => {
+    if (pedigreeDrawer.value && typeof pedigreeDrawer.value.resetPedigree === 'function') {
+      pedigreeDrawer.value.resetPedigree();
+    }
+  });
+  
+  // Show confirmation message
+  snackbarMessage.value = 'Application state has been completely reset.';
   snackbar.value = true;
 }
 

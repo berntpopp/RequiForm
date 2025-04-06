@@ -50,7 +50,26 @@ export function parsePatientDataFromUrl() {
           const parsedData = JSON.parse(decodeURIComponent(dataParam));
           if (typeof parsedData === 'object') {
             console.log('Found JSON data in URL hash:', parsedData);
-            return parsedData; // Return the structured data directly
+            
+            // Ensure selectedTests/selectedPanels are properly processed
+            if (parsedData.patientData && parsedData.patientData.selectedPanels) {
+              console.log('Hash data contains nested selectedPanels:', parsedData.patientData.selectedPanels);
+              
+              // Make sure we have both formats for maximum compatibility
+              if (!parsedData.selectedTests) {
+                parsedData.selectedTests = [...parsedData.patientData.selectedPanels];
+                console.log('Added top-level selectedTests from nested data:', parsedData.selectedTests);
+              }
+            } else if (parsedData.selectedTests && !parsedData.patientData?.selectedPanels) {
+              // Ensure patientData.selectedPanels exists if selectedTests exists
+              if (!parsedData.patientData) {
+                parsedData.patientData = {};
+              }
+              parsedData.patientData.selectedPanels = [...parsedData.selectedTests];
+              console.log('Added nested selectedPanels from top-level data:', parsedData.patientData.selectedPanels);
+            }
+            
+            return parsedData; // Return the enhanced structured data
           }
         } catch (parseError) {
           console.error('Error parsing JSON data from URL:', parseError);

@@ -70,9 +70,11 @@ export const useFormStore = defineStore('form', () => {
       Object.values(phenotypeDataObj.value) : []
     );
     
-    // Update category if present
-    if (patientData.personalInfo.category) {
-      updateCategory(patientData.personalInfo.category);
+    // Update category if present - check multiple possible locations
+    const categoryValue = patientData.category || patientData.personalInfo.category || '';
+    if (categoryValue) {
+      console.log('Syncing category:', categoryValue);
+      updateCategory(categoryValue);
     }
   }
   
@@ -89,6 +91,22 @@ export const useFormStore = defineStore('form', () => {
     patientData.personalInfo.insurance = patientData.personalInfo.insurance || '';
     patientData.personalInfo.physicianName = patientData.personalInfo.referrer || '';
     patientData.personalInfo.diagnosis = patientData.personalInfo.diagnosis || '';
+    
+    // Ensure category is synchronized in both places for maximum compatibility
+    if (patientData.category) {
+      patientData.personalInfo.category = patientData.category;
+    } else if (patientData.personalInfo.category) {
+      patientData.category = patientData.personalInfo.category;
+    }
+    
+    // Ensure selected panels are synchronized properly in both data models
+    if (selectedTests.value && selectedTests.value.length > 0) {
+      // Explicitly set the selectedPanels in patientData to match selectedTests
+      patientData.selectedPanels = [...selectedTests.value];
+    } else if (patientData.selectedPanels && patientData.selectedPanels.length > 0) {
+      // If no selectedTests but patientData has selectedPanels, synchronize in reverse
+      selectedTests.value = [...patientData.selectedPanels];
+    }
     
     // Also ensure the original fields are populated for bidirectional compatibility
     patientData.personalInfo.firstName = patientData.personalInfo.firstName || patientData.personalInfo.givenName || '';
@@ -212,12 +230,16 @@ export const useFormStore = defineStore('form', () => {
     // Ensure unified data model is up to date
     syncUnifiedPatientData();
     
+    // Get the current category if available
+    const category = patientData.category || '';
+    
     // Create a combined export object
     return {
       patientData: exportPatientData(),
       selectedTests: selectedTests.value,
       phenotypeData: phenotypeDataObj.value,
-      showPedigree: showPedigree.value
+      showPedigree: showPedigree.value,
+      category: category // Include the category field for URL sharing
     };
   }
   
@@ -231,57 +253,140 @@ export const useFormStore = defineStore('form', () => {
     console.log('formStore: Importing data:', data);
     
     try {
-      // Handle personalInfo directly - this structure might come from the paste modal
-      if (data.personalInfo) {
-        console.log('formStore: Updating personal info:', data.personalInfo);
-        // Direct update to the personal info object
-        Object.assign(patientData.personalInfo, data.personalInfo);
-      }
+      // Special case for data copied from the URL hash format
+      // This format has a nested structure with fields at the top level as well
+      const isHashFormatData = data.patientData && 
+                             (data.selectedTests || data.phenotypeData || 
+                              typeof data.showPedigree === 'boolean' ||
+                              data.category);
       
-      // Handle patientData from file imports
-      if (data.patientData) {
-        console.log('formStore: Initializing from external data:', data.patientData);
-        initializeFromExternalData(data.patientData, overwrite);
-      }
-      
-      // Handle selected panels/tests
-      if (data.selectedPanels && Array.isArray(data.selectedPanels)) {
-        console.log('formStore: Setting selected panels:', data.selectedPanels);
-        selectedTests.value = [...data.selectedPanels];
-      } else if (data.selectedTests && Array.isArray(data.selectedTests)) {
-        console.log('formStore: Setting selected tests:', data.selectedTests);
-        selectedTests.value = [...data.selectedTests];
-      }
-      
-      // Handle phenotype data
-      if (data.phenotypeData) {
-        // Check if it's an array (from paste modal) or object (from file import)
-        if (Array.isArray(data.phenotypeData)) {
-          console.log('formStore: Converting phenotype array to object:', data.phenotypeData);
-          // Convert array to object format
-          const phenotypeObj = {};
-          data.phenotypeData.forEach(item => {
-            if (item && item.id) {
-              phenotypeObj[item.id] = item;
+      if (isHashFormatData) {
+        console.log('formStore: Detected hash format data with nested structure');
+        
+        // Handle the nested patientData structure
+        if (data.patientData) {
+          console.log('formStore: Initializing from nested patientData:', data.patientData);
+          initializeFromExternalData(data.patientData, overwrite);
+        }
+        
+        // Handle top-level fields that might override nested ones
+        // For hash format, we prioritize the top-level fields as they're more current
+        
+        // Handle selected tests from top level
+        if (data.selectedTests && Array.isArray(data.selectedTests)) {
+          console.log('formStore: Setting top-level selected tests:', data.selectedTests);
+          selectedTests.value = [...data.selectedTests];
+          
+          // Also store in patientData.selectedPanels for direct compatibility with UI components
+          patientData.selectedPanels = [...data.selectedTests];
+          
+          console.log('formStore: Synchronized selectedTests to patientData.selectedPanels:', patientData.selectedPanels);
+          
+          // Special domain-specific logic for nephronophthise panel
+          // If the nephronophthise panel is included, set the category to nephrology
+          if (data.selectedTests.includes('nephronophthise') && (!data.category || data.category !== 'nephrology')) {
+            console.log('formStore: Auto-setting category to nephrology based on nephronophthise panel');
+            const categoryValue = 'nephrology';
+            
+            // Set in all possible locations for maximum compatibility
+            updateCategory(categoryValue);
+            patientData.category = categoryValue;
+            if (patientData.personalInfo) {
+              patientData.personalInfo.category = categoryValue;
             }
-          });
-          phenotypeDataObj.value = phenotypeObj;
-        } else {
-          console.log('formStore: Setting phenotype data object:', data.phenotypeData);
+            
+            // Also set it in the data object so it gets propagated properly
+            data.category = categoryValue;
+          }
+        }
+        
+        // Handle top-level phenotype data
+        if (data.phenotypeData && typeof data.phenotypeData === 'object') {
+          console.log('formStore: Setting top-level phenotype data:', data.phenotypeData);
           phenotypeDataObj.value = { ...data.phenotypeData };
         }
-      }
-      
-      // Handle pedigree display flag
-      if (typeof data.showPedigree === 'boolean') {
-        console.log('formStore: Setting show pedigree:', data.showPedigree);
-        showPedigree.value = data.showPedigree;
+        
+        // Handle top-level category
+        if (data.category) {
+          console.log('formStore: Setting top-level category:', data.category);
+          updateCategory(data.category);
+          
+          // Set category in all possible locations for maximum compatibility
+          patientData.category = data.category;
+          
+          // Also ensure it's set in personal info for UI components
+          if (!patientData.personalInfo) {
+            patientData.personalInfo = {};
+          }
+          patientData.personalInfo.category = data.category;
+          
+          console.log('formStore: Category set in multiple locations for compatibility');
+        }
+        
+        // Handle pedigree display flag
+        if (typeof data.showPedigree === 'boolean') {
+          console.log('formStore: Setting top-level show pedigree:', data.showPedigree);
+          showPedigree.value = data.showPedigree;
+        }
+      } else {
+        // Standard import path for non-hash data
+        
+        // Handle personalInfo directly - this structure might come from the paste modal
+        if (data.personalInfo) {
+          console.log('formStore: Updating personal info:', data.personalInfo);
+          // Direct update to the personal info object
+          Object.assign(patientData.personalInfo, data.personalInfo);
+        }
+        
+        // Handle patientData from file imports
+        if (data.patientData) {
+          console.log('formStore: Initializing from external data:', data.patientData);
+          initializeFromExternalData(data.patientData, overwrite);
+        }
+        
+        // Handle selected panels/tests
+        if (data.selectedPanels && Array.isArray(data.selectedPanels)) {
+          console.log('formStore: Setting selected panels:', data.selectedPanels);
+          selectedTests.value = [...data.selectedPanels];
+        } else if (data.selectedTests && Array.isArray(data.selectedTests)) {
+          console.log('formStore: Setting selected tests:', data.selectedTests);
+          selectedTests.value = [...data.selectedTests];
+        }
+        
+        // Handle phenotype data
+        if (data.phenotypeData) {
+          // Check if it's an array (from paste modal) or object (from file import)
+          if (Array.isArray(data.phenotypeData)) {
+            console.log('formStore: Converting phenotype array to object:', data.phenotypeData);
+            // Convert array to object format
+            const phenotypeObj = {};
+            data.phenotypeData.forEach(item => {
+              if (item && item.id) {
+                phenotypeObj[item.id] = item;
+              }
+            });
+            phenotypeDataObj.value = phenotypeObj;
+          } else {
+            console.log('formStore: Setting phenotype data object:', data.phenotypeData);
+            phenotypeDataObj.value = { ...data.phenotypeData };
+          }
+        }
+        
+        // Handle pedigree display flag
+        if (typeof data.showPedigree === 'boolean') {
+          console.log('formStore: Setting show pedigree:', data.showPedigree);
+          showPedigree.value = data.showPedigree;
+        }
       }
       
       // Synchronize data models in both directions to ensure all UI components update
       console.log('formStore: Synchronizing data models');
       syncUnifiedPatientData();
       syncLegacyPatientData();
+      
+      // Force a Vue reactivity update on the main objects
+      patientData.personalInfo = { ...patientData.personalInfo };
+      selectedTests.value = [...selectedTests.value];
       
       return true;
     } catch (error) {

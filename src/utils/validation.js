@@ -156,17 +156,28 @@ export function validatePhenotypeData(phenotypeData) {
   const errors = {};
   
   // Validate each phenotype entry has the required fields
+  // We'll only validate items that have at least one property set
+  // This avoids validating empty objects or items that were just initialized
   phenotypeData.forEach((item, index) => {
-    if (!item.categoryId) {
-      errors[`phenotypeData[${index}].categoryId`] = 'Category ID is required';
-    }
+    // Skip null or undefined items
+    if (!item) return;
     
-    if (!item.phenotypeId) {
-      errors[`phenotypeData[${index}].phenotypeId`] = 'Phenotype ID is required';
-    }
+    // Check if this is an actual item that the user started filling out
+    // by checking if it has at least some properties filled
+    const hasData = item.categoryId || item.phenotypeId || item.status || item.name;
     
-    if (!item.status) {
-      errors[`phenotypeData[${index}].status`] = 'Status is required';
+    if (hasData) {
+      if (!item.categoryId) {
+        errors[`phenotypeData[${index}].categoryId`] = 'Category ID is required';
+      }
+      
+      if (!item.phenotypeId) {
+        errors[`phenotypeData[${index}].phenotypeId`] = 'Phenotype ID is required';
+      }
+      
+      if (!item.status) {
+        errors[`phenotypeData[${index}].status`] = 'Status is required';
+      }
     }
   });
   
@@ -254,8 +265,14 @@ export function validatePatientData(patientData) {
   
   // 4. Phenotype data errors
   Object.entries(phenotypeValidation.errors).forEach(([field, message]) => {
-    errors[field] = message;
-    errors['phenotypeData.' + field] = message;
+    // Only add the error once, not duplicated with different prefixes
+    // If the field already has a phenotypeData prefix, don't add another one
+    if (field.startsWith('phenotypeData[')) {
+      errors[field] = message;
+    } else {
+      errors[field] = message;
+      errors['phenotypeData.' + field] = message;
+    }
   });
   
   // 5. Consent errors

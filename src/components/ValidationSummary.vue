@@ -48,19 +48,44 @@ const validationErrors = inject('validationErrors');
 /**
  * Converts the validation errors object into an array of error objects
  * with field names and messages for easier rendering.
- * Shows ALL errors without filtering to match previous behavior.
+ * Handles duplicate errors and special formatting for array fields.
  */
 const errors = computed(() => {
   if (!validationErrors || !validationErrors.value) return [];
   
-  // Get all errors, including section prefixes
-  return Object.entries(validationErrors.value)
-    // Only take errors that don't have a section prefix to avoid duplicates
-    .filter(([field]) => !field.includes('.'))
-    .map(([field, message]) => ({
-      field,
-      message
-    }));
+  // Track seen messages to avoid duplicates
+  const seenMessages = new Set();
+  const result = [];
+  
+  // Helper to format phenotype error fields into a more readable format
+  const formatFieldName = (field) => {
+    // Format phenotype data array errors
+    if (field.match(/phenotypeData\[(\d+)\]/)) {
+      return 'phenotypeData';
+    }
+    return field;
+  };
+  
+  // Process all errors
+  Object.entries(validationErrors.value).forEach(([field, message]) => {
+    // Skip duplicate field paths (we get both prefixed and non-prefixed versions)
+    if (field.includes('.')) return;
+    
+    // Create a unique key from the message to avoid duplicates
+    const uniqueKey = `${formatFieldName(field)}: ${message}`;
+    
+    // Only add if we haven't seen this message before
+    if (!seenMessages.has(uniqueKey)) {
+      seenMessages.add(uniqueKey);
+      result.push({
+        field: formatFieldName(field),
+        message: formatFieldName(field) === 'phenotypeData' ? 
+          'Phenotype data: Some fields need to be completed' : message
+      });
+    }
+  });
+  
+  return result;
 });
 
 /**

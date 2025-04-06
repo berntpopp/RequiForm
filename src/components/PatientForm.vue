@@ -8,24 +8,30 @@
         <v-text-field
           density="compact"
           outlined
-          label="Given Name"
+          label="Given Name *"
           v-model="givenName"
           prepend-inner-icon="mdi-account"
+          :error="!!firstNameError"
+          :error-messages="firstNameError"
         />
       </v-col>
       <v-col cols="12" sm="6">
         <v-text-field
           density="compact"
           outlined
-          label="Family Name"
+          label="Family Name *"
           v-model="familyName"
           prepend-inner-icon="mdi-account-group"
+          :error="!!lastNameError"
+          :error-messages="lastNameError"
         />
       </v-col>
       <v-col cols="12" sm="6">
         <LocaleDatePicker 
           v-model="birthdate" 
-          label="Birthdate" 
+          label="Birthdate *"
+          :error="!!birthdateError"
+          :error-messages="birthdateError"
         />
       </v-col>
       <v-col cols="12" sm="6">
@@ -36,6 +42,8 @@
           :items="sexOptions"
           v-model="sex"
           prepend-inner-icon="mdi-gender-male-female"
+          :error="!!sexError"
+          :error-messages="sexError"
         />
       </v-col>
     </v-row>
@@ -48,18 +56,22 @@
         <v-text-field
           density="compact"
           outlined
-          label="Insurance"
+          label="Insurance *"
           v-model="insurance"
           prepend-inner-icon="mdi-card-account-details-outline"
+          :error="!!insuranceError"
+          :error-messages="insuranceError"
         />
       </v-col>
       <v-col cols="12" sm="6">
         <v-text-field
           density="compact"
           outlined
-          label="Physician Name"
+          label="Physician Name *"
           v-model="physicianName"
           prepend-inner-icon="mdi-stethoscope"
+          :error="!!referrerError"
+          :error-messages="referrerError"
         />
       </v-col>
     </v-row>
@@ -96,7 +108,6 @@
           v-model="diagnosis"
           rows="2"
           prepend-inner-icon="mdi-file-document-edit-outline"
-          hint="Required field - please provide a diagnosis or suspicion"
           persistent-hint
           :error="!!diagnosisError"
           :error-messages="diagnosisError"
@@ -239,11 +250,48 @@ const updatePersonalInfo = inject('updatePersonalInfo')
 // Inject validation-related functions
 const getFieldErrors = inject('getFieldErrors', () => ({})) // Fallback to empty object if not provided
 
-// Computed property for diagnosis validation error - ensures proper type for Vuetify
-const diagnosisError = computed(() => {
-  // Get all personal info field errors
+// Computed properties for field-level validation errors
+// Each one ensures proper type for Vuetify (string or empty string)
+
+// First name error
+const firstNameError = computed(() => {
   const errors = getFieldErrors('personalInfo');
-  // Return the diagnosis error message as a string if it exists
+  return errors && errors.firstName ? errors.firstName : ''
+})
+
+// Last name error
+const lastNameError = computed(() => {
+  const errors = getFieldErrors('personalInfo');
+  return errors && errors.lastName ? errors.lastName : ''
+})
+
+// Birthdate error
+const birthdateError = computed(() => {
+  const errors = getFieldErrors('personalInfo');
+  return errors && errors.birthdate ? errors.birthdate : ''
+})
+
+// Sex error
+const sexError = computed(() => {
+  const errors = getFieldErrors('personalInfo');
+  return errors && errors.sex ? errors.sex : ''
+})
+
+// Insurance error
+const insuranceError = computed(() => {
+  const errors = getFieldErrors('personalInfo');
+  return errors && errors.insurance ? errors.insurance : ''
+})
+
+// Referrer error (physician name)
+const referrerError = computed(() => {
+  const errors = getFieldErrors('personalInfo');
+  return errors && errors.referrer ? errors.referrer : ''
+})
+
+// Diagnosis error
+const diagnosisError = computed(() => {
+  const errors = getFieldErrors('personalInfo');
   return errors && errors.diagnosis ? errors.diagnosis : ''
 })
 

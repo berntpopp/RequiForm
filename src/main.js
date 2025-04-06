@@ -10,13 +10,24 @@ import { createVuetify } from 'vuetify';
 import * as components from 'vuetify/components';
 import * as directives from 'vuetify/directives';
 
+// Import Pinia for state management
+import { createPinia } from 'pinia';
+
 // Import Vuetify styles and Material Design Icons
 import 'vuetify/styles';
 import '@mdi/font/css/materialdesignicons.css';
 
+// Create Vuetify instance
 const vuetify = createVuetify({
   components,
   directives,
 });
 
-createApp(App).use(vuetify).mount('#app');
+// Create Pinia instance
+const pinia = createPinia();
+
+// Create Vue app and use plugins
+const app = createApp(App);
+app.use(vuetify);
+app.use(pinia);
+app.mount('#app');

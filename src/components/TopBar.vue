@@ -45,19 +45,19 @@
           Copy URL
         </v-tooltip>
       </v-btn>
+      <!-- Copy Encrypted URL Button -->
+      <v-btn icon @click="$emit('copy-encrypted-url')" aria-label="Copy Encrypted URL">
+        <v-icon>mdi-lock</v-icon>
+        <v-tooltip activator="parent" location="bottom">
+          Copy Encrypted URL
+        </v-tooltip>
+      </v-btn>
       
       <!-- Paste Data Button -->
       <v-btn icon @click="$emit('open-paste-data')" aria-label="Paste and Import Data" id="paste-data-btn">
         <v-icon>mdi-clipboard-text</v-icon>
         <v-tooltip activator="parent" location="bottom">
           Paste Data
-        </v-tooltip>
-      </v-btn>
-      <!-- Copy Encrypted URL Button -->
-      <v-btn icon @click="$emit('copy-encrypted-url')" aria-label="Copy Encrypted URL">
-        <v-icon>mdi-lock</v-icon>
-        <v-tooltip activator="parent" location="bottom">
-          Copy Encrypted URL
         </v-tooltip>
       </v-btn>
       

@@ -127,8 +127,9 @@ const categories = ref([]);
 const selectedTests = ref([]);
 const selectedCategory = ref('');
 
-// Create computed property to track category changes in the unified data model
+// Create computed properties to track changes in the unified data model
 const unifiedCategory = computed(() => unifiedPatientData?.category || '');
+const unifiedPanels = computed(() => unifiedPatientData?.selectedPanels || []);
 
 /**
  * Proxy computed property for search selection.
@@ -194,6 +195,12 @@ onMounted(() => {
   else if (unifiedPatientData && unifiedPatientData.selectedPanels && unifiedPatientData.selectedPanels.length > 0) {
     console.log('TestSelector initializing with unified panels:', unifiedPatientData.selectedPanels);
     selectedTests.value = [...unifiedPatientData.selectedPanels];
+    
+    // Force the category UI to update
+    nextTick(() => {
+      tab.value = 'Category Selection';
+      console.log('TestSelector forced Category Selection tab with panels:', selectedTests.value);
+    });
   }
   // PRIORITY 4: Fall back to the legacy model value
   else {
@@ -255,6 +262,34 @@ watch(unifiedCategory, newVal => {
     selectedCategory.value = newVal;
   }
 });
+
+// Watch for changes in the unified model's panels and update local state
+watch(unifiedPanels, newPanels => {
+  if (newPanels && newPanels.length > 0 && JSON.stringify(newPanels) !== JSON.stringify(selectedTests.value)) {
+    console.log('Updating TestSelector panels from unified model:', newPanels);
+    selectedTests.value = [...newPanels]; // Copy array to trigger reactivity
+    
+    // Force UI update by ensuring the correct tab is selected
+    nextTick(() => {
+      if (selectedTests.value.length > 0) {
+        tab.value = 'Category Selection';
+      }
+    });
+  }
+}, { immediate: true }); // immediate:true ensures it runs when component is mounted
+
+// Special domain-specific handler for nephronophthise -> nephrology mapping
+watch(() => selectedTests.value, (newTests) => {
+  if (newTests && newTests.includes('nephronophthise') && (!selectedCategory.value || selectedCategory.value !== 'nephrology')) {
+    console.log('Detected nephronophthise panel, auto-setting category to nephrology');
+    selectedCategory.value = 'nephrology';
+    
+    // Also propagate to the data model
+    if (updateCategory) {
+      updateCategory('nephrology');
+    }
+  }
+}, { immediate: true });
 
 // We'll handle panel updates in onMounted and use a simpler approach
 

@@ -156,17 +156,28 @@ export function validatePhenotypeData(phenotypeData) {
   const errors = {};
   
   // Validate each phenotype entry has the required fields
+  // We'll only validate items that have at least one property set
+  // This avoids validating empty objects or items that were just initialized
   phenotypeData.forEach((item, index) => {
-    if (!item.categoryId) {
-      errors[`phenotypeData[${index}].categoryId`] = 'Category ID is required';
-    }
+    // Skip null or undefined items
+    if (!item) return;
     
-    if (!item.phenotypeId) {
-      errors[`phenotypeData[${index}].phenotypeId`] = 'Phenotype ID is required';
-    }
+    // Check if this is an actual item that the user started filling out
+    // by checking if it has at least some properties filled
+    const hasData = item.categoryId || item.phenotypeId || item.status || item.name;
     
-    if (!item.status) {
-      errors[`phenotypeData[${index}].status`] = 'Status is required';
+    if (hasData) {
+      if (!item.categoryId) {
+        errors[`phenotypeData[${index}].categoryId`] = 'Category ID is required';
+      }
+      
+      if (!item.phenotypeId) {
+        errors[`phenotypeData[${index}].phenotypeId`] = 'Phenotype ID is required';
+      }
+      
+      if (!item.status) {
+        errors[`phenotypeData[${index}].status`] = 'Status is required';
+      }
     }
   });
   
@@ -216,13 +227,59 @@ export function validatePatientData(patientData) {
   const consentValidation = validateConsent(patientData.consent || {});
   
   // Combine all errors
-  const errors = {
-    ...personalInfoValidation.errors,
-    ...selectedPanelsValidation.errors,
-    ...categoryValidation.errors,
-    ...phenotypeValidation.errors,
-    ...consentValidation.errors
-  };
+    /**
+   * Format validation errors in a flat structure to match previous behavior
+   * - Non-prefixed format for the ValidationSummary at the top of the form
+   * - Keep a prefixed version for section-specific error handling
+   * 
+   * This ensures backward compatibility with ValidationSummary component while
+   * supporting the new architecture.
+   */
+  const errors = {};
+  
+  // Add all errors with appropriate context formatting
+  
+  // 1. Personal info errors
+  Object.entries(personalInfoValidation.errors).forEach(([field, message]) => {
+    // For the summary at the top - these names match the old structure exactly
+    errors[field] = message;
+    
+    // For targeted section validation
+    errors['personalInfo.' + field] = message;
+  });
+  
+  // 2. Panel selection errors
+  Object.entries(selectedPanelsValidation.errors).forEach(([field, message]) => {
+    // For the summary
+    errors[field] = message;
+    
+    // For section validation
+    errors['selectedPanels.' + field] = message;
+  });
+  
+  // 3. Category errors
+  Object.entries(categoryValidation.errors).forEach(([field, message]) => {
+    errors[field] = message;
+    errors['category.' + field] = message;
+  });
+  
+  // 4. Phenotype data errors
+  Object.entries(phenotypeValidation.errors).forEach(([field, message]) => {
+    // Only add the error once, not duplicated with different prefixes
+    // If the field already has a phenotypeData prefix, don't add another one
+    if (field.startsWith('phenotypeData[')) {
+      errors[field] = message;
+    } else {
+      errors[field] = message;
+      errors['phenotypeData.' + field] = message;
+    }
+  });
+  
+  // 5. Consent errors
+  Object.entries(consentValidation.errors).forEach(([field, message]) => {
+    errors[field] = message;
+    errors['consent.' + field] = message;
+  });
   
   // Determine if the overall form is valid
   const valid = personalInfoValidation.valid && 

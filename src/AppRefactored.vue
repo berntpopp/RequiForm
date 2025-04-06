@@ -135,7 +135,7 @@
     </v-main>
 
     <!-- Footer with disclaimer acknowledgement button -->
-    <Footer
+    <VersionFooter
       :disclaimerAcknowledged="disclaimerAcknowledged"
       :acknowledgmentTime="acknowledgmentTime"
       @reopen-disclaimer="openDisclaimerModal"
@@ -153,8 +153,8 @@ import PedigreeDrawer from './components/PedigreeDrawer.vue';
 import ValidationSummary from './components/ValidationSummary.vue';
 import PdfGenerator from './components/PdfGenerator.vue';
 import Disclaimer from './components/Disclaimer.vue';
-import Footer from './components/Footer.vue';
-import PasteDataModal from './components/modals/PasteDataModal.vue';
+import VersionFooter from './components/VersionFooter.vue';
+import PasteDataModal from './components/PasteDataModal.vue';
 import SelectedPanelsSummary from './components/SelectedPanelsSummary.vue';
 
 // Dialog components
@@ -183,22 +183,17 @@ const {
   updateSelectedPanels,
   updatePhenotypeData,
   updateCategory,
+  updateConsent,
   resetPatientData: resetUnifiedPatientData,
   initializeFromExternalData,
   exportPatientData,
+  parsePatientDataFromUrl: parseDataFromUrl,
   isValid,
   validationErrors: unifiedValidationErrors,
   sectionValidation,
   validateForm,
   getFieldErrors
 } = usePatientData();
-
-// Provide patient data and utilities to child components
-provide('patientData', unifiedPatientData);
-provide('updatePersonalInfo', updatePersonalInfo);
-provide('updateSelectedPanels', updateSelectedPanels);
-provide('updatePhenotypeData', updatePhenotypeData);
-provide('updateCategory', updateCategory);
 
 // Provide validation utilities to child components
 provide('isValid', isValid);
@@ -298,7 +293,7 @@ const showFAQModal = ref(false);
 /** FAQ content array. */
 const faqContent = ref([
   {
-    question: 'What is RequiForm\'s approach to data handling?',
+    question: 'What is RequiForm's approach to data handling?',
     answer:
       'RequiForm processes all data locally in your browser. No data is sent to any server, ensuring maximum privacy. You can save your form state by generating a URL, storing it as a file, or by encrypting it with a password.',
   },
@@ -338,7 +333,6 @@ const pdfConfig = ref({
 const groupedPanelDetails = computed(() => {
   return categories
     .map((category) => ({
-      id: category.id, // Add the category id
       categoryTitle: category.title,
       tests: category.tests.filter((test) => selectedTests.value.includes(test.id)),
     }))
@@ -362,28 +356,12 @@ function handleGeneratePdf() {
 
   // Validation passed, capture pedigree data if needed
   if (showPedigree.value && pedigreeDrawer.value) {
-    // Fix method name: getDataURL -> getPedigreeDataUrl
-    pedigreeDrawer.value.getPedigreeDataUrl().then(dataUrl => {
-      pedigreeDataUrl.value = dataUrl;
-      
-      // Now generate PDF after pedigree data is ready
-      generatePdfDocument();
-    }).catch(error => {
-      console.error('Error capturing pedigree data:', error);
-      pedigreeDataUrl.value = '';
-      generatePdfDocument();
-    });
+    pedigreeDataUrl.value = pedigreeDrawer.value.getDataURL();
   } else {
     pedigreeDataUrl.value = '';
-    generatePdfDocument();
   }
-}
 
-/**
- * Helper to actually generate the PDF document
- */
-function generatePdfDocument() {
-  // Generate PDF with the correct data
+  // Generate PDF after a brief delay to ensure pedigree data is ready
   nextTick().then(() => {
     if (pdfGen.value) {
       pdfGen.value.generatePdf();
@@ -635,7 +613,39 @@ function handlePastedDataImport(data) {
   snackbarMessage.value = "Data imported successfully!";
 }
 
-// Function removed: saveToFile is no longer used since we're using the downloadJsonFile utility
+/**
+ * Saves the current form data to a file
+ */
+function saveToFile() {
+  try {
+    const exportData = exportPatientData();
+    
+    // Create Blob and trigger download
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    
+    // Create download link
+    const downloadLink = document.createElement('a');
+    downloadLink.href = URL.createObjectURL(dataBlob);
+    downloadLink.download = `${saveDataName.value || 'requiform-data'}.json`;
+    
+    // Trigger download
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+    
+    // Success message
+    snackbar.value = true;
+    snackbarMessage.value = "Data exported successfully!";
+    
+    // Cleanup
+    URL.revokeObjectURL(downloadLink.href);
+  } catch (error) {
+    console.error('Error saving to file:', error);
+    snackbar.value = true;
+    snackbarMessage.value = "Error exporting data!";
+  }
+}
 
 /**
  * Loads form data from a file
@@ -657,32 +667,8 @@ function loadFromFile(file) {
         throw new Error('Invalid data format');
       }
       
-      // Convert to proper structure if needed (handling legacy formats)
-      let dataToLoad = jsonData;
-      
-      // Check if we need to adapt the data structure
-      if (!jsonData.personalInfo && !jsonData.selectedPanels) {
-        // Legacy format, convert to unified format
-        dataToLoad = {
-          personalInfo: {
-            firstName: jsonData.givenName || '',
-            lastName: jsonData.familyName || '',
-            birthdate: jsonData.birthdate || '',
-            sex: jsonData.sex || '',
-            diagnosis: jsonData.diagnosis || '',
-            insurance: jsonData.insurance || '',
-            referrer: jsonData.physicianName || ''
-          },
-          selectedPanels: Array.isArray(jsonData.selectedTests) ? jsonData.selectedTests : [],
-          phenotypeData: convertPhenotypeDataToUnifiedFormat(jsonData.phenotypeData || {}),
-          category: jsonData.category || ''
-        };
-      }
-      
-      console.log('Loading data:', dataToLoad);
-      
-      // Initialize with imported data (with overwrite=true to ensure clean state)
-      initializeFromExternalData(dataToLoad, true);
+      // Initialize with imported data
+      initializeFromExternalData(jsonData);
       
       // Sync with legacy model for compatibility
       syncLegacyPatientData();
@@ -704,28 +690,6 @@ function loadFromFile(file) {
   };
   
   reader.readAsText(file);
-}
-
-/**
- * Helper function to convert phenotype data from object format to array format
- */
-function convertPhenotypeDataToUnifiedFormat(phenotypeDataObj) {
-  if (!phenotypeDataObj || typeof phenotypeDataObj !== 'object') {
-    return [];
-  }
-  
-  // If it's already an array, return it
-  if (Array.isArray(phenotypeDataObj)) {
-    return phenotypeDataObj;
-  }
-  
-  // Convert from object format (key->value) to array format
-  return Object.entries(phenotypeDataObj).map(([id, data]) => {
-    return {
-      id: id,
-      ...data
-    };
-  });
 }
 
 /**
@@ -801,30 +765,16 @@ onMounted(() => {
 
   // Handle URL parameters and initialize data
   const parsedData = parsePatientDataFromUrl();
-  console.log('Parsed data from URL:', parsedData);
 
   if (Object.keys(parsedData).length > 0) {
-    // Check if we have actual patient data vs empty structure
-    const hasPatientData = 
-      (parsedData.personalInfo && Object.values(parsedData.personalInfo).some(val => val)) ||
-      (parsedData.selectedPanels && parsedData.selectedPanels.length > 0) ||
-      (parsedData.phenotypeData && parsedData.phenotypeData.length > 0);
+    // Initialize the unified patient data model with URL data
+    initializeFromExternalData(parsedData);
     
-    if (hasPatientData) {
-      console.log('Initializing from URL data');
-      // Initialize with overwrite=true to ensure a clean state
-      initializeFromExternalData(parsedData, true);
-      
-      // Sync with legacy patient data format for backward compatibility
-      syncLegacyPatientData();
-      
-      // Clean up URL parameters
-      clearUrlParameters();
-      
-      // Notify the user
-      snackbar.value = true;
-      snackbarMessage.value = "Data loaded from URL successfully!";
-    }
+    // Sync with legacy patient data format for backward compatibility
+    syncLegacyPatientData();
+    
+    // Clean up URL parameters
+    clearUrlParameters();
   } else {
     // Check for encrypted data
     const encryptedValue = getUrlParameter('encrypted');

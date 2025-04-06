@@ -101,4 +101,5 @@ export function mergePatientData(existingData, newData) {
   return mergedData;
 }
 
+// Export both as named exports and as default export
 export default { createDefaultPatientData, mergePatientData };

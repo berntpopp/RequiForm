@@ -3,28 +3,41 @@
  * 
  * Provides functions to validate the unified patient data model including
  * personal information, test panels, phenotype data, and consent information.
+ * These utilities ensure data integrity throughout the application.
  * 
  * Validation rules include:
- * - Personal information: firstName, lastName, and diagnosis fields are required
- * - Test panel selection: completely optional
- * - Category selection: optional
- * - Phenotype data: validation for structure only
- * - Consent: all consent fields are optional
+ * - Personal information: 
+ *   - Required: firstName, lastName, birthdate, sex, insurance, referrer, diagnosis
+ *   - Each field has specific format requirements (e.g., valid date format for birthdate)
+ * - Test panel selection: completely optional (no validation constraints)
+ * - Category selection: optional (no validation constraints)
+ * - Phenotype data: validation for structure only (ensures proper format)
+ * - Consent: all consent fields are optional (no validation constraints)
+ * 
+ * The validation system provides detailed error messages for each field
+ * and supports both full-form validation and section-specific validation.
  */
 
 /**
- * Validates that a string is not empty
- * @param {string} value - The value to check
- * @return {boolean} True if the value is not empty
+ * Validates that a string is not empty.
+ * This utility function checks if a string contains meaningful content
+ * after whitespace trimming. Used for required field validation throughout the form.
+ * 
+ * @param {string} value - The string value to check
+ * @return {boolean} True if the value is a non-empty string, false otherwise
  */
 export function isNotEmpty(value) {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
 /**
- * Validates an email address
- * @param {string} email - The email to validate
- * @return {boolean} True if the email is valid
+ * Validates an email address format.
+ * This utility function ensures email addresses follow the standard format
+ * with username, @ symbol, and domain. Empty values are considered valid
+ * since email fields are typically optional.
+ * 
+ * @param {string} email - The email string to validate
+ * @return {boolean} True if the email is valid or empty, false otherwise
  */
 export function isValidEmail(email) {
   if (!email) return true; // Optional field
@@ -33,9 +46,16 @@ export function isValidEmail(email) {
 }
 
 /**
- * Validates a date in YYYY-MM-DD format
- * @param {string} date - The date to validate
- * @return {boolean} True if the date is valid
+ * Validates a date in YYYY-MM-DD format.
+ * This function performs comprehensive date validation including:
+ * 1. Checking for the correct format (YYYY-MM-DD)
+ * 2. Verifying the date is valid (e.g., not February 30)
+ * 3. Ensuring the date is not in the future
+ * 
+ * Empty values are considered invalid since this is for required date fields.
+ * 
+ * @param {string} date - The date string to validate
+ * @return {boolean} True if the date is valid and not in the future, false otherwise
  */
 export function isValidDate(date) {
   if (!date) return false; // Required field
@@ -55,19 +75,31 @@ export function isValidDate(date) {
 }
 
 /**
- * Validates personal information fields in the patient data model
+ * Validates personal information fields in the patient data model.
  * 
- * This validates the following required fields:
- * - First name: Patient identifier
- * - Last name: Patient identifier
- * - Birthdate: Patient identifier
- * - Sex: Required for medical analysis
- * - Insurance: Required for administrative purposes
- * - Referring physician: Required for medical coordination
- * - Diagnosis/Suspicion: Essential clinical context for genetic testing
+ * This function validates the following required fields:
+ * - First name: Patient identifier - must not be empty
+ * - Last name: Patient identifier - must not be empty
+ * - Birthdate: Patient identifier - must be valid YYYY-MM-DD format and not in future
+ * - Sex: Required for medical analysis - must not be empty
+ * - Insurance: Required for administrative purposes - must not be empty
+ * - Referring physician: Required for medical coordination - must not be empty
+ * - Diagnosis/Suspicion: Essential clinical context for genetic testing - must not be empty
+ * 
+ * The function returns detailed error messages for each invalid field,
+ * which are then displayed in the UI to guide the user.
  * 
  * @param {Object} personalInfo - The personal information object
- * @return {Object} Validation result object with field-specific errors
+ * @param {string} personalInfo.firstName - Patient's first name
+ * @param {string} personalInfo.lastName - Patient's last name
+ * @param {string} personalInfo.birthdate - Patient's birthdate (YYYY-MM-DD)
+ * @param {string} personalInfo.sex - Patient's sex
+ * @param {string} personalInfo.insurance - Patient's insurance information
+ * @param {string} personalInfo.referrer - Referring physician's name
+ * @param {string} personalInfo.diagnosis - Diagnosis or suspicion
+ * @return {Object} Validation result with the following properties:
+ *   @return {boolean} valid - Whether all fields are valid
+ *   @return {Object} errors - Object with field names as keys and error messages as values
  */
 export function validatePersonalInfo(personalInfo) {
   const errors = {};
@@ -107,14 +139,19 @@ export function validatePersonalInfo(personalInfo) {
 }
 
 /**
- * Validates the selected test panels
+ * Validates the selected test panels.
  * 
  * Note: As of April 2025, test panel selection is completely optional.
  * Users can proceed without selecting any panels, which allows maximum
  * flexibility in the form workflow. This change was made to streamline
  * the data collection process.
  * 
- * @return {Object} Validation result with always valid=true
+ * This function always returns a valid result with no errors, as there
+ * are no validation requirements for test panel selection.
+ * 
+ * @return {Object} Validation result with the following properties:
+ *   @return {boolean} valid - Always true
+ *   @return {Object} errors - Empty object (no errors)
  */
 export function validateSelectedPanels() {
   // Panel selection is completely optional (no validation required)
@@ -127,12 +164,18 @@ export function validateSelectedPanels() {
 // Removed the unused helper function to fix the lint error
 
 /**
- * Validates category selection
+ * Validates category selection.
  * 
  * Category selection is optional in the patient data form.
  * This allows users to submit data without categorization when appropriate.
+ * There are no validation constraints for the category field.
  * 
- * @return {Object} Validation result with always valid=true
+ * This function always returns a valid result with no errors, as there
+ * are no validation requirements for category selection.
+ * 
+ * @return {Object} Validation result with the following properties:
+ *   @return {boolean} valid - Always true
+ *   @return {Object} errors - Empty object (no errors)
  */
 export function validateCategory() {
   // Category is optional, so always return valid
@@ -143,9 +186,21 @@ export function validateCategory() {
 }
 
 /**
- * Validates phenotype data
+ * Validates phenotype data structure and format.
+ * This function checks that each phenotype entry has the required
+ * properties and structure. It performs validation on each item in the array,
+ * ensuring they have the proper format for HPO terms.
+ * 
+ * The validation only checks for structural integrity, not the specific
+ * content of HPO terms. Empty arrays are considered valid.
+ * 
  * @param {Array} phenotypeData - The phenotype data array
- * @return {Object} Validation result
+ * @param {Object} phenotypeData[].id - HPO ID of the phenotype
+ * @param {string} phenotypeData[].term - Text description of the phenotype
+ * @param {string} phenotypeData[].status - Status of the phenotype (present/absent)
+ * @return {Object} Validation result with the following properties:
+ *   @return {boolean} valid - Whether all phenotype entries are valid
+ *   @return {Object} errors - Object with field paths as keys and error messages as values
  */
 export function validatePhenotypeData(phenotypeData) {
   // Phenotype data is optional, so we only validate it if it's present
@@ -188,8 +243,16 @@ export function validatePhenotypeData(phenotypeData) {
 }
 
 /**
- * Validates consent data
- * @return {Object} Validation result
+ * Validates consent data.
+ * This function handles consent-related validation, though currently
+ * all consent fields are considered optional with no validation constraints.
+ * 
+ * Data processing consent has been deemed out of scope for the current
+ * implementation requirements.
+ * 
+ * @return {Object} Validation result with the following properties:
+ *   @return {boolean} valid - Always true
+ *   @return {Object} errors - Empty object (no errors)
  */
 export function validateConsent() {
   // No validation requirements for consent fields
@@ -201,9 +264,29 @@ export function validateConsent() {
 }
 
 /**
- * Validates the entire patient data model
+ * Validates the entire patient data model.
+ * This comprehensive function validates all sections of the patient data form:
+ * - Personal information
+ * - Selected test panels
+ * - Category selection
+ * - Phenotype data
+ * - Consent information
+ * 
+ * It combines the results from individual section validations and produces
+ * a unified validation result that includes both overall validity and
+ * section-specific validity flags. Error messages are formatted in both
+ * flat and prefixed formats to support different UI components.
+ * 
  * @param {Object} patientData - The unified patient data object
- * @return {Object} Complete validation result
+ * @param {Object} patientData.personalInfo - Personal information fields
+ * @param {Array} patientData.selectedPanels - Selected test panel IDs
+ * @param {string} patientData.category - Selected category
+ * @param {Array} patientData.phenotypeData - Phenotype data entries
+ * @param {Object} patientData.consent - Consent information
+ * @return {Object} Complete validation result with the following properties:
+ *   @return {boolean} valid - Whether the entire form is valid
+ *   @return {Object} errors - Combined error messages from all sections
+ *   @return {Object} sections - Object with section names as keys and validity as values
  */
 export function validatePatientData(patientData) {
   if (!patientData) {

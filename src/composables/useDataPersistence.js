@@ -2,7 +2,15 @@
  * @fileoverview Composable for handling data persistence operations.
  * 
  * This composable encapsulates logic for saving and loading form data to/from
- * files and handling pasted data imports.
+ * files and handling pasted data imports. It provides a unified interface for 
+ * all data import/export functionality throughout the application.
+ * 
+ * Key responsibilities:
+ * - Saving form data to JSON files
+ * - Loading form data from JSON files
+ * - Processing and validating pasted data from different formats
+ * - Validating data structure before import
+ * - Providing feedback on import/export operations
  */
 
 import { ref } from 'vue';
@@ -12,8 +20,16 @@ import { useUiStore } from '../stores/uiStore';
 import { useFormStore } from '../stores/formStore';
 
 /**
- * Composable for data persistence functionality
- * @returns {Object} Data persistence methods
+ * Vue composable that provides data persistence functionality for the application.
+ * Uses Vue's Composition API to manage data import/export state and operations.
+ * 
+ * @returns {Object} Object containing the following:
+ *   @returns {Ref<File>} importedFile - Reference to the file being imported
+ *   @returns {Function} saveToFile - Function to save current form data to a file
+ *   @returns {Function} loadFromFile - Function to load form data from a file
+ *   @returns {Function} processPastedData - Function to process pasted text data
+ *   @returns {Function} importFromJson - Function to import data from JSON string or formatted text
+ *   @returns {Function} isValidFormData - Function to validate form data structure
  */
 export function useDataPersistence() {
   // Reference to the file being imported
@@ -24,9 +40,14 @@ export function useDataPersistence() {
   const formStore = useFormStore();
   
   /**
-   * Saves the current form data to a file
-   * @param {string} fileName - Name to use for the saved file
-   * @returns {boolean} Success status
+   * Saves the current form data to a JSON file.
+   * This function:
+   * 1. Exports the current form data using the formStore
+   * 2. Downloads it as a JSON file with the specified filename
+   * 3. Provides user feedback via the UI store
+   * 
+   * @param {string} fileName - Name to use for the saved file (without extension)
+   * @returns {boolean} True if save was successful, false otherwise
    */
   function saveToFile(fileName) {
     try {
@@ -51,9 +72,16 @@ export function useDataPersistence() {
   }
   
   /**
-   * Loads form data from a file
-   * @param {File} file - The file to load data from
-   * @returns {Promise<boolean>} Success status
+   * Loads form data from a JSON file.
+   * This function:
+   * 1. Reads and parses the selected file
+   * 2. Validates that it contains proper RequiForm data
+   * 3. Imports the data into the application state
+   * 4. Provides user feedback on success or failure
+   * 
+   * @param {File} file - The file object to load data from
+   * @returns {Promise<boolean>} Promise resolving to true if load was successful, false otherwise
+   * @throws {Error} May throw if file reading or parsing fails
    */
   async function loadFromFile(file) {
     try {
@@ -86,9 +114,16 @@ export function useDataPersistence() {
   }
   
   /**
-   * Processes pasted data and imports it if valid
-   * @param {string} pastedText - The pasted text data
-   * @returns {boolean} Success status
+   * Processes pasted data and imports it if valid.
+   * This function handles formatted text data (non-JSON) by:
+   * 1. Validating the input text
+   * 2. Parsing it using the dedicated data parser utility
+   * 3. Importing the parsed data if successful
+   * 4. Performing additional syncing to ensure UI consistency
+   * 5. Providing user feedback on the result
+   * 
+   * @param {string} pastedText - The pasted text data to process
+   * @returns {boolean} True if processing and import were successful, false otherwise
    */
   function processPastedData(pastedText) {
     try {
@@ -135,9 +170,15 @@ export function useDataPersistence() {
   }
   
   /**
-   * Validates that the data contains expected form data fields
-   * @param {Object} data - The data to validate
-   * @returns {boolean} Whether the data is valid form data
+   * Validates that the data contains expected form data fields.
+   * Performs basic structural validation to ensure the data contains
+   * at least one of the main RequiForm data sections:
+   * - patientData (object)
+   * - selectedTests (array)
+   * - phenotypeData (object)
+   * 
+   * @param {Object} data - The data object to validate
+   * @returns {boolean} True if the data has valid RequiForm structure, false otherwise
    */
   function isValidFormData(data) {
     if (!data || typeof data !== 'object') return false;
@@ -151,9 +192,18 @@ export function useDataPersistence() {
   }
   
   /**
-   * Imports data from either JSON string or formatted text (used by paste data modal)
+   * Imports data from either JSON string or formatted text.
+   * This versatile function:
+   * 1. First attempts to parse the input as JSON
+   * 2. If successful and valid, imports it directly
+   * 3. If JSON parsing fails, tries to process it as formatted text
+   * 4. Ensures UI synchronization after import
+   * 5. Provides user feedback on the outcome
+   * 
+   * This function is primarily used by the paste data modal component.
+   * 
    * @param {string} inputData - Data to import (either JSON string or formatted text)
-   * @returns {Promise<boolean>} Success status
+   * @returns {Promise<boolean>} Promise resolving to true if import was successful, false otherwise
    */
   async function importFromJson(inputData) {
     if (!inputData || typeof inputData !== 'string') {

@@ -2,7 +2,16 @@
  * @fileoverview Form store for managing all form-related data and validation using Pinia.
  * 
  * This store centralizes all form-related state, utilizing the existing usePatientData
- * composable internally for the unified data model and validation logic.
+ * composable internally for the unified data model and validation logic. It serves as the
+ * single source of truth for form data across the entire application.
+ * 
+ * Key responsibilities:
+ * - Managing and synchronizing patient data in multiple formats
+ * - Tracking and validating form state
+ * - Handling form submission and reset operations
+ * - Importing and exporting form data
+ * - Converting between different data formats (e.g., phenotype data)
+ * - Providing validation feedback to UI components
  */
 
 import { defineStore } from 'pinia';
@@ -10,7 +19,12 @@ import { ref, computed } from 'vue';
 import { usePatientData } from '../composables/usePatientData';
 
 /**
- * Form store for application-wide form data management
+ * Pinia store for application-wide form data management.
+ * Uses the Composition API to define state and methods for form handling.
+ * This store integrates with usePatientData composable to leverage its
+ * validation and data model capabilities while adding form-specific functionality.
+ * 
+ * @returns {Object} A store object containing state properties and methods
  */
 export const useFormStore = defineStore('form', () => {
   // Initialize the usePatientData composable
@@ -46,7 +60,17 @@ export const useFormStore = defineStore('form', () => {
   });
   
   /**
-   * Synchronizes the legacy patient data format with the unified model
+   * Synchronizes the legacy patient data format with the unified model.
+   * This function maps data from the older format fields to the newer unified model,
+   * ensuring compatibility and data consistency across the application.
+   * 
+   * Specifically handles:
+   * - Personal information fields (name, birthdate, etc.)
+   * - Selected panels/tests
+   * - Phenotype data
+   * - Category information
+   * 
+   * @returns {void}
    */
   function syncUnifiedPatientData() {
     console.log('Syncing legacy → unified data model');
@@ -79,7 +103,16 @@ export const useFormStore = defineStore('form', () => {
   }
   
   /**
-   * Synchronizes the unified patient data model with the legacy format
+   * Synchronizes the unified patient data model with the legacy format.
+   * This function maps data from the newer unified model back to the older format fields,
+   * ensuring backward compatibility with components that expect the legacy structure.
+   * 
+   * Handles bidirectional synchronization of:
+   * - Personal information fields
+   * - Category information
+   * - Selected panels/tests
+   * 
+   * @returns {void}
    */
   function syncLegacyPatientData() {
     console.log('Syncing unified → legacy data model');
@@ -162,8 +195,12 @@ export const useFormStore = defineStore('form', () => {
   }
   
   /**
-   * Updates the patient data object
-   * @param {Object} newData - New patient data
+   * Updates the patient data object with new values.
+   * This function updates the personalInfo data and ensures
+   * synchronization with the unified data model.
+   * 
+   * @param {Object} newData - New patient personal information data
+   * @returns {void}
    */
   function updatePatientData(newData) {
     // Update patient data
@@ -174,8 +211,12 @@ export const useFormStore = defineStore('form', () => {
   }
   
   /**
-   * Updates the selected tests
-   * @param {Array} tests - Array of test IDs
+   * Updates the selected tests/panels.
+   * This function updates the selectedTests reactive reference and
+   * ensures synchronization with the unified data model.
+   * 
+   * @param {Array<string>} tests - Array of test IDs to set as selected
+   * @returns {void}
    */
   function updateSelectedTests(tests) {
     selectedTests.value = [...tests];
@@ -185,8 +226,12 @@ export const useFormStore = defineStore('form', () => {
   }
   
   /**
-   * Updates the phenotype data
-   * @param {Object} data - Phenotype data object
+   * Updates the phenotype data object.
+   * This function updates the phenotypeDataObj reactive reference and
+   * ensures synchronization with the unified data model.
+   * 
+   * @param {Object} data - Phenotype data object where keys are HPO IDs
+   * @returns {void}
    */
   function updatePhenotypeDataObj(data) {
     phenotypeDataObj.value = { ...data };
@@ -196,30 +241,47 @@ export const useFormStore = defineStore('form', () => {
   }
   
   /**
-   * Updates the pedigree data URL
-   * @param {string} url - Data URL for the pedigree image
+   * Updates the pedigree data URL.
+   * This function sets the data URL for the pedigree image representation,
+   * typically a base64-encoded image string.
+   * 
+   * @param {string} url - Data URL for the pedigree image (base64 format)
+   * @returns {void}
    */
   function updatePedigreeDataUrl(url) {
     pedigreeDataUrl.value = url;
   }
   
   /**
-   * Sets the showPedigree flag
+   * Sets the showPedigree flag.
+   * This function controls whether the pedigree section should be displayed
+   * in the UI and included in data exports.
+   * 
    * @param {boolean} value - Whether to show the pedigree
+   * @returns {void}
    */
   function setShowPedigree(value) {
     showPedigree.value = value;
   }
   
   /**
-   * Resets the form validation state
+   * Resets the form validation state.
+   * This function hides validation errors and clears the validation display state,
+   * useful when transitioning between forms or after successful submission.
+   * 
+   * @returns {void}
    */
   function resetValidation() {
     showValidation.value = false;
   }
   
   /**
-   * Explicitly shows validation
+   * Explicitly shows or hides validation errors.
+   * This function controls the visibility of validation error messages in the UI,
+   * typically called before form submission or when resetting a form.
+   * 
+   * @param {boolean} [show=true] - Whether to show validation errors
+   * @returns {void}
    */
   function setShowValidation(show = true) {
     showValidation.value = show;
@@ -228,9 +290,12 @@ export const useFormStore = defineStore('form', () => {
 
   
   /**
-   * Performs validation and optionally shows validation errors
-   * @param {boolean} show - Whether to show validation errors
-   * @returns {boolean} Whether the form is valid
+   * Performs validation and optionally shows validation errors.
+   * This function validates the entire form and can simultaneously update the UI
+   * to display error messages. It's typically called before form submission.
+   * 
+   * @param {boolean} [show=true] - Whether to show validation errors in the UI
+   * @returns {boolean} Whether the form is valid (true if valid, false otherwise)
    */
   function performValidation(show = true) {
     showValidation.value = show;
@@ -238,7 +303,11 @@ export const useFormStore = defineStore('form', () => {
   }
   
   /**
-   * Resets all form data to initial values
+   * Resets all form data to initial values.
+   * This function clears all form fields, validation state, and returns the form
+   * to its default empty state. Used when starting a new form or after a completed submission.
+   * 
+   * @returns {void}
    */
   function resetForm() {
     resetPatientData();
@@ -250,8 +319,18 @@ export const useFormStore = defineStore('form', () => {
   }
   
   /**
-   * Exports the current form data for saving
-   * @returns {Object} Form data object
+   * Exports the current form data for saving or sharing.
+   * This function creates a complete data object containing all form data,
+   * suitable for saving to a file, storing in localStorage, or including in a URL.
+   * 
+   * The exported data includes:
+   * - Patient personal information
+   * - Selected tests/panels
+   * - Phenotype data
+   * - Pedigree display settings
+   * - Category information
+   * 
+   * @returns {Object} Complete form data object ready for export
    */
   function exportFormData() {
     // Ensure unified data model is up to date
@@ -271,10 +350,21 @@ export const useFormStore = defineStore('form', () => {
   }
   
   /**
-   * Imports form data from an external source
-   * @param {Object} data - Form data object
-   * @param {boolean} overwrite - Whether to overwrite existing data
-   * @returns {boolean} Success status
+   * Imports form data from an external source.
+   * This function populates the form with data from an imported file, URL parameters,
+   * or other external sources. It handles multiple data formats and ensures all
+   * components of the form are properly updated.
+   * 
+   * Key features:
+   * - Supports both complete and partial data imports
+   * - Handles different phenotype data formats (array or object)
+   * - Processes nested patient data structures
+   * - Ensures data model synchronization after import
+   * - Performs Vue reactivity updates on imported objects
+   * 
+   * @param {Object} data - Form data object to import
+   * @param {boolean} [overwrite=true] - Whether to overwrite existing data
+   * @returns {boolean} Success status (true if import successful, false otherwise)
    */
   function importFormData(data, overwrite = true) {
     console.log('formStore: Importing data:', data);
@@ -503,9 +593,14 @@ export const useFormStore = defineStore('form', () => {
   }
   
   /**
-   * Converts phenotype data from object format to array format
-   * @param {Object} phenotypeDataObj - Phenotype data object
-   * @returns {Array} Array of phenotype data items
+   * Converts phenotype data from object format to array format.
+   * This function transforms the phenotype data from a keyed object structure
+   * (used for efficient lookups) to an array structure (used for iteration and display).
+   * 
+   * The resulting array contains only valid phenotype items that have an ID property.
+   * 
+   * @param {Object} phenotypeDataObj - Phenotype data in object format where keys are IDs
+   * @returns {Array} Array of phenotype data items, each containing at minimum an id property
    */
   function convertPhenotypeDataToUnifiedFormat(phenotypeDataObj) {
     if (!phenotypeDataObj) return [];

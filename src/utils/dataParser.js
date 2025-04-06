@@ -1,14 +1,24 @@
 /**
- * @file dataParser.js
- * @description Utility functions for parsing text data into structured patient data.
- * This module processes normalized data that users paste into the application.
+ * @fileoverview Utility functions for parsing and formatting text data for the RequiForm application.
+ * 
+ * This module provides functionality to convert between structured patient data objects
+ * and normalized text representations. It enables users to import data via copy-paste
+ * operations and supports a flexible key-value pair format with various synonyms for field names.
+ * 
+ * The parser recognizes multiple formats and synonyms for common fields (e.g., "First Name",
+ * "FirstName", and "Given Name" all map to the same field), making it easier for users
+ * to paste data from various sources without strict formatting requirements.
  */
 
 /**
  * Parses a string of normalized data into a structured patient data object.
  * 
- * Expected format is a set of key-value pairs, one per line, with a colon separator.
- * For example:
+ * This function converts text-based key-value pairs into the application's unified
+ * patient data model structure. It supports a flexible format that accommodates various
+ * conventions and synonyms for field names, making it easier for users to paste data
+ * from different sources.
+ * 
+ * Expected format is a set of key-value pairs, one per line, with a colon or equals separator:
  * ```
  * First Name: Jane
  * Last Name: Doe
@@ -17,13 +27,24 @@
  * Insurance: ABC Health
  * Physician: Dr. Smith
  * Diagnosis: Suspected Renal Disease
+ * Panels: nephronophthise, alport_thin_basement, cystic_kidney_disease
  * ```
  * 
+ * The parser recognizes multiple variants of field names:
+ * - First name can be: "First Name", "FirstName", "Given Name", etc.
+ * - Birth date can be: "Birthdate", "Date of Birth", "DOB", etc.
+ * - Other fields have similar flexibility
+ * 
  * @param {string} text - The normalized text data to parse
- * @return {Object} Object containing parsed data or error information
- * @property {boolean} success - Whether parsing was successful
- * @property {Object} data - The parsed patient data (if successful)
- * @property {string} error - Error message (if parsing failed)
+ * @return {Object} Result object with the following structure:
+ *   @return {boolean} success - Whether parsing was successful
+ *   @return {Object} data - If successful, the parsed patient data in unified model format with:
+ *     @return {Object} data.personalInfo - Personal information (firstName, lastName, etc.)
+ *     @return {Array} data.selectedPanels - Array of selected test panel IDs
+ *     @return {Array} data.phenotypeData - Array of phenotype objects (if provided)
+ *     @return {string} data.category - Selected category (if provided)
+ *     @return {Object} data.consent - Consent information (if provided)
+ *   @return {string} error - Error message if parsing failed
  */
 export function parsePastedData(text) {
   if (!text || typeof text !== 'string' || text.trim() === '') {
@@ -160,10 +181,27 @@ export function parsePastedData(text) {
 
 /**
  * Formats a patient data object into a normalized text representation.
- * This is useful for generating example text that users can paste.
+ * 
+ * This function converts a structured patient data object back into a human-readable
+ * text format with key-value pairs. The output format uses standard field names and
+ * is suitable for copying, sharing, or displaying as an example.
+ * 
+ * The resulting text can be used as input for the parsePastedData function,
+ * enabling round-trip conversion between structured data and text representations.
  * 
  * @param {Object} patientData - The patient data object to format
- * @return {string} A formatted string representation of the patient data
+ * @param {Object} patientData.personalInfo - Personal information fields
+ * @param {string} patientData.personalInfo.firstName - Patient's first name
+ * @param {string} patientData.personalInfo.lastName - Patient's last name
+ * @param {string} patientData.personalInfo.birthdate - Patient's birthdate (YYYY-MM-DD format)
+ * @param {string} patientData.personalInfo.sex - Patient's sex
+ * @param {string} patientData.personalInfo.insurance - Patient's insurance provider
+ * @param {string} patientData.personalInfo.insuranceId - Patient's insurance ID
+ * @param {string} patientData.personalInfo.referrer - Referring physician
+ * @param {string} patientData.personalInfo.diagnosis - Clinical diagnosis or suspicion
+ * @param {Array<string>} patientData.selectedPanels - Selected test panel IDs
+ * @param {string} patientData.category - Selected category 
+ * @return {string} A formatted string representation of the patient data (key-value pairs)
  */
 export function formatPatientData(patientData) {
   if (!patientData) return '';
@@ -199,7 +237,15 @@ export function formatPatientData(patientData) {
 /**
  * Generates example data in the expected format for the paste functionality.
  * 
- * @return {string} Example data that can be used in the paste dialog
+ * This function creates a pre-formatted example of patient data that demonstrates
+ * the expected format for the application's paste functionality. It includes
+ * common fields like patient identifiers, medical information, and test panels.
+ * 
+ * The example data can be displayed in the UI to help users understand how to
+ * format their own data for pasting, serving as a template or guide.
+ * 
+ * @return {string} Example data string that can be used in the paste dialog,
+ *                  formatted as key-value pairs with appropriate field names
  */
 export function generateExampleData() {
   return `First Name: Jane

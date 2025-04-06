@@ -1,12 +1,33 @@
 /**
- * @fileoverview Utility functions for file operations.
+ * @fileoverview Utility functions for client-side file operations in the RequiForm application.
+ * 
+ * This module provides functionality for importing and exporting patient data as JSON files,
+ * enabling users to save their work locally and reload it later. All operations are performed
+ * entirely within the browser using the File API, maintaining client-side data processing.
+ * 
+ * These utilities support the data persistence features of the application, working in
+ * conjunction with the useDataPersistence composable to provide a comprehensive solution
+ * for managing patient data files.
+ * 
  * @module utils/fileUtils
  */
 
 /**
- * Downloads data as a JSON file.
- * @param {Object} data - The data to be saved.
- * @param {string} fileName - The name of the file (without extension).
+ * Downloads data as a JSON file to the user's device.
+ * 
+ * This function serializes the provided data object to JSON, creates a Blob with the
+ * appropriate MIME type, and triggers a download in the browser. The file is formatted
+ * with indentation for readability.
+ * 
+ * The function handles the entire download process including:
+ * 1. Converting the data to a properly formatted JSON string
+ * 2. Creating a temporary download link
+ * 3. Triggering the download programmatically
+ * 4. Cleaning up resources after download is initiated
+ * 
+ * @param {Object} data - The data object to be saved as JSON
+ * @param {string} [fileName='requiform-data'] - The name of the file (without extension)
+ * @return {boolean} True if the download was initiated successfully, false otherwise
  */
 export function downloadJsonFile(data, fileName = 'requiform-data') {
   try {
@@ -36,8 +57,20 @@ export function downloadJsonFile(data, fileName = 'requiform-data') {
 
 /**
  * Reads a file and returns its contents as parsed JSON.
- * @param {File} file - The file to read.
- * @return {Promise<Object>} A promise that resolves to the parsed JSON data.
+ * 
+ * This function takes a File object (typically from a file input element) and reads
+ * its contents asynchronously. It returns a Promise that resolves with the parsed JSON
+ * data or rejects with an appropriate error message if the file is invalid or cannot
+ * be parsed as JSON.
+ * 
+ * The function handles several potential error cases:
+ * - No file provided
+ * - Read errors from the FileReader API
+ * - Invalid JSON format in the file
+ * 
+ * @param {File} file - The File object to read (from file input or drag-and-drop)
+ * @return {Promise<Object>} A promise that resolves to the parsed JSON data
+ * @throws {Error} If no file is provided, the file cannot be read, or it contains invalid JSON
  */
 export function readJsonFile(file) {
   return new Promise((resolve, reject) => {

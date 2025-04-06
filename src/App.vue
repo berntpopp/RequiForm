@@ -1,73 +1,67 @@
 <template>
-  <v-app :theme="isDark ? 'dark' : 'light'" id="app">
+  <v-app :theme="uiStore.isDark ? 'dark' : 'light'" id="app">
     <!-- Top Menu Bar -->
     <TopBar
-      :isDark="isDark"
-      @toggle-theme="toggleTheme"
-      @reset-form="resetApplicationState"
-      @open-faq="openFAQ"
+      :isDark="uiStore.isDark"
+      @toggle-theme="formActions.toggleTheme"
+      @reset-form="formActions.initiateReset"
+      @open-faq="faq.openFaq"
       @generate-pdf="handleGeneratePdf"
-      @copy-url="handleCopyUrl"
-      @copy-encrypted-url="openEncryptionDialog"
-      @start-tour="startTour"
-      @save-data="openSaveDataDialog"
-      @load-data="openLoadDataDialog"
-      @open-paste-data="openPasteDataDialog"
+      @copy-url="urlHandler.copyShareableUrl"
+      @copy-encrypted-url="uiStore.openEncryptionDialog"
+      @start-tour="appTour.startTour"
+      @save-data="uiStore.openSaveDataDialog"
+      @load-data="uiStore.openLoadDataDialog"
+      @open-paste-data="uiStore.openPasteDataDialog"
     />
 
     <!-- Disclaimer Modal: shown if not yet acknowledged or if reopened -->
-    <Disclaimer v-if="!disclaimerAcknowledged || showDisclaimerModal" @dismiss="handleDisclaimerDismiss" />
+    <Disclaimer v-if="!settingsStore.disclaimerAcknowledged || uiStore.showDisclaimerModal" @dismiss="handleDisclaimerDismiss" />
 
     <v-main>
       <v-container>
         <!-- Validation Summary Component - shows all validation errors in one place -->
-        <div class="d-flex align-center mb-4" v-if="showValidation">
-          <ValidationSummary :showValidation="showValidation" />
-          <v-btn 
-            color="primary" 
-            variant="text" 
-            class="ml-auto" 
-            size="small" 
-            @click="resetValidation"
-          >
-            <v-icon left>mdi-close</v-icon>
-            Hide Validation
-          </v-btn>
+        <div class="mb-4" v-if="formStore.showValidation">
+          <ValidationSummary 
+            :showValidation="formStore.showValidation" 
+            :isValid="formStore.isValid" 
+            :validationErrors="formStore.validationErrors"
+          />
         </div>
         
-        <!-- PatientForm now includes both the basic fields and the GenDG Consent select/form (if chosen). -->
+        <!-- PatientForm now includes both the basic fields and the GenDG Consent select/form (if chosen) -->
         <PatientForm 
-          :patientData="patientData" 
-          @update:patientData="handlePatientDataUpdate"
+          :patientData="formStore.patientData.personalInfo" 
+          @update:patientData="formStore.updatePatientData"
           :pdfConfig="pdfConfig" 
           id="patient-form-component"
         />
 
         <!-- Pedigree Option -->
-        <v-checkbox v-model="showPedigree" label="Include Pedigree Chart" class="mb-4" />
-        <PedigreeDrawer v-if="showPedigree" ref="pedigreeDrawer" />
+        <v-checkbox v-model="formStore.showPedigree" label="Include Pedigree Chart" class="mb-4" />
+        <PedigreeDrawer v-if="formStore.showPedigree" ref="pedigreeDrawerRef" @update:pedigreeDataUrl="formStore.updatePedigreeDataUrl" />
 
         <!-- Test Selector -->
         <TestSelector 
-          v-model="selectedTests"
+          v-model="formStore.selectedTests"
           id="test-selector-component"
         />
 
         <!-- Phenotype Selector -->
         <PhenotypeSelector 
           :groupedPanelDetails="groupedPanelDetails" 
-          v-model="phenotypeData"
+          v-model="formStore.phenotypeDataObj"
           id="phenotype-selector-component"
         />
 
         <!-- Hidden PDF Generator component -->
         <div style="display: none;">
           <PdfGenerator
-            ref="pdfGen"
-            :patientData="patientData"
-            :selectedTests="selectedTests"
-            :pedigreeDataUrl="pedigreeDataUrl"
-            :phenotypeData="phenotypeData"
+            ref="pdfGeneratorRef"
+            :patientData="formStore.patientData.personalInfo"
+            :selectedTests="formStore.selectedTests"
+            :pedigreeDataUrl="formStore.pedigreeDataUrl"
+            :phenotypeData="formStore.phenotypeDataObj"
             :pdfConfig="pdfConfig"
           />
         </div>
@@ -77,10 +71,10 @@
       </v-container>
 
       <!-- Snackbar for notifications -->
-      <v-snackbar v-model="snackbar" timeout="3000" top right transition="scale-transition">
-        {{ snackbarMessage }}
+      <v-snackbar v-model="uiStore.snackbar" timeout="3000" top right transition="scale-transition">
+        {{ uiStore.snackbarMessage }}
         <template #action="{ attrs }">
-          <v-btn color="red" text v-bind="attrs" @click="snackbar = false">
+          <v-btn color="red" text v-bind="attrs" @click="uiStore.snackbar = false">
             <v-icon>mdi-close</v-icon>
           </v-btn>
         </template>
@@ -88,63 +82,63 @@
 
       <!-- Dialogs -->
       <EncryptionDialog
-        v-model="encryptionDialog"
-        @cancel="closeEncryptionDialog"
-        @confirm="confirmEncryption"
+        v-model="uiStore.encryptionDialog"
+        @cancel="uiStore.closeEncryptionDialog"
+        @confirm="handleEncryptionConfirm"
       />
 
       <DecryptionDialog
-        v-model="decryptionDialog"
-        :error="decryptionError"
-        @cancel="cancelDecryption"
-        @confirm="confirmDecryption"
+        v-model="uiStore.decryptionDialog"
+        :error="uiStore.decryptionError"
+        @cancel="uiStore.cancelDecryption"
+        @confirm="handleDecryptionConfirm"
       />
 
       <FAQDialog
-        v-model="showFAQModal"
-        :faqItems="faqContent"
-        @close="closeFAQ"
+        v-model="uiStore.showFAQModal"
+        :faqItems="Array.isArray(faq.faqItems) ? faq.faqItems : []"
+        @close="faq.closeFaq"
       />
 
       <ResetConfirmationDialog
-        v-model="resetConfirmationDialog"
-        @cancel="cancelReset"
-        @confirm="confirmReset"
+        v-model="uiStore.resetConfirmationDialog"
+        @cancel="formActions.cancelReset"
+        @confirm="formActions.confirmReset"
       />
 
       <SaveDataDialog
-        v-model="saveDataDialog"
-        :defaultFileName="saveDataName"
-        @cancel="cancelSaveData"
-        @confirm="confirmSaveData"
+        v-model="uiStore.saveDataDialog"
+        :defaultFileName="formStore.saveDataName"
+        @cancel="uiStore.closeSaveDataDialog"
+        @confirm="handleSaveDataConfirm"
       />
 
       <LoadDataDialog
-        v-model="loadDataDialog"
-        :error="loadDataError"
-        @cancel="cancelLoadData"
-        @confirm="confirmLoadData"
+        v-model="uiStore.loadDataDialog"
+        :error="uiStore.loadDataError"
+        @cancel="uiStore.closeLoadDataDialog"
+        @confirm="handleLoadDataConfirm"
       />
       
       <!-- Paste Data Modal -->
       <PasteDataModal
-        v-model="pasteDataDialog"
-        @close="closePasteDataDialog"
+        v-model="uiStore.pasteDataDialog"
+        @close="uiStore.closePasteDataDialog"
         @import="handlePastedDataImport"
       />
     </v-main>
 
     <!-- Footer with disclaimer acknowledgement button -->
     <Footer
-      :disclaimerAcknowledged="disclaimerAcknowledged"
-      :acknowledgmentTime="acknowledgmentTime"
-      @reopen-disclaimer="openDisclaimerModal"
+      :disclaimerAcknowledged="settingsStore.disclaimerAcknowledged"
+      :acknowledgmentTime="settingsStore.acknowledgmentTime"
+      @reopen-disclaimer="uiStore.openDisclaimerModal"
     />
   </v-app>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick, provide } from 'vue';
+import { ref, computed, onMounted, nextTick, provide, watch } from 'vue';
 import TopBar from './components/TopBar.vue';
 import PatientForm from './components/PatientForm.vue';
 import TestSelector from './components/TestSelector.vue';
@@ -165,760 +159,271 @@ import ResetConfirmationDialog from './components/dialogs/ResetConfirmationDialo
 import SaveDataDialog from './components/dialogs/SaveDataDialog.vue';
 import LoadDataDialog from './components/dialogs/LoadDataDialog.vue';
 
-// Utilities and Composables
-import { parsePatientDataFromUrl, clearUrlParameters, getUrlParameter } from './utils/urlUtils';
-import { encryptData, decryptData } from './utils/cryptoUtils';
-import { downloadJsonFile } from './utils/fileUtils';
+// Import Pinia stores
+import { useUiStore } from './stores/uiStore';
+import { useFormStore } from './stores/formStore';
+import { useSettingsStore } from './stores/settingsStore';
+
+// Import composables
+import { useUrlHandler } from './composables/useUrlHandler';
+import { useDataPersistence } from './composables/useDataPersistence';
+import { usePdfGenerator } from './composables/usePdfGenerator';
+import { useAppTour } from './composables/useAppTour';
+import { useFaq } from './composables/useFaq';
+import { useFormActions } from './composables/useFormActions';
+
+// Import data
 import { categories } from './data/categories.js';
-import { initializeTour, shouldShowTour } from './services/tourService';
-import { usePatientData } from './composables/usePatientData';
 
-// Tour instance ref
-const tourInstance = ref(null);
+// Initialize Pinia stores
+const uiStore = useUiStore();
+const formStore = useFormStore();
+const settingsStore = useSettingsStore();
 
-// Initialize unified patient data composable
-const {
-  patientData: unifiedPatientData,
-  updatePersonalInfo,
-  updateSelectedPanels,
-  updatePhenotypeData,
-  updateCategory,
-  resetPatientData: resetUnifiedPatientData,
-  initializeFromExternalData,
-  exportPatientData,
-  isValid,
-  validationErrors: unifiedValidationErrors,
-  sectionValidation,
-  validateForm,
-  getFieldErrors
-} = usePatientData();
+// Initialize composables
+const urlHandler = useUrlHandler();
+const dataPersistence = useDataPersistence();
+const pdfGenerator = usePdfGenerator();
+const appTour = useAppTour();
+const faq = useFaq();
+const formActions = useFormActions();
 
-// Provide patient data and utilities to child components
-provide('patientData', unifiedPatientData);
-provide('updatePersonalInfo', updatePersonalInfo);
-provide('updateSelectedPanels', updateSelectedPanels);
-provide('updatePhenotypeData', updatePhenotypeData);
-provide('updateCategory', updateCategory);
+// Set up provides for child components
+provide('ui', uiStore);
+provide('form', formStore);
+provide('settings', settingsStore);
+provide('validationErrors', formStore.validationErrors);
+provide('sectionValidation', formStore.sectionValidation);
+provide('validateForm', formStore.validateForm);
+provide('getFieldErrors', formStore.getFieldErrors);
 
-// Provide validation utilities to child components
-provide('isValid', isValid);
-provide('validationErrors', unifiedValidationErrors);
-provide('sectionValidation', sectionValidation);
-provide('validateForm', validateForm);
-provide('getFieldErrors', getFieldErrors);
+// Add provides needed by PatientForm
+provide('patientData', formStore.patientData);
+provide('updatePersonalInfo', formStore.updatePatientData);
 
-/**
- * Returns the current date in ISO format (YYYY-MM-DD).
- * @return {string} The ISO date string.
- */
-function getCurrentIsoDate() {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const day = String(today.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-/**
- * Returns the initial patient data object.
- * Includes genDGConsentData with "provided" or "fill" + subfields.
- * @return {Object} Initial patient data.
- */
-function initialPatientData() {
-  return {
-    givenName: '',
-    familyName: '',
-    birthdate: '',
-    sex: '',
-    insurance: '',
-    physicianName: '',
-    diagnosis: '',
-    category: '',  // Add this field as it's now part of the data model
-    gendgConsent: {
-      type: 'fill',
-      firstName: '',
-      lastName: '',
-      location: '',
-      date: getCurrentIsoDate(),
-    }
-  };
-}
-
-/** The main reactive patient data object. */
-const patientData = ref(initialPatientData());
-
-/** Array of selected panel IDs. */
-const selectedTests = ref([]);
-
-/** Phenotype data mapping category id to phenotype states. */
-const phenotypeData = ref({});
-
-/** Whether to show the pedigree chart drawer. */
-const showPedigree = ref(false);
-const pedigreeDataUrl = ref('');
-
-/** Dark mode toggle. */
-const isDark = ref(localStorage.getItem('darkMode') === 'true');
-
-/** Snackbar for notifications. */
-const snackbar = ref(false);
-const snackbarMessage = ref('');
-
-/** Validation state for form validation. */
-const showValidation = ref(false);
-
-/** Encryption dialog state and related variables. */
-const encryptionDialog = ref(false);
-const encryptionPassword = ref('');
-
-/** Decryption dialog state and related variables. */
-const decryptionDialog = ref(false);
-const decryptionPassword = ref('');
-const decryptionError = ref('');
-const pendingEncryptedValue = ref('');
-
-/** Reset confirmation dialog state. */
-const resetConfirmationDialog = ref(false);
-
-/** Save data dialog state and related variables. */
-const saveDataDialog = ref(false);
-const saveDataName = ref('requiform-data');
-
-/** Load data dialog state and related variables. */
-const loadDataDialog = ref(false);
-const importedFile = ref(null);
-const loadDataError = ref('');
-
-/** Paste data dialog state */
-const pasteDataDialog = ref(false);
-
-/** FAQ modal state. */
-const showFAQModal = ref(false);
-
-/** FAQ content array. */
-const faqContent = ref([
-  {
-    question: 'What is RequiForm\'s approach to data handling?',
-    answer:
-      'RequiForm processes all data locally in your browser. No data is sent to any server, ensuring maximum privacy. You can save your form state by generating a URL, storing it as a file, or by encrypting it with a password.',
-  },
-  {
-    question: 'Can I save my data and continue later?',
-    answer:
-      'Yes, you have several options: <ul><li>Generate a URL containing your data (which can be bookmarked)</li><li>Save your data to a JSON file</li><li>Generate an encrypted URL that requires a password</li></ul>',
-  },
-  {
-    question: 'What does the JSON file contain?',
-    answer:
-      'The JSON file contains all the information that you have entered into the form, including patient data, selected test panels, and phenotype information.',
-  },
-  {
-    question: 'Is my data secure?',
-    answer:
-      'Yes. Since all processing happens in your browser and no data is ever sent to a server, your data remains under your control at all times. The encryption feature adds an additional layer of security for shared URLs.',
-  },
-  {
-    question: 'What happens when I click "Reset Form"?',
-    answer:
-      'This will clear all entered data and return the form to its initial state. You will be prompted to confirm before the reset occurs.',
-  },
-]);
-
-/** PDF generator and pedigree drawer references. */
-const pdfGen = ref(null);
-const pedigreeDrawer = ref(null);
-
+// Configuration for PDF generation
 const pdfConfig = ref({
   // Add your pdfConfig data here
+  qrCodes: true,
+  patientQrTitle: "Patient Data QR",
+  phenotypeQrTitle: "Phenotype Data QR",
+  pedigreeQrTitle: "Pedigree QR",
+  titleFontSize: 20,
+  subtitleFontSize: 16,
+  sectionTitleFontSize: 14,
+  normalFontSize: 12,
+  smallFontSize: 10
 });
 
 /**
- * Groups selected panels by category.
+ * Groups selected panels by category
  */
 const groupedPanelDetails = computed(() => {
   return categories
     .map((category) => ({
-      id: category.id, // Add the category id
+      id: category.id,
       categoryTitle: category.title,
-      tests: category.tests.filter((test) => selectedTests.value.includes(test.id)),
+      tests: category.tests.filter((test) => formStore.selectedTests.includes(test.id)),
     }))
     .filter((group) => group.tests.length > 0);
 });
 
-// Validation is now handled by the validation utility in src/utils/validation.js
+// Handler functions for components that still need direct function references
 
 /**
- * Main PDF generation handler.
- */
-function handleGeneratePdf() {
-  // First validate the form
-  if (!validateForm()) {
-    // Show validation errors
-    showValidation.value = true;
-    snackbar.value = true;
-    snackbarMessage.value = "Please correct the highlighted fields before generating PDF.";
-    return;
-  }
-
-  // Validation passed, capture pedigree data if needed
-  if (showPedigree.value && pedigreeDrawer.value) {
-    // Fix method name: getDataURL -> getPedigreeDataUrl
-    pedigreeDrawer.value.getPedigreeDataUrl().then(dataUrl => {
-      pedigreeDataUrl.value = dataUrl;
-      
-      // Now generate PDF after pedigree data is ready
-      generatePdfDocument();
-    }).catch(error => {
-      console.error('Error capturing pedigree data:', error);
-      pedigreeDataUrl.value = '';
-      generatePdfDocument();
-    });
-  } else {
-    pedigreeDataUrl.value = '';
-    generatePdfDocument();
-  }
-}
-
-/**
- * Helper to actually generate the PDF document
- */
-function generatePdfDocument() {
-  // Generate PDF with the correct data
-  nextTick().then(() => {
-    if (pdfGen.value) {
-      pdfGen.value.generatePdf();
-      
-      // Show success notification
-      snackbar.value = true;
-      snackbarMessage.value = "PDF generated successfully!";
-    } else {
-      console.error('PDF generator component not available');
-      
-      // Show error notification
-      snackbar.value = true;
-      snackbarMessage.value = "Error generating PDF. Please try again.";
-    }
-  });
-}
-
-/**
- * Reset the validation state
- */
-function resetValidation() {
-  showValidation.value = false;
-}
-
-/**
- * Copy the URL with patient data to the clipboard.
- */
-function handleCopyUrl() {
-  const formData = exportPatientData();
-  
-  // Clear sensitive data that should not be in URL
-  const urlSafeData = { ...formData };
-  if (urlSafeData.personalInfo && urlSafeData.personalInfo.insurance) {
-    delete urlSafeData.personalInfo.insurance;
-  }
-  
-  // Properly encode objects and arrays for the URL
-  const params = new URLSearchParams();
-  
-  // Add data parameter with JSON stringified form data
-  params.append('data', JSON.stringify(urlSafeData));
-  
-  // Generate URL with single data parameter containing all form data
-  const url = `${window.location.origin}${window.location.pathname}#${params.toString()}`;
-  
-  navigator.clipboard.writeText(url).then(
-    () => {
-      snackbar.value = true;
-      snackbarMessage.value = "URL copied to clipboard!";
-    },
-    (err) => {
-      console.error('Could not copy URL: ', err);
-      snackbar.value = true;
-      snackbarMessage.value = "Failed to copy URL to clipboard";
-    }
-  );
-}
-
-/**
- * Encryption dialog handlers.
- */
-function openEncryptionDialog() {
-  encryptionDialog.value = true;
-}
-
-function closeEncryptionDialog() {
-  encryptionDialog.value = false;
-  encryptionPassword.value = '';
-}
-
-function confirmEncryption(password) {
-  const formData = exportPatientData();
-  
-  try {
-    // The formData is already a properly structured object so we can just stringify it directly
-    const encryptedData = encryptData(JSON.stringify(formData), password);
-    const url = `${window.location.origin}${window.location.pathname}?encrypted=${encodeURIComponent(encryptedData)}`;
-    
-    navigator.clipboard.writeText(url).then(
-      () => {
-        snackbar.value = true;
-        snackbarMessage.value = "Encrypted URL copied to clipboard!";
-      },
-      (err) => {
-        console.error('Could not copy encrypted URL: ', err);
-        snackbar.value = true;
-        snackbarMessage.value = "Failed to copy encrypted URL to clipboard";
-      }
-    );
-  } catch (error) {
-    console.error('Encryption failed:', error);
-    snackbar.value = true;
-    snackbarMessage.value = "Encryption failed. Please try again.";
-  }
-}
-
-/**
- * Decryption dialog handlers.
- */
-function cancelDecryption() {
-  decryptionDialog.value = false;
-  decryptionPassword.value = '';
-  decryptionError.value = '';
-  pendingEncryptedValue.value = '';
-  
-  // Remove encrypted parameter from URL
-  const url = new URL(window.location.href);
-  url.searchParams.delete('encrypted');
-  window.history.replaceState({}, document.title, url.pathname + url.search);
-}
-
-function confirmDecryption(password) {
-  try {
-    const decryptedData = decryptData(pendingEncryptedValue.value, password);
-    const parsedData = JSON.parse(decryptedData);
-    
-    // Initialize application with decrypted data
-    initializeFromExternalData(parsedData);
-    syncLegacyPatientData();
-    
-    // Close dialog and clean up
-    decryptionDialog.value = false;
-    decryptionPassword.value = '';
-    pendingEncryptedValue.value = '';
-    
-    // Clear URL parameter
-    clearUrlParameters();
-    
-    snackbar.value = true;
-    snackbarMessage.value = "Data successfully loaded from encrypted URL!";
-  } catch (error) {
-    console.error('Decryption failed:', error);
-    decryptionError.value = "Incorrect password or invalid data.";
-  }
-}
-
-/**
- * Toggle dark/light theme.
- */
-function toggleTheme() {
-  isDark.value = !isDark.value;
-  localStorage.setItem('darkMode', isDark.value);
-}
-
-/**
- * Shows a confirmation modal dialog before resetting the application state
- */
-function resetApplicationState() {
-  resetConfirmationDialog.value = true;
-}
-
-/**
- * Handles the cancel action from the reset confirmation dialog
- */
-function cancelReset() {
-  resetConfirmationDialog.value = false;
-}
-
-/**
- * Handles the confirm action from the reset confirmation dialog
- */
-function confirmReset() {
-  performApplicationReset();
-  resetConfirmationDialog.value = false;
-  
-  snackbar.value = true;
-  snackbarMessage.value = "Form has been reset.";
-}
-
-/**
- * Opens the save data dialog
- */
-function openSaveDataDialog() {
-  saveDataName.value = 'requiform-data';
-  saveDataDialog.value = true;
-}
-
-/**
- * Cancels saving data
- */
-function cancelSaveData() {
-  saveDataDialog.value = false;
-  saveDataName.value = '';
-}
-
-/**
- * Confirms saving data to a file
- */
-function confirmSaveData(fileName) {
-  const exportData = exportPatientData();
-  downloadJsonFile(exportData, fileName || 'requiform-data');
-  
-  snackbar.value = true;
-  snackbarMessage.value = "Data saved to file successfully!";
-}
-
-/**
- * Opens the load data dialog
- */
-function openLoadDataDialog() {
-  loadDataError.value = '';
-  loadDataDialog.value = true;
-}
-
-/**
- * Cancels loading data
- */
-function cancelLoadData() {
-  loadDataDialog.value = false;
-  importedFile.value = null;
-  loadDataError.value = '';
-}
-
-/**
- * Confirms loading data from a file
- */
-function confirmLoadData(file) {
-  loadFromFile(file);
-}
-
-/**
- * Opens the paste data dialog
- */
-function openPasteDataDialog() {
-  pasteDataDialog.value = true;
-}
-
-/**
- * Closes the paste data dialog without applying changes
- */
-function closePasteDataDialog() {
-  pasteDataDialog.value = false;
-}
-
-/**
- * Handles importing data from the paste data dialog
- * @param {Object} data - The parsed patient data
- */
-function handlePastedDataImport(data) {
-  if (!data) {
-    snackbar.value = true;
-    snackbarMessage.value = "Invalid data format!";
-    return;
-  }
-  
-  // Initialize with pasted data
-  initializeFromExternalData(data);
-  
-  // Sync with legacy model for compatibility
-  syncLegacyPatientData();
-  
-  // Close dialog
-  pasteDataDialog.value = false;
-  
-  snackbar.value = true;
-  snackbarMessage.value = "Data imported successfully!";
-}
-
-// Function removed: saveToFile is no longer used since we're using the downloadJsonFile utility
-
-/**
- * Loads form data from a file
- */
-function loadFromFile(file) {
-  if (!file) {
-    loadDataError.value = "Please select a file to import.";
-    return;
-  }
-  
-  const reader = new FileReader();
-  
-  reader.onload = (event) => {
-    try {
-      const jsonData = JSON.parse(event.target.result);
-      
-      // Validate the imported data structure
-      if (!jsonData || typeof jsonData !== 'object') {
-        throw new Error('Invalid data format');
-      }
-      
-      // Convert to proper structure if needed (handling legacy formats)
-      let dataToLoad = jsonData;
-      
-      // Check if we need to adapt the data structure
-      if (!jsonData.personalInfo && !jsonData.selectedPanels) {
-        // Legacy format, convert to unified format
-        dataToLoad = {
-          personalInfo: {
-            firstName: jsonData.givenName || '',
-            lastName: jsonData.familyName || '',
-            birthdate: jsonData.birthdate || '',
-            sex: jsonData.sex || '',
-            diagnosis: jsonData.diagnosis || '',
-            insurance: jsonData.insurance || '',
-            referrer: jsonData.physicianName || ''
-          },
-          selectedPanels: Array.isArray(jsonData.selectedTests) ? jsonData.selectedTests : [],
-          phenotypeData: convertPhenotypeDataToUnifiedFormat(jsonData.phenotypeData || {}),
-          category: jsonData.category || ''
-        };
-      }
-      
-      console.log('Loading data:', dataToLoad);
-      
-      // Initialize with imported data (with overwrite=true to ensure clean state)
-      initializeFromExternalData(dataToLoad, true);
-      
-      // Sync with legacy model for compatibility
-      syncLegacyPatientData();
-      
-      // Close dialog
-      loadDataDialog.value = false;
-      importedFile.value = null;
-      
-      snackbar.value = true;
-      snackbarMessage.value = "Data imported successfully!";
-    } catch (error) {
-      console.error('Error parsing JSON:', error);
-      loadDataError.value = "Invalid file format. Please select a valid RequiForm JSON file.";
-    }
-  };
-  
-  reader.onerror = () => {
-    loadDataError.value = "Error reading file. Please try again.";
-  };
-  
-  reader.readAsText(file);
-}
-
-/**
- * Helper function to convert phenotype data from object format to array format
- */
-function convertPhenotypeDataToUnifiedFormat(phenotypeDataObj) {
-  if (!phenotypeDataObj || typeof phenotypeDataObj !== 'object') {
-    return [];
-  }
-  
-  // If it's already an array, return it
-  if (Array.isArray(phenotypeDataObj)) {
-    return phenotypeDataObj;
-  }
-  
-  // Convert from object format (key->value) to array format
-  return Object.entries(phenotypeDataObj).map(([id, data]) => {
-    return {
-      id: id,
-      ...data
-    };
-  });
-}
-
-/**
- * Performs the actual reset of the entire application state to its initial values.
- * This includes all patient data, UI flags, pedigree state, and validation.
- */
-function performApplicationReset() {
-  // Reset all form data using the unified model
-  resetUnifiedPatientData();
-  
-  // Also reset the legacy model for backward compatibility
-  patientData.value = initialPatientData();
-  selectedTests.value = [];
-  phenotypeData.value = {};
-  
-  // Reset UI state
-  showPedigree.value = false;
-  pedigreeDataUrl.value = '';
-  showValidation.value = false;
-  
-  // Reset pedigree drawer if it exists
-  if (pedigreeDrawer.value && typeof pedigreeDrawer.value.reset === 'function') {
-    pedigreeDrawer.value.reset();
-  }
-  
-  // Clear URL parameters for a clean state
-  clearUrlParameters();
-}
-
-/**
- * FAQ modal handlers.
- */
-function openFAQ() {
-  showFAQModal.value = true;
-}
-
-function closeFAQ() {
-  showFAQModal.value = false;
-}
-
-/** Disclaimer handling. */
-const disclaimerAcknowledged = ref(localStorage.getItem('disclaimerAcknowledged') === 'true');
-const acknowledgmentTime = ref(localStorage.getItem('acknowledgmentTime') || '');
-const showDisclaimerModal = ref(!disclaimerAcknowledged.value);
-
-/**
- * Dismiss the disclaimer.
+ * Dismiss the disclaimer
  */
 function handleDisclaimerDismiss() {
-  disclaimerAcknowledged.value = true;
-  showDisclaimerModal.value = false;
-  acknowledgmentTime.value = new Date().toISOString();
-  localStorage.setItem('disclaimerAcknowledged', 'true');
-  localStorage.setItem('acknowledgmentTime', acknowledgmentTime.value);
+  settingsStore.acknowledgeDisclaimer();
+  uiStore.closeDisclaimerModal();
 }
 
 /**
- * Reopen the disclaimer modal.
+ * Handle encryption dialog confirmation
+ * @param {string} password - The password for encryption
  */
-function openDisclaimerModal() {
-  showDisclaimerModal.value = true;
+function handleEncryptionConfirm(password) {
+  urlHandler.copyEncryptedUrl(password)
+    .then(success => {
+      if (success) {
+        uiStore.closeEncryptionDialog();
+      }
+    });
 }
 
-// --- Application Initialization ---
+/**
+ * Handle decryption dialog confirmation
+ * @param {string} password - The password for decryption
+ */
+function handleDecryptionConfirm(password) {
+  const success = urlHandler.decryptUrlData(password);
+  if (success) {
+    uiStore.cancelDecryption();
+  }
+}
+
+/**
+ * Handler for saving data to file
+ * @param {string} fileName - Name for the saved file
+ */
+function handleSaveDataConfirm(fileName) {
+  dataPersistence.saveToFile(fileName)
+    .then(success => {
+      if (success) {
+        uiStore.closeSaveDataDialog();
+      }
+    });
+}
+
+/**
+ * Handler for loading data from file
+ * @param {File} file - File to load data from
+ */
+function handleLoadDataConfirm(file) {
+  dataPersistence.loadFromFile(file)
+    .then(success => {
+      if (success) {
+        uiStore.closeLoadDataDialog();
+      }
+    });
+}
+
+/**
+ * Handler for importing pasted data
+ * @param {string} jsonData - Pasted JSON data
+ */
+async function handlePastedDataImport(jsonData) {
+  try {
+    console.log('App: Received data for import, length:', jsonData?.length || 0);
+    
+    // Properly await the async importFromJson method
+    const success = await dataPersistence.importFromJson(jsonData);
+    
+    if (success) {
+      // Close the dialog if import was successful
+      uiStore.closePasteDataDialog();
+      uiStore.showSnackbar('Data imported successfully!'); 
+      
+      // Force a reactivity update by setting a timeout
+      setTimeout(() => {
+        // Ensure data model is properly synced in both directions
+        formStore.syncLegacyPatientData();
+        formStore.syncUnifiedPatientData();
+        
+        console.log('App: Current form state after import:', {
+          personalInfo: formStore.patientData.personalInfo,
+          selectedTests: formStore.selectedTests.length,
+          phenotypeData: Object.keys(formStore.phenotypeDataObj || {}).length
+        });
+      }, 0);
+    } else {
+      // Keep dialog open if import failed so user can try again
+      console.error('App: Failed to import data');
+    }
+  } catch (error) {
+    console.error('App: Error importing data:', error);
+    uiStore.showSnackbar('Error importing data. Please try again.');
+  }
+}
+
+// Get references to components
+const pdfGeneratorRef = ref(null);
+const pedigreeDrawerRef = ref(null);
+
+// Application Initialization
 onMounted(() => {
   // Initialize tour
   nextTick().then(() => {
-    tourInstance.value = initializeTour();
-    if (shouldShowTour()) {
-      tourInstance.value.start();
-    }
+    appTour.initialize();
   });
 
-  // Handle URL parameters and initialize data
-  const parsedData = parsePatientDataFromUrl();
-  console.log('Parsed data from URL:', parsedData);
-
-  if (Object.keys(parsedData).length > 0) {
-    // Check if we have actual patient data vs empty structure
-    const hasPatientData = 
-      (parsedData.personalInfo && Object.values(parsedData.personalInfo).some(val => val)) ||
-      (parsedData.selectedPanels && parsedData.selectedPanels.length > 0) ||
-      (parsedData.phenotypeData && parsedData.phenotypeData.length > 0);
-    
-    if (hasPatientData) {
-      console.log('Initializing from URL data');
-      // Initialize with overwrite=true to ensure a clean state
-      initializeFromExternalData(parsedData, true);
-      
-      // Sync with legacy patient data format for backward compatibility
-      syncLegacyPatientData();
-      
-      // Clean up URL parameters
-      clearUrlParameters();
-      
-      // Notify the user
-      snackbar.value = true;
-      snackbarMessage.value = "Data loaded from URL successfully!";
-    }
-  } else {
-    // Check for encrypted data
-    const encryptedValue = getUrlParameter('encrypted');
-    if (encryptedValue) {
-      pendingEncryptedValue.value = encryptedValue;
-      decryptionDialog.value = true;
-    }
-  }
+  // Initialize data from URL parameters
+  urlHandler.initializeFromUrl();
 });
 
-/**
- * Handle updates from PatientForm component
- */
-function handlePatientDataUpdate(newData) {
-  patientData.value = newData;
-  
-  // Also update unified patient data model
-  syncUnifiedPatientData();
-}
+// Watch for when the PDF generator reference is available
+watch(pdfGeneratorRef, (newRef) => {
+  if (newRef) {
+    console.log('PDF generator reference connected');
+    pdfGenerator.setPdfGeneratorRef(newRef);
+  }
+}, { immediate: true });
 
 /**
- * Synchronizes the legacy patient data format with the unified model
+ * Custom handler for PDF generation that validates form data and ensures pedigree data is updated first
  */
-function syncUnifiedPatientData() {
-  // Map the legacy patient data to the unified format
-  updatePersonalInfo({
-    firstName: patientData.value.givenName || '',
-    lastName: patientData.value.familyName || '',
-    birthdate: patientData.value.birthdate || '',
-    sex: patientData.value.sex || '',
-    insurance: patientData.value.insurance || '',
-    referrer: patientData.value.physicianName || '',
-    diagnosis: patientData.value.diagnosis || ''
-  });
+async function handleGeneratePdf() {
+  // First, validate the form data - explicitly show validation errors
+  const isValid = formStore.validateForm(true);
   
-  // Update selected panels
-  updateSelectedPanels(selectedTests.value || []);
+  // Explicitly set show validation flag to ensure UI updates
+  formStore.setShowValidation(true);
   
-  // Update phenotype data
-  updatePhenotypeData(phenotypeData.value ? Object.values(phenotypeData.value) : []);
+  // Debug validation errors
+  console.log('Validation errors:', formStore.validationErrors);
+  console.log('Validation sections:', formStore.sectionValidation);
   
-  // Update category if present
-  if (patientData.value.category) {
-    updateCategory(patientData.value.category);
-  }
-}
-
-/**
- * Synchronizes the unified patient data model with the legacy format
- */
-function syncLegacyPatientData() {
-  // Map unified model back to legacy format
-  patientData.value.givenName = unifiedPatientData.personalInfo.firstName || '';
-  patientData.value.familyName = unifiedPatientData.personalInfo.lastName || '';
-  patientData.value.birthdate = unifiedPatientData.personalInfo.birthdate || '';
-  patientData.value.sex = unifiedPatientData.personalInfo.sex || '';
-  patientData.value.insurance = unifiedPatientData.personalInfo.insurance || '';
-  patientData.value.physicianName = unifiedPatientData.personalInfo.referrer || '';
-  patientData.value.diagnosis = unifiedPatientData.personalInfo.diagnosis || '';
-  
-  // Update selected tests
-  if (unifiedPatientData && unifiedPatientData.selectedPanels) {
-    selectedTests.value = [...unifiedPatientData.selectedPanels];
+  // If validation fails, display validation errors and stop PDF generation
+  if (!isValid) {
+    console.log('Form validation failed. Please correct the errors before generating PDF.');
+    uiStore.showSnackbar('Please correct the form errors before generating PDF.');
+    
+    // Ensure validation summary is visible - this is crucial for showing errors at the top
+    formStore.setShowValidation(true);
+    
+    // Make sure errors are displayed - scroll to top where validation summary is shown
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // Forcefully highlight validation errors by briefly focusing validation summary area
+    const validationArea = document.querySelector('.validation-summary');
+    if (validationArea) {
+      validationArea.setAttribute('tabindex', '-1'); // Make it focusable
+      validationArea.focus();
+      validationArea.classList.add('highlight-animation');
+      
+      // Remove highlight animation after it completes
+      setTimeout(() => {
+        validationArea.classList.remove('highlight-animation');
+      }, 1500);
+    }
+    
+    return;
   }
   
-  // Process phenotype data
-  if (unifiedPatientData.phenotypeData && unifiedPatientData.phenotypeData.length > 0) {
-    // Convert array format to object format expected by legacy code
-    const newPhenotypeData = {};
-    unifiedPatientData.phenotypeData.forEach(item => {
-      if (item.id) {
-        newPhenotypeData[item.id] = item;
+  // Update pedigree data URL if pedigree is enabled and component is loaded
+  if (formStore.showPedigree && pedigreeDrawerRef.value) {
+    try {
+      // Get pedigree image data URL
+      const pedigreeDataUrl = await pedigreeDrawerRef.value.getPedigreeDataUrl();
+      formStore.updatePedigreeDataUrl(pedigreeDataUrl);
+      
+      // Get pedigree structured data for QR code if needed
+      const pedigreeData = pedigreeDrawerRef.value.getPedigreeData();
+      if (pedigreeData) {
+        // Store the pedigree data in formStore if you have a method for it
+        console.log('Updated pedigree data:', pedigreeData);
       }
-    });
-    phenotypeData.value = newPhenotypeData;
+      
+      console.log('Pedigree data updated successfully for PDF generation');
+    } catch (error) {
+      console.error('Error updating pedigree data for PDF:', error);
+    }
   }
-}
-
-/**
- * Method to manually start the tour
- */
-function startTour() {
-  if (tourInstance.value) {
-    console.log("Starting tour manually...");
-    tourInstance.value.start();
-  } else {
-    console.error("Tour instance not available.");
-  }
+  
+  // Now generate the PDF with the updated pedigree data
+  await pdfGenerator.generatePdf();
 }
 </script>
+
+<style scoped>
+/* Add any component-specific styles here */
+.highlight-animation {
+  animation: pulse 1.5s ease-in-out;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 87, 34, 0.7); }
+  50% { box-shadow: 0 0 0 10px rgba(255, 87, 34, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 87, 34, 0); }
+}
+</style>

@@ -48,14 +48,19 @@ const validationErrors = inject('validationErrors');
 /**
  * Converts the validation errors object into an array of error objects
  * with field names and messages for easier rendering.
+ * Shows ALL errors without filtering to match previous behavior.
  */
 const errors = computed(() => {
   if (!validationErrors || !validationErrors.value) return [];
   
-  return Object.entries(validationErrors.value).map(([field, message]) => ({
-    field,
-    message
-  }));
+  // Get all errors, including section prefixes
+  return Object.entries(validationErrors.value)
+    // Only take errors that don't have a section prefix to avoid duplicates
+    .filter(([field]) => !field.includes('.'))
+    .map(([field, message]) => ({
+      field,
+      message
+    }));
 });
 
 /**
@@ -63,19 +68,38 @@ const errors = computed(() => {
  * @param {string} fieldName - The name of the field to scroll to
  */
 function scrollToField(fieldName) {
-  // Get the field element by ID or name
-  const element = document.getElementById(fieldName) ||
-                 document.querySelector(`[name="${fieldName}"]`) || 
-                 document.querySelector(`[data-field="${fieldName}"]`);
+  // Field name mapping for compatibility with previous implementation
+  const fieldMapping = {
+    'firstName': 'givenName',
+    'lastName': 'familyName',
+    'referrer': 'physicianName'
+  };
+  
+  // Get the mapped field name if available
+  const mappedFieldName = fieldMapping[fieldName] || fieldName;
+  
+  // Try different selector strategies to find the element
+  const element = 
+    document.getElementById(mappedFieldName) ||
+    document.getElementById(fieldName) ||
+    document.querySelector(`[name="${mappedFieldName}"]`) ||
+    document.querySelector(`[name="${fieldName}"]`) ||
+    document.querySelector(`[data-field="${mappedFieldName}"]`) ||
+    document.querySelector(`[data-field="${fieldName}"]`) ||
+    // Try by label (for radio buttons, etc.)
+    document.querySelector(`label[for="${mappedFieldName}"]`) ||
+    document.querySelector(`label[for="${fieldName}"]`);
   
   if (element) {
-    // Scroll to the element
+    // Scroll to the element and make it visible
     element.scrollIntoView({ behavior: 'smooth', block: 'center' });
     
-    // Focus the element after scrolling
+    // Focus the element after scrolling (with slight delay to ensure UI is ready)
     setTimeout(() => {
       element.focus();
     }, 500);
+  } else {
+    console.log(`Field not found: ${fieldName} / ${mappedFieldName}`);
   }
 }
 </script>

@@ -36,14 +36,25 @@ export function useUrlHandler() {
       const hasPatientData = 
         (parsedData.personalInfo && Object.values(parsedData.personalInfo).some(val => val)) ||
         (parsedData.selectedPanels && parsedData.selectedPanels.length > 0) ||
-        (parsedData.phenotypeData && parsedData.phenotypeData.length > 0);
+        (parsedData.phenotypeData && parsedData.phenotypeData.length > 0) ||
+        (parsedData.patientData && parsedData.patientData.personalInfo && 
+          Object.values(parsedData.patientData.personalInfo).some(val => val));
       
       if (hasPatientData) {
         console.log('Initializing from URL data');
-        // Initialize with overwrite=true to ensure a clean state
-        formStore.importFormData({
-          patientData: parsedData,
-        }, true);
+        
+        // Handle the new data format where all data is inside a nested 'patientData' property
+        // This comes from the hash format with the full form export
+        if (parsedData.patientData) {
+          console.log('Found nested data structure, importing from patientData');
+          formStore.importFormData(parsedData, true);
+        } else {
+          // This is the legacy format where patient data is at the root
+          console.log('Found legacy data structure, importing directly');
+          formStore.importFormData({
+            patientData: parsedData,
+          }, true);
+        }
         
         // Clean up URL parameters
         clearUrlParameters();
@@ -68,10 +79,14 @@ export function useUrlHandler() {
   function createShareableUrl() {
     try {
       // Get the current form data
-      const exportData = formStore.exportFormData();
+      const fullData = formStore.exportFormData();
+      
+      // Create a compact version by removing empty fields
+      const compactData = removeEmptyValues(fullData);
+      console.log('Creating URL with compact data format');
       
       // Stringify the data
-      const jsonData = JSON.stringify(exportData);
+      const jsonData = JSON.stringify(compactData);
       
       // Create the base URL (current location without parameters)
       const baseUrl = window.location.protocol + '//' + 
@@ -81,6 +96,8 @@ export function useUrlHandler() {
       // Encode the data and add it to the hash
       const encodedData = encodeURIComponent(jsonData);
       const shareableUrl = `${baseUrl}#data=${encodedData}`;
+      
+      console.log(`Generated URL length: ${shareableUrl.length} characters`);
       
       // Check if the URL exceeds browser limits (typically ~2048 chars)
       if (shareableUrl.length > 2000) {
@@ -93,6 +110,52 @@ export function useUrlHandler() {
       uiStore.showSnackbar("Error creating shareable URL.");
       return window.location.href;
     }
+  }
+  
+  /**
+   * Removes empty values from an object to create more compact URLs
+   * @param {Object} obj - The object to process
+   * @returns {Object} The compacted object
+   */
+  function removeEmptyValues(obj) {
+    if (obj === null || obj === undefined || typeof obj !== 'object') {
+      return obj;
+    }
+    
+    // Handle arrays
+    if (Array.isArray(obj)) {
+      // Filter out empty objects and recursively process non-empty items
+      return obj
+        .filter(item => {
+          if (typeof item !== 'object') return true;
+          const processed = removeEmptyValues(item);
+          return Object.keys(processed).length > 0;
+        })
+        .map(item => removeEmptyValues(item));
+    }
+    
+    // Handle objects
+    const result = {};
+    
+    for (const [key, value] of Object.entries(obj)) {
+      // For primitive values
+      if (value === null || value === undefined) continue;
+      if (value === '') continue;
+      if (Array.isArray(value) && value.length === 0) continue;
+      
+      // Handle nested objects
+      if (typeof value === 'object') {
+        const processed = removeEmptyValues(value);
+        if (Object.keys(processed).length > 0) {
+          result[key] = processed;
+        }
+      } else {
+        // Include non-empty primitive values
+        result[key] = value;
+      }
+    }
+    
+    return result;
   }
   
   /**
@@ -120,10 +183,15 @@ export function useUrlHandler() {
   function createEncryptedUrl(password) {
     try {
       // Get the current form data
-      const exportData = formStore.exportFormData();
+      const fullData = formStore.exportFormData();
+      
+      // Create a compact version by removing empty fields
+      const compactData = removeEmptyValues(fullData);
+      console.log('Creating encrypted URL with compact data format');
       
       // Stringify the data
-      const jsonData = JSON.stringify(exportData);
+      const jsonData = JSON.stringify(compactData);
+      console.log(`JSON data length before encryption: ${jsonData.length} characters`);
       
       // Encrypt the data
       const encryptedData = encryptData(jsonData, password);
@@ -134,7 +202,10 @@ export function useUrlHandler() {
                       window.location.pathname;
       
       // Add the encrypted data as a query parameter
-      return `${baseUrl}?encrypted=${encodeURIComponent(encryptedData)}`;
+      const url = `${baseUrl}?encrypted=${encodeURIComponent(encryptedData)}`;
+      console.log(`Encrypted URL length: ${url.length} characters`);
+      
+      return url;
     } catch (error) {
       console.error('Error creating encrypted URL:', error);
       uiStore.showSnackbar("Error creating encrypted URL.");

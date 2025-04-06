@@ -69,6 +69,47 @@ export function parsePatientDataFromUrl() {
               console.log('Added nested selectedPanels from top-level data:', parsedData.patientData.selectedPanels);
             }
             
+            // Ensure phenotype data is available in both formats
+            if (parsedData.phenotypeData) {
+              // Check if we have both array and object formats available
+              if (parsedData.patientData && !parsedData.patientData.phenotypeData) {
+                // Add the phenotype data to nested structure
+                parsedData.patientData.phenotypeData = Array.isArray(parsedData.phenotypeData) ? 
+                  [...parsedData.phenotypeData] : [parsedData.phenotypeData];
+                console.log('Added nested phenotypeData from top-level:', parsedData.patientData.phenotypeData);
+              }
+              
+              // Ensure category is considered for phenotype data handling
+              if (parsedData.category && typeof parsedData.phenotypeData === 'object' && !Array.isArray(parsedData.phenotypeData)) {
+                // Check if the phenotype data is already categorized
+                if (!parsedData.phenotypeData[parsedData.category] && Object.keys(parsedData.phenotypeData).length > 0) {
+                  // Wrap the existing phenotype data into the category
+                  const categorizedData = {};
+                  categorizedData[parsedData.category] = parsedData.phenotypeData;
+                  parsedData.phenotypeData = categorizedData;
+                  console.log('Categorized phenotype data by category:', parsedData.category);
+                }
+              }
+            } else if (parsedData.patientData && parsedData.patientData.phenotypeData) {
+              // Copy the nested phenotype data to top level
+              if (Array.isArray(parsedData.patientData.phenotypeData)) {
+                // Convert array format to object format for the top level
+                const item = parsedData.patientData.phenotypeData[0] || {};
+                
+                if (parsedData.category) {
+                  // Create a categorized structure if we have a category
+                  const categorizedData = {};
+                  categorizedData[parsedData.category] = item;
+                  parsedData.phenotypeData = categorizedData;
+                } else {
+                  // Otherwise just use the item directly
+                  parsedData.phenotypeData = item;
+                }
+                
+                console.log('Added top-level phenotypeData from nested array:', parsedData.phenotypeData);
+              }
+            }
+            
             return parsedData; // Return the enhanced structured data
           }
         } catch (parseError) {

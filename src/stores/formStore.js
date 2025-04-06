@@ -108,6 +108,33 @@ export const useFormStore = defineStore('form', () => {
       selectedTests.value = [...patientData.selectedPanels];
     }
     
+    // Ensure phenotype data synchronization between object and array formats
+    if (phenotypeDataObj.value && Object.keys(phenotypeDataObj.value).length > 0) {
+      // If we have data in the object format, make sure it's also in the array format for UI
+      if (!patientData.phenotypeData || patientData.phenotypeData.length === 0) {
+        console.log('formStore: Converting phenotypeDataObj to array format for UI components');
+        const phenotypeArray = [];
+        
+        // Convert to array of { categoryId, phenotypeId, status } objects
+        Object.entries(phenotypeDataObj.value).forEach(([categoryId, categoryData]) => {
+          if (typeof categoryData === 'object') {
+            Object.entries(categoryData).forEach(([phenotypeId, status]) => {
+              if (status !== 'no input') { // Only include meaningful values as per QR code requirements
+                phenotypeArray.push({
+                  categoryId: categoryId,
+                  phenotypeId: phenotypeId,
+                  status: status
+                });
+              }
+            });
+          }
+        });
+        
+        patientData.phenotypeData = phenotypeArray;
+        console.log('formStore: Created array format with', phenotypeArray.length, 'phenotype items');
+      }
+    }
+    
     // Also ensure the original fields are populated for bidirectional compatibility
     patientData.personalInfo.firstName = patientData.personalInfo.firstName || patientData.personalInfo.givenName || '';
     patientData.personalInfo.lastName = patientData.personalInfo.lastName || patientData.personalInfo.familyName || '';
@@ -301,10 +328,90 @@ export const useFormStore = defineStore('form', () => {
         }
         
         // Handle top-level phenotype data
-        if (data.phenotypeData && typeof data.phenotypeData === 'object') {
-          console.log('formStore: Setting top-level phenotype data:', data.phenotypeData);
-          phenotypeDataObj.value = { ...data.phenotypeData };
+        if (data.phenotypeData) {
+          console.log('formStore: Processing phenotype data', 
+                     Array.isArray(data.phenotypeData) ? 'array format' : 'object format');
+          
+          // CRITICAL FIX: Handle both array and object formats of phenotype data
+          if (Array.isArray(data.phenotypeData)) {
+            // Handle special flat array format: [{"phenotype1":"present","phenotype2":"absent",...}]
+            if (data.phenotypeData.length > 0 && !data.phenotypeData[0].categoryId && !data.phenotypeData[0].phenotypeId) {
+              console.log('formStore: Detected flat phenotype array format');
+              
+              // Convert direct object keys-values to categoryId/phenotypeId/status format
+              const categoryId = data.category || 'nephrology'; // Default to nephrology if no category
+              const phenotypeArray = [];
+              
+              // First, convert to object format for phenotypeDataObj
+              const phenotypeObj = { [categoryId]: {} };
+              
+              // Process all phenotype entries from the flat format
+              Object.entries(data.phenotypeData[0]).forEach(([phenotypeId, status]) => {
+                // Add to the array format for UI components
+                phenotypeArray.push({
+                  categoryId: categoryId,
+                  phenotypeId: phenotypeId,
+                  status: status
+                });
+                
+                // Also add to the object format
+                phenotypeObj[categoryId][phenotypeId] = status;
+              });
+              
+              // Set both formats
+              phenotypeDataObj.value = phenotypeObj;
+              patientData.phenotypeData = phenotypeArray;
+              
+              console.log('formStore: Converted flat phenotype data to', phenotypeArray.length, 'items');
+            } else {
+              // Standard array format with {categoryId, phenotypeId, status} objects
+              console.log('formStore: Using standard phenotype array format');
+              patientData.phenotypeData = [...data.phenotypeData];
+              
+              // Also convert to object format
+              const phenotypeObj = {};
+              data.phenotypeData.forEach(item => {
+                if (item.categoryId && item.phenotypeId) {
+                  if (!phenotypeObj[item.categoryId]) {
+                    phenotypeObj[item.categoryId] = {};
+                  }
+                  phenotypeObj[item.categoryId][item.phenotypeId] = item.status;
+                }
+              });
+              phenotypeDataObj.value = phenotypeObj;
+            }
+          } else {
+            // Object format like {nephrology: {phenotype1: "present", ...}}
+            console.log('formStore: Setting top-level phenotype data object:', data.phenotypeData);
+            phenotypeDataObj.value = { ...data.phenotypeData };
+            
+            // Convert from object format to array format for UI components
+            if (Object.keys(data.phenotypeData).length > 0) {
+              // Check if we have a category-based structure like {nephrology: {...}}
+              const categoryId = data.category || Object.keys(data.phenotypeData)[0];
+              const phenotypesToUse = data.phenotypeData[categoryId] || {};
+              
+              if (Object.keys(phenotypesToUse).length > 0) {
+                console.log('formStore: Converting phenotype object to array format for UI');
+                const phenotypeArray = [];
+                
+                // Convert to {categoryId, phenotypeId, status} format for UI components
+                Object.entries(phenotypesToUse).forEach(([phenotypeId, status]) => {
+                  phenotypeArray.push({
+                    categoryId: categoryId,
+                    phenotypeId: phenotypeId,
+                    status: status
+                  });
+                });
+                
+                patientData.phenotypeData = phenotypeArray;
+                console.log('formStore: Phenotype data converted to array format with', 
+                           phenotypeArray.length, 'items');
+              }
+            }
+          }
         }
+        
         
         // Handle top-level category
         if (data.category) {

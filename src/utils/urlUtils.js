@@ -10,32 +10,27 @@
  */
 export function parsePatientDataFromUrl() {
   try {
-    const params = {};
-    let foundData = false;
-    
-    // First check query parameters
-    const searchParams = new URLSearchParams(window.location.search);
-    for (const [key, value] of searchParams.entries()) {
-      try {
-        params[key] = JSON.parse(decodeURIComponent(value));
-        foundData = true;
-      } catch {
-        params[key] = decodeURIComponent(value);
-        foundData = true;
-      }
+    // First check if we have encrypted data in query parameters
+    const encryptedParam = getUrlParameter('encrypted');
+    if (encryptedParam) {
+      // We'll handle decryption elsewhere, just return empty for now
+      return {};
     }
     
-    // Then check hash parameters (format: #key1=value1&key2=value2...)
-    if (window.location.hash && window.location.hash.length > 1) {
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      for (const [key, value] of hashParams.entries()) {
+    // Process parameters from all sources
+    let params = {};
+    let foundData = false;
+    
+    // First check query parameters (legacy format)
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.toString()) {
+      console.log('Found query parameters:', window.location.search);
+      // Collect all query parameters
+      for (const [key, value] of searchParams.entries()) {
+        if (key === 'encrypted') continue; // Skip encrypted parameter
+        
         try {
-          const parsedValue = JSON.parse(decodeURIComponent(value));
-          // Handle the case where the entire patient data is in a single parameter
-          if (key === 'data' && typeof parsedValue === 'object') {
-            return parsedValue; // Return the structured data directly
-          }
-          params[key] = parsedValue;
+          params[key] = JSON.parse(decodeURIComponent(value));
           foundData = true;
         } catch {
           params[key] = decodeURIComponent(value);
@@ -44,15 +39,48 @@ export function parsePatientDataFromUrl() {
       }
     }
     
-    // Special case: check if we have a complete patient data structure
-    // For backward compatibility with older URL formats
+    // Check hash parameters - we now store data as a single JSON-stringified 'data' parameter
+    if (window.location.hash && window.location.hash.length > 1) {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const dataParam = hashParams.get('data');
+      
+      if (dataParam) {
+        try {
+          // Parse the JSON data from the 'data' parameter
+          const parsedData = JSON.parse(decodeURIComponent(dataParam));
+          if (typeof parsedData === 'object') {
+            console.log('Found JSON data in URL hash:', parsedData);
+            return parsedData; // Return the structured data directly
+          }
+        } catch (parseError) {
+          console.error('Error parsing JSON data from URL:', parseError);
+        }
+      }
+      
+      // For backward compatibility, handle old-style hash parameters
+      for (const [key, value] of hashParams.entries()) {
+        if (key === 'data') continue; // Skip data parameter as we already tried to parse it
+        
+        try {
+          params[key] = JSON.parse(decodeURIComponent(value));
+          foundData = true;
+        } catch {
+          params[key] = decodeURIComponent(value);
+          foundData = true;
+        }
+      }
+    }
+    
+    // Check if we have a complete patient data structure
     if (params.personalInfo || params.phenotypeData || params.selectedPanels) {
       return params;
     }
     
     // For legacy URL formats where data is flat
     if (foundData) {
-      // Try to convert the flat structure to the new unified data model
+      console.log('Converting legacy format data:', params);
+      
+      // Convert flat structure to unified data model
       const structuredData = {
         personalInfo: {
           firstName: params.givenName || '',
@@ -63,12 +91,12 @@ export function parsePatientDataFromUrl() {
           insurance: params.insurance || '',
           referrer: params.physicianName || ''
         },
-        selectedPanels: Array.isArray(params.selectedTests) ? params.selectedTests : [],
+        selectedPanels: Array.isArray(params.selectedTests) ? params.selectedTests : 
+                        params.selectedPanels ? [params.selectedPanels] : [],
         phenotypeData: params.phenotypeData || [],
         category: params.category || ''
       };
       
-      // If we have found any relevant keys, return the structured data
       return structuredData;
     }
     

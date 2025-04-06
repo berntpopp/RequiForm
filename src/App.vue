@@ -420,8 +420,14 @@ function handleCopyUrl() {
     delete urlSafeData.personalInfo.insurance;
   }
   
-  // Generate URL
-  const url = window.location.origin + window.location.pathname + '#' + new URLSearchParams(urlSafeData).toString();
+  // Properly encode objects and arrays for the URL
+  const params = new URLSearchParams();
+  
+  // Add data parameter with JSON stringified form data
+  params.append('data', JSON.stringify(urlSafeData));
+  
+  // Generate URL with single data parameter containing all form data
+  const url = `${window.location.origin}${window.location.pathname}#${params.toString()}`;
   
   navigator.clipboard.writeText(url).then(
     () => {
@@ -452,6 +458,7 @@ function confirmEncryption(password) {
   const formData = exportPatientData();
   
   try {
+    // The formData is already a properly structured object so we can just stringify it directly
     const encryptedData = encryptData(JSON.stringify(formData), password);
     const url = `${window.location.origin}${window.location.pathname}?encrypted=${encodeURIComponent(encryptedData)}`;
     

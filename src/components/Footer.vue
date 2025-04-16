@@ -1,19 +1,21 @@
 <template>
   <v-footer app padless class="footer">
-    <v-col class="text-center" cols="12">
-      <span class="versions">
-        App: v{{ version }} | Test schema: v{{ testSchemaVersion }} | PDF schema: v{{ pdfSchemaVersion }}:
-      </span>
-      <v-btn
-        v-if="disclaimerAcknowledged"
-        small
-        outlined
-        class="ml-2 disclaimer-btn"
-        @click="$emit('reopen-disclaimer')"
-      >
-        Disclaimer Acknowledged: {{ acknowledgmentTime }}
-      </v-btn>
-    </v-col>
+    <div class="content-wrapper">
+      <v-col class="text-center" cols="12">
+        <span class="versions">
+          App: v{{ version }} | Test schema: v{{ testSchemaVersion }} | PDF schema: v{{ pdfSchemaVersion }}:
+        </span>
+        <v-btn
+          v-if="disclaimerAcknowledged"
+          small
+          outlined
+          class="ml-2 disclaimer-btn"
+          @click="$emit('reopen-disclaimer')"
+        >
+          Disclaimer Acknowledged: {{ acknowledgmentTime }}
+        </v-btn>
+      </v-col>
+    </div>
   </v-footer>
 </template>
 
@@ -49,6 +51,16 @@ export default defineComponent({
 .footer {
   background-color: #f5f5f5;
   box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.content-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 8px 16px;
 }
 
 .versions {

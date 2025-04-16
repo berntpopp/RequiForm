@@ -19,7 +19,7 @@
     <AppDisclaimer v-if="!settingsStore.disclaimerAcknowledged || uiStore.showDisclaimerModal" @dismiss="handleDisclaimerDismiss" />
 
     <v-main>
-      <v-container>
+      <v-container class="main-content-container">
         <!-- Validation Summary Component - shows all validation errors in one place -->
         <div class="mb-4" v-if="formStore.showValidation">
           <ValidationSummary 
@@ -397,5 +397,22 @@ async function handleGeneratePdf() {
   0% { box-shadow: 0 0 0 0 rgba(255, 87, 34, 0.7); }
   50% { box-shadow: 0 0 0 10px rgba(255, 87, 34, 0); }
   100% { box-shadow: 0 0 0 0 rgba(255, 87, 34, 0); }
+}
+
+.main-content-container {
+  max-width: 1200px;
+  /* v-container provides padding, margin: 0 auto; might not be needed depending on layout */
+  /* If centering isn't automatic with v-container, add: margin-left: auto; margin-right: auto; */
+}
+
+/* Optional: Ensure app takes full height */
+:deep(.v-application__wrap) {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+:deep(main.v-main) {
+  flex-grow: 1;
 }
 </style>

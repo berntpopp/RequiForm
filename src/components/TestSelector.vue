@@ -29,7 +29,7 @@
             :items="filteredTests"
             item-title="name"
             item-value="id"
-            v-model="selectedTests"
+            v-model="unifiedPatientData.selectedPanels"
             :return-object="false"
             multiple
             chips
@@ -62,7 +62,7 @@
           :items="searchItems"
           item-title="label"
           item-value="value"
-          v-model="searchSelection"
+          v-model="unifiedPatientData.selectedPanels"
           :custom-filter="customFilter"
           multiple
           chips
@@ -109,42 +109,16 @@ const customFilter = (itemTitle, queryText, item) => {
   return searchValue.toLowerCase().includes(queryText.toLowerCase());
 };
 
-const props = defineProps({
-  modelValue: {
-    type: Array,
-    default: () => []
-  }
-});
-
-const emit = defineEmits(['update:modelValue']);
-
 // Inject the unified patient data and update functions
-const unifiedPatientData = inject('patientData', null);
-const updateSelectedPanels = inject('updateSelectedPanels', null);
+const unifiedPatientData = inject('patientData', { selectedPanels: ref([]) }); // Provide default structure
 const updateCategory = inject('updateCategory', null);
 
 const categories = ref([]);
-const selectedTests = ref([]);
 const selectedCategory = ref('');
 
 // Create computed properties to track changes in the unified data model
 const unifiedCategory = computed(() => unifiedPatientData?.category || '');
-const unifiedPanels = computed(() => unifiedPatientData?.selectedPanels || []);
-
-/**
- * Proxy computed property for search selection.
- * Provides two-way binding between the search selection and selected tests.
- *
- * @type {import('vue').ComputedRef<Array>}
- */
-const searchSelection = computed({
-  get() {
-    return selectedTests.value;
-  },
-  set(val) {
-    selectedTests.value = val;
-  }
-});
+const unifiedSelectedPanels = computed(() => unifiedPatientData?.selectedPanels || []);
 
 const tab = ref('Category Selection');
 
@@ -153,153 +127,86 @@ onMounted(() => {
   categories.value = testsData.categories;
   
   // PRIORITY 1: Check for panels in the global data store from URL parser
-  // This handles URL parameters with highest priority
-  if (window.requiFormData && window.requiFormData.directPanels && window.requiFormData.directPanels.length > 0) {
-    const panelIds = window.requiFormData.directPanels;
-    console.log('TestSelector found panels in URL parser store:', panelIds);
+  // Use unified data directly
+  if (window.requiFormData?.directPanels?.length > 0) {
+    console.log('TestSelector: Setting panels from directPanels:', window.requiFormData.directPanels);
+    // v-model handles the update, no need to call updateSelectedPanels here
     
-    // Set panels directly with primitive array
-    selectedTests.value = [...panelIds];
-    
-    // Force category selection tab
-    tab.value = 'Category Selection';
-    
-    // Set unified model (belt and suspenders approach)
-    if (updateSelectedPanels) {
-      console.log('Updating unified model with panels from URL');
-      updateSelectedPanels([...panelIds]);
-    }
-    
-    // Set initial category based on the first panel
-    if (panelIds.length > 0 && categories.value.length > 0) {
-      const panelId = panelIds[0];
-      
-      // Find which category contains this panel
-      for (const category of categories.value) {
-        const found = category.tests.some(test => test.id === panelId);
-        if (found) {
-          console.log('Auto-selecting category from panel:', category.id);
-          selectedCategory.value = category.id;
-          break;
-        }
+    // Set category based on the first panel found
+    const panelId = window.requiFormData.directPanels[0];
+    for (const category of categories.value) {
+      const found = category.tests.some(test => test.id === panelId);
+      if (found) {
+        console.log('Auto-selecting category from panel:', category.id);
+        selectedCategory.value = category.id;
+        break;
       }
     }
   }
-  // PRIORITY 2: Check for panels in the component-level global store
-  else if (window.requiFormData && window.requiFormData.selectedPanels && window.requiFormData.selectedPanels.length > 0) {
-    const panelIds = window.requiFormData.selectedPanels;
-    console.log('TestSelector found panels in component global store:', panelIds);
-    selectedTests.value = [...panelIds];
-  }
-  // PRIORITY 3: Check for panels in the unified data model
-  else if (unifiedPatientData && unifiedPatientData.selectedPanels && unifiedPatientData.selectedPanels.length > 0) {
-    console.log('TestSelector initializing with unified panels:', unifiedPatientData.selectedPanels);
-    selectedTests.value = [...unifiedPatientData.selectedPanels];
+  // PRIORITY 2: Check for panels in the component-level global store (less likely now)
+  else if (window.requiFormData?.selectedPanels?.length > 0) {
+    console.log('TestSelector: Setting panels from window.requiFormData.selectedPanels:', window.requiFormData.selectedPanels);
+    // v-model handles update
     
-    // Force the category UI to update
-    nextTick(() => {
-      tab.value = 'Category Selection';
-      console.log('TestSelector forced Category Selection tab with panels:', selectedTests.value);
-    });
+    // Set category based on the first panel found
+    const panelId = window.requiFormData.selectedPanels[0];
+    for (const category of categories.value) {
+      const found = category.tests.some(test => test.id === panelId);
+      if (found) {
+        console.log('Auto-selecting category from panel:', category.id);
+        selectedCategory.value = category.id;
+        break;
+      }
+    }
   }
-  // PRIORITY 4: Fall back to the legacy model value
-  else {
-    selectedTests.value = [...props.modelValue];
+  // PRIORITY 3: Check unified model from Pinia store (most common case)
+  else if (unifiedSelectedPanels.value.length > 0) {
+    console.log('TestSelector: Setting panels from unifiedPatientData:', unifiedSelectedPanels.value);
+    // Panels are already in unifiedPatientData.selectedPanels via injection/v-model
+    
+    // Set category based on the first panel found
+    const panelId = unifiedSelectedPanels.value[0];
+    for (const category of categories.value) {
+      const found = category.tests.some(test => test.id === panelId);
+      if (found) {
+        console.log('Auto-selecting category from panel:', category.id);
+        selectedCategory.value = category.id;
+        break;
+      }
+    }
   }
-  
-  // If category is set in unified model, initialize it
-  if (unifiedPatientData && unifiedPatientData.category) {
-    console.log('Setting initial category from unified model:', unifiedPatientData.category);
-    selectedCategory.value = unifiedPatientData.category;
+  // PRIORITY 4: Check unified model for category (if no panels selected)
+  else if (unifiedCategory.value) {
+    console.log('Setting initial category from unified model:', unifiedCategory.value);
+    selectedCategory.value = unifiedCategory.value;
   }
   
   // Force UI update after component is mounted
   nextTick(() => {
     // Make sure selected panels are displayed by forcing the correct tab
-    if (selectedTests.value && selectedTests.value.length > 0) {
+    if (unifiedSelectedPanels.value.length > 0) { // Check unified store
       console.log('Forcing Category Selection tab to show selected panels');
       tab.value = 'Category Selection';
     }
-  });
-  
-  // Run another check after a short delay to ensure UI updates
-  setTimeout(() => {
-    if (window.requiFormData && window.requiFormData.directPanels && selectedTests.value.length === 0) {
-      console.log('Delayed initialization with URL panels');
-      selectedTests.value = [...window.requiFormData.directPanels];
-      tab.value = 'Category Selection';
-      
-      // Set unified model if needed
-      if (updateSelectedPanels) {
-        updateSelectedPanels([...window.requiFormData.directPanels]);
-      }
-    }
-  }, 500);
+  }); // Removed timeout, nextTick is usually sufficient
 });
-
-// Watch for changes in selected tests and update both models
-watch(selectedTests, newVal => {
-  // Update the legacy model via emit
-  emit('update:modelValue', newVal);
-  
-  // Update the unified model if available
-  if (updateSelectedPanels) {
-    updateSelectedPanels(newVal);
-  }
-});
-
-// Watch for changes in category and update the unified model
-watch(selectedCategory, newVal => {
-  if (updateCategory && newVal) {
-    updateCategory(newVal);
-  }
-});
-
-// Watch for changes in the unified model's category and update local state
-watch(unifiedCategory, newVal => {
-  if (newVal && newVal !== selectedCategory.value) {
-    console.log('Updating TestSelector category from unified model:', newVal);
-    selectedCategory.value = newVal;
-  }
-});
-
-// Watch for changes in the unified model's panels and update local state
-watch(unifiedPanels, newPanels => {
-  if (newPanels && newPanels.length > 0 && JSON.stringify(newPanels) !== JSON.stringify(selectedTests.value)) {
-    console.log('Updating TestSelector panels from unified model:', newPanels);
-    selectedTests.value = [...newPanels]; // Copy array to trigger reactivity
-    
-    // Force UI update by ensuring the correct tab is selected
-    nextTick(() => {
-      if (selectedTests.value.length > 0) {
-        tab.value = 'Category Selection';
-      }
-    });
-  }
-}, { immediate: true }); // immediate:true ensures it runs when component is mounted
 
 // Special domain-specific handler for nephronophthise -> nephrology mapping
-watch(() => selectedTests.value, (newTests) => {
+watch(unifiedSelectedPanels, (newTests) => { // Watch unified store state
   if (newTests && newTests.includes('nephronophthise') && (!selectedCategory.value || selectedCategory.value !== 'nephrology')) {
-    console.log('Detected nephronophthise panel, auto-setting category to nephrology');
-    selectedCategory.value = 'nephrology';
+    console.log('Auto-setting category to nephrology based on nephronophthise panel');
+    const categoryValue = 'nephrology';
+    selectedCategory.value = categoryValue;
     
     // Also propagate to the data model
     if (updateCategory) {
-      updateCategory('nephrology');
+      updateCategory(categoryValue);
     }
   }
 }, { immediate: true });
 
-// We'll handle panel updates in onMounted and use a simpler approach
-
-/**
- * Filters tests based on the selected category.
- *
- * @return {Array<Object>} Array of tests for the selected category.
- */
 // Move the auto-selection logic to a watch instead of computed property
-watch([selectedTests, categories], ([newTests, newCategories]) => {
+watch([unifiedSelectedPanels, categories], ([newTests, newCategories]) => { // Watch unified store state
   // If we have tests but no selected category yet,
   // find the category containing the selected test and set it
   if (newTests && newTests.length > 0 && !selectedCategory.value && newCategories.length > 0) {

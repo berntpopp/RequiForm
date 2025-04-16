@@ -16,7 +16,7 @@
     />
 
     <!-- Disclaimer Modal: shown if not yet acknowledged or if reopened -->
-    <Disclaimer v-if="!settingsStore.disclaimerAcknowledged || uiStore.showDisclaimerModal" @dismiss="handleDisclaimerDismiss" />
+    <AppDisclaimer v-if="!settingsStore.disclaimerAcknowledged || uiStore.showDisclaimerModal" @dismiss="handleDisclaimerDismiss" />
 
     <v-main>
       <v-container>
@@ -43,7 +43,6 @@
 
         <!-- Test Selector -->
         <TestSelector 
-          v-model="formStore.selectedTests"
           id="test-selector-component"
         />
 
@@ -59,7 +58,6 @@
           <PdfGenerator
             ref="pdfGeneratorRef"
             :patientData="formStore.patientData.personalInfo"
-            :selectedTests="formStore.selectedTests"
             :pedigreeDataUrl="formStore.pedigreeDataUrl"
             :phenotypeData="formStore.phenotypeDataObj"
             :pdfConfig="pdfConfig"
@@ -129,7 +127,7 @@
     </v-main>
 
     <!-- Footer with disclaimer acknowledgement button -->
-    <Footer
+    <AppFooter
       :disclaimerAcknowledged="settingsStore.disclaimerAcknowledged"
       :acknowledgmentTime="settingsStore.acknowledgmentTime"
       @reopen-disclaimer="uiStore.openDisclaimerModal"
@@ -138,7 +136,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick, provide, watch } from 'vue';
+import { ref, computed, onMounted, provide, watch } from 'vue'; 
 import TopBar from './components/TopBar.vue';
 import PatientForm from './components/PatientForm.vue';
 import TestSelector from './components/TestSelector.vue';
@@ -146,8 +144,8 @@ import PhenotypeSelector from './components/PhenotypeSelector.vue';
 import PedigreeDrawer from './components/PedigreeDrawer.vue';
 import ValidationSummary from './components/ValidationSummary.vue';
 import PdfGenerator from './components/PdfGenerator.vue';
-import Disclaimer from './components/Disclaimer.vue';
-import Footer from './components/Footer.vue';
+import AppDisclaimer from './components/Disclaimer.vue';
+import AppFooter from './components/Footer.vue';
 import PasteDataModal from './components/modals/PasteDataModal.vue';
 import SelectedPanelsSummary from './components/SelectedPanelsSummary.vue';
 
@@ -161,7 +159,7 @@ import LoadDataDialog from './components/dialogs/LoadDataDialog.vue';
 
 // Import Pinia stores
 import { useUiStore } from './stores/uiStore';
-import { useFormStore } from './stores/formStore';
+import { useFormStore } from './stores/formStore'; 
 import { useSettingsStore } from './stores/settingsStore';
 
 // Import composables
@@ -173,7 +171,8 @@ import { useFaq } from './composables/useFaq';
 import { useFormActions } from './composables/useFormActions';
 
 // Import data
-import { categories } from './data/categories.js';
+import { categories } from './data/categories.js'; 
+import pdfConfigData from './data/pdfConfig.json'; 
 
 // Initialize Pinia stores
 const uiStore = useUiStore();
@@ -197,33 +196,32 @@ provide('sectionValidation', formStore.sectionValidation);
 provide('validateForm', formStore.validateForm);
 provide('getFieldErrors', formStore.getFieldErrors);
 
-// Add provides needed by PatientForm
+// Add provides needed by child components requiring patientData directly
 provide('patientData', formStore.patientData);
 provide('updatePersonalInfo', formStore.updatePatientData);
+provide('updatePhenotypeData', formStore.updatePhenotypeData);
+provide('updateSelectedPanels', formStore.updateSelectedPanels); 
 
 // Configuration for PDF generation
-const pdfConfig = ref({
-  // Add your pdfConfig data here
-  qrCodes: true,
-  patientQrTitle: "Patient Data QR",
-  phenotypeQrTitle: "Phenotype Data QR",
-  pedigreeQrTitle: "Pedigree QR",
-  titleFontSize: 20,
-  subtitleFontSize: 16,
-  sectionTitleFontSize: 14,
-  normalFontSize: 12,
-  smallFontSize: 10
-});
+const pdfConfig = ref(pdfConfigData); 
 
 /**
- * Groups selected panels by category
+ * Compute grouped panel details based on selected panels in the unified patient data model.
  */
 const groupedPanelDetails = computed(() => {
+  if (!formStore || !formStore.patientData) {
+    console.warn('groupedPanelDetails: formStore or patientData not available yet.');
+    return [];
+  }
+  if (!categories) {
+    console.warn('groupedPanelDetails: testsData.categories not available yet.');
+    return [];
+  }
   return categories
     .map((category) => ({
       id: category.id,
       categoryTitle: category.title,
-      tests: category.tests.filter((test) => formStore.selectedTests.includes(test.id)),
+      tests: category.tests.filter((test) => formStore.patientData.selectedPanels?.includes(test.id)), 
     }))
     .filter((group) => group.tests.length > 0);
 });
@@ -296,28 +294,20 @@ async function handlePastedDataImport(jsonData) {
   try {
     console.log('App: Received data for import, length:', jsonData?.length || 0);
     
-    // Properly await the async importFromJson method
     const success = await dataPersistence.importFromJson(jsonData);
     
     if (success) {
-      // Close the dialog if import was successful
       uiStore.closePasteDataDialog();
       uiStore.showSnackbar('Data imported successfully!'); 
       
-      // Force a reactivity update by setting a timeout
       setTimeout(() => {
-        // Ensure data model is properly synced in both directions
-        formStore.syncLegacyPatientData();
-        formStore.syncUnifiedPatientData();
-        
         console.log('App: Current form state after import:', {
           personalInfo: formStore.patientData.personalInfo,
-          selectedTests: formStore.selectedTests.length,
-          phenotypeData: Object.keys(formStore.phenotypeDataObj || {}).length
+          selectedPanels: formStore.patientData.selectedPanels.length,
+          phenotypeData: formStore.patientData.phenotypeData.length
         });
       }, 0);
     } else {
-      // Keep dialog open if import failed so user can try again
       console.error('App: Failed to import data');
     }
   } catch (error) {
@@ -332,12 +322,7 @@ const pedigreeDrawerRef = ref(null);
 
 // Application Initialization
 onMounted(() => {
-  // Initialize tour
-  nextTick().then(() => {
-    appTour.initialize();
-  });
-
-  // Initialize data from URL parameters
+  appTour.initialize();
   urlHandler.initializeFromUrl();
 });
 
@@ -353,35 +338,27 @@ watch(pdfGeneratorRef, (newRef) => {
  * Custom handler for PDF generation that validates form data and ensures pedigree data is updated first
  */
 async function handleGeneratePdf() {
-  // First, validate the form data - explicitly show validation errors
   const isValid = formStore.validateForm(true);
   
-  // Explicitly set show validation flag to ensure UI updates
   formStore.setShowValidation(true);
   
-  // Debug validation errors
   console.log('Validation errors:', formStore.validationErrors);
   console.log('Validation sections:', formStore.sectionValidation);
   
-  // If validation fails, display validation errors and stop PDF generation
   if (!isValid) {
     console.log('Form validation failed. Please correct the errors before generating PDF.');
     uiStore.showSnackbar('Please correct the form errors before generating PDF.');
     
-    // Ensure validation summary is visible - this is crucial for showing errors at the top
     formStore.setShowValidation(true);
     
-    // Make sure errors are displayed - scroll to top where validation summary is shown
     window.scrollTo({ top: 0, behavior: 'smooth' });
     
-    // Forcefully highlight validation errors by briefly focusing validation summary area
-    const validationArea = document.querySelector('.validation-summary');
+    const validationArea = document.querySelector('.validation-summary'); 
     if (validationArea) {
-      validationArea.setAttribute('tabindex', '-1'); // Make it focusable
+      validationArea.setAttribute('tabindex', '-1'); 
       validationArea.focus();
       validationArea.classList.add('highlight-animation');
       
-      // Remove highlight animation after it completes
       setTimeout(() => {
         validationArea.classList.remove('highlight-animation');
       }, 1500);
@@ -390,17 +367,13 @@ async function handleGeneratePdf() {
     return;
   }
   
-  // Update pedigree data URL if pedigree is enabled and component is loaded
   if (formStore.showPedigree && pedigreeDrawerRef.value) {
     try {
-      // Get pedigree image data URL
       const pedigreeDataUrl = await pedigreeDrawerRef.value.getPedigreeDataUrl();
       formStore.updatePedigreeDataUrl(pedigreeDataUrl);
       
-      // Get pedigree structured data for QR code if needed
-      const pedigreeData = pedigreeDrawerRef.value.getPedigreeData();
+      const pedigreeData = pedigreeDrawerRef.value.getPedigreeData(); 
       if (pedigreeData) {
-        // Store the pedigree data in formStore if you have a method for it
         console.log('Updated pedigree data:', pedigreeData);
       }
       
@@ -410,13 +383,12 @@ async function handleGeneratePdf() {
     }
   }
   
-  // Now generate the PDF with the updated pedigree data
   await pdfGenerator.generatePdf();
 }
+
 </script>
 
 <style scoped>
-/* Add any component-specific styles here */
 .highlight-animation {
   animation: pulse 1.5s ease-in-out;
 }

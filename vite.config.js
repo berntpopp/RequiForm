@@ -4,6 +4,7 @@ import vue from '@vitejs/plugin-vue';
 import { fileURLToPath, URL } from 'url';
 import vuetify from 'vite-plugin-vuetify';
 
+/* global process */
 export default defineConfig(({ mode }) => {
   // Load all environment variables for the current mode (e.g. development, production)
   const env = loadEnv(mode, process.cwd(), '');
@@ -19,6 +20,10 @@ export default defineConfig(({ mode }) => {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url)),
       },
+    },
+    define: {
+      'process.env.VUE_APP_VERSION': JSON.stringify(process.env.npm_package_version)
+      // Add other environment variables if needed
     },
     server: {
       watch: {

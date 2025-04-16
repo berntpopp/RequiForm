@@ -17,17 +17,22 @@ import {
   generatePedigreeQrCode
 } from '../utils/qrService';
 
-// Define props for backward compatibility
+// Define props
 const props = defineProps({
+  /**
+   * Patient personal information (legacy structure, used as fallback).
+   */
   patientData: {
     type: Object,
     required: true,
   },
-  selectedTests: {
-    type: Array,
-    required: true,
-  },
+  /**
+   * Optional data URL for the pedigree image.
+   */
   pedigreeDataUrl: { type: String, required: false, default: '' },
+  /**
+   * Optional phenotype data (legacy structure, used as fallback).
+   */
   phenotypeData: { type: Object, required: false, default: () => ({}) },
 });
 
@@ -37,10 +42,10 @@ const unifiedPatientData = inject('patientData', null);
 // Expose generatePdf for external calls.
 defineExpose({ generatePdf });
 
-// Compute grouped test panels from either unified model or legacy props
+// Compute grouped test panels based on the selected panels in the unified patient data.
 const groupedPanels = computed(() => {
   // Determine which tests to use (prefer unified model if available)
-  const testsToUse = unifiedPatientData?.selectedPanels || props.selectedTests || [];
+  const testsToUse = unifiedPatientData?.selectedPanels || []; // Use only unified model, fallback to empty array
   
   return testsData.categories
     .map((category) => ({
@@ -53,12 +58,15 @@ const groupedPanels = computed(() => {
     .filter((group) => group.tests.length > 0);
 });
 
-// Compute patient data for QR code using either unified model or legacy props
+// Compute patient data for QR code using the unified model if available, otherwise fallback to legacy props.
+// Selected tests are always sourced from the unified model.
 const patientQrData = computed(() => {
-  // Prefer unified model if available
+  // Get selected panels ONLY from unified model
+  const panels = unifiedPatientData?.selectedPanels || [];
+
+  // Prefer unified model for personal info if available
   if (unifiedPatientData?.personalInfo) {
     const personalInfo = unifiedPatientData.personalInfo;
-    const testsToUse = unifiedPatientData.selectedPanels || props.selectedTests || [];
     
     return {
       patient: {
@@ -71,11 +79,12 @@ const patientQrData = computed(() => {
         referrer: personalInfo.referrer || '',
         diagnosis: personalInfo.diagnosis || ''
       },
-      selectedTests: testsToUse
+      selectedTests: panels // Use panels from unified source
     };
   }
   
-  // Fallback to legacy props
+  // Fallback to legacy props for personal info
+  // Use empty array for selectedTests since the prop is removed and unified data is unavailable
   return {
     patient: {
       firstName: props.patientData.givenName || '',
@@ -87,7 +96,7 @@ const patientQrData = computed(() => {
       referrer: props.patientData.referrer || '',
       diagnosis: props.patientData.clinicalDiagnosis || ''
     },
-    selectedTests: props.selectedTests || []
+    selectedTests: [] // Default to empty array when unified data is missing
   };
 });
 
@@ -109,9 +118,9 @@ const phenotypeQrData = computed(() => {
         if (status === 'no input') return;
         
         // Find the phenotype in testsData to get its HPO ID
-        const category = testsData.categories.find(c => c.id === catId);
+        const category = testsData.categories.find((c) => c.id === catId);
         if (category) {
-          const phenotype = category.phenotypes.find(p => p.id === phenotypeId);
+          const phenotype = category.phenotypes.find((p) => p.id === phenotypeId);
           if (phenotype && phenotype.hpo) {
             phenotypeItems.push({
               id: phenotype.hpo, // Use the actual HPO ID (e.g., HP:0000123)
@@ -682,7 +691,12 @@ async function generatePdf() {
             console.error('[PdfGenerator] Invalid pedigree data format:', pedigreeQrData.value);
             // Fallback to image reference with ultra-compact array code [0]
             pedigreeQrDataUrl = await generatePedigreeQrCode([0], {
-              qrOptions: { width: 80, margin: 1, errorCorrectionLevel: 'M' }
+              format: 'image',
+              qrOptions: {
+                width: 80,
+                margin: 1,
+                errorCorrectionLevel: 'M'
+              }
             });
           }
           console.log('Generated pedigree QR code with PED format data');

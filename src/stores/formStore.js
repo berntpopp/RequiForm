@@ -46,7 +46,6 @@ export const useFormStore = defineStore('form', () => {
   } = usePatientData();
   
   // Additional form-related state
-  const selectedTests = ref([]);
   const phenotypeDataObj = ref({});
   const showPedigree = ref(false);
   const pedigreeDataUrl = ref('');
@@ -85,9 +84,6 @@ export const useFormStore = defineStore('form', () => {
       diagnosis: patientData.personalInfo.diagnosis || ''
     });
     
-    // Update selected panels
-    updateSelectedPanels(selectedTests.value || []);
-    
     // Update phenotype data
     updatePhenotypeData(
       phenotypeDataObj.value ? 
@@ -107,10 +103,10 @@ export const useFormStore = defineStore('form', () => {
    * This function maps data from the newer unified model back to the older format fields,
    * ensuring backward compatibility with components that expect the legacy structure.
    * 
-   * Handles bidirectional synchronization of:
+   * Handles synchronization of:
    * - Personal information fields
    * - Category information
-   * - Selected panels/tests
+   * - Phenotype data (converting unified array to legacy object)
    * 
    * @returns {void}
    */
@@ -130,52 +126,6 @@ export const useFormStore = defineStore('form', () => {
       patientData.personalInfo.category = patientData.category;
     } else if (patientData.personalInfo.category) {
       patientData.category = patientData.personalInfo.category;
-    }
-    
-    // Ensure selected panels are synchronized properly in both data models
-    if (selectedTests.value && selectedTests.value.length > 0) {
-      // Explicitly set the selectedPanels in patientData to match selectedTests
-      patientData.selectedPanels = [...selectedTests.value];
-    } else if (patientData.selectedPanels && patientData.selectedPanels.length > 0) {
-      // If no selectedTests but patientData has selectedPanels, synchronize in reverse
-      selectedTests.value = [...patientData.selectedPanels];
-    }
-    
-    // Ensure phenotype data synchronization between object and array formats
-    if (phenotypeDataObj.value && Object.keys(phenotypeDataObj.value).length > 0) {
-      // If we have data in the object format, make sure it's also in the array format for UI
-      if (!patientData.phenotypeData || patientData.phenotypeData.length === 0) {
-        console.log('formStore: Converting phenotypeDataObj to array format for UI components');
-        const phenotypeArray = [];
-        
-        // Convert to array of { categoryId, phenotypeId, status } objects
-        Object.entries(phenotypeDataObj.value).forEach(([categoryId, categoryData]) => {
-          if (typeof categoryData === 'object') {
-            Object.entries(categoryData).forEach(([phenotypeId, status]) => {
-              if (status !== 'no input') { // Only include meaningful values as per QR code requirements
-                phenotypeArray.push({
-                  categoryId: categoryId,
-                  phenotypeId: phenotypeId,
-                  status: status
-                });
-              }
-            });
-          }
-        });
-        
-        patientData.phenotypeData = phenotypeArray;
-        console.log('formStore: Created array format with', phenotypeArray.length, 'phenotype items');
-      }
-    }
-    
-    // Also ensure the original fields are populated for bidirectional compatibility
-    patientData.personalInfo.firstName = patientData.personalInfo.firstName || patientData.personalInfo.givenName || '';
-    patientData.personalInfo.lastName = patientData.personalInfo.lastName || patientData.personalInfo.familyName || '';
-    patientData.personalInfo.referrer = patientData.personalInfo.referrer || patientData.personalInfo.physicianName || '';
-    
-    // Update selected tests
-    if (patientData.selectedPanels) {
-      selectedTests.value = [...patientData.selectedPanels];
     }
     
     // Process phenotype data
@@ -205,21 +155,6 @@ export const useFormStore = defineStore('form', () => {
   function updatePatientData(newData) {
     // Update patient data
     Object.assign(patientData.personalInfo, newData);
-    
-    // Synchronize with unified data model
-    syncUnifiedPatientData();
-  }
-  
-  /**
-   * Updates the selected tests/panels.
-   * This function updates the selectedTests reactive reference and
-   * ensures synchronization with the unified data model.
-   * 
-   * @param {Array<string>} tests - Array of test IDs to set as selected
-   * @returns {void}
-   */
-  function updateSelectedTests(tests) {
-    selectedTests.value = [...tests];
     
     // Synchronize with unified data model
     syncUnifiedPatientData();
@@ -311,7 +246,6 @@ export const useFormStore = defineStore('form', () => {
    */
   function resetForm() {
     resetPatientData();
-    selectedTests.value = [];
     phenotypeDataObj.value = {};
     showPedigree.value = false;
     pedigreeDataUrl.value = '';
@@ -342,8 +276,8 @@ export const useFormStore = defineStore('form', () => {
     // Create a combined export object
     return {
       patientData: exportPatientData(),
-      selectedTests: selectedTests.value,
-      phenotypeData: phenotypeDataObj.value,
+      selectedPanels: patientData.selectedPanels || [], // Export from unified model
+      phenotypeData: convertPhenotypeDataToUnifiedFormat(phenotypeDataObj.value), // Use unified format
       showPedigree: showPedigree.value,
       category: category // Include the category field for URL sharing
     };
@@ -373,7 +307,7 @@ export const useFormStore = defineStore('form', () => {
       // Special case for data copied from the URL hash format
       // This format has a nested structure with fields at the top level as well
       const isHashFormatData = data.patientData && 
-                             (data.selectedTests || data.phenotypeData || 
+                             (data.selectedPanels || data.phenotypeData || 
                               typeof data.showPedigree === 'boolean' ||
                               data.category);
       
@@ -389,32 +323,10 @@ export const useFormStore = defineStore('form', () => {
         // Handle top-level fields that might override nested ones
         // For hash format, we prioritize the top-level fields as they're more current
         
-        // Handle selected tests from top level
-        if (data.selectedTests && Array.isArray(data.selectedTests)) {
-          console.log('formStore: Setting top-level selected tests:', data.selectedTests);
-          selectedTests.value = [...data.selectedTests];
-          
-          // Also store in patientData.selectedPanels for direct compatibility with UI components
-          patientData.selectedPanels = [...data.selectedTests];
-          
-          console.log('formStore: Synchronized selectedTests to patientData.selectedPanels:', patientData.selectedPanels);
-          
-          // Special domain-specific logic for nephronophthise panel
-          // If the nephronophthise panel is included, set the category to nephrology
-          if (data.selectedTests.includes('nephronophthise') && (!data.category || data.category !== 'nephrology')) {
-            console.log('formStore: Auto-setting category to nephrology based on nephronophthise panel');
-            const categoryValue = 'nephrology';
-            
-            // Set in all possible locations for maximum compatibility
-            updateCategory(categoryValue);
-            patientData.category = categoryValue;
-            if (patientData.personalInfo) {
-              patientData.personalInfo.category = categoryValue;
-            }
-            
-            // Also set it in the data object so it gets propagated properly
-            data.category = categoryValue;
-          }
+        // Handle selected panels from top level
+        if (data.selectedPanels && Array.isArray(data.selectedPanels)) {
+          console.log('formStore: Setting top-level selected panels:', data.selectedPanels);
+          updateSelectedPanels(data.selectedPanels);
         }
         
         // Handle top-level phenotype data
@@ -450,13 +362,13 @@ export const useFormStore = defineStore('form', () => {
               
               // Set both formats
               phenotypeDataObj.value = phenotypeObj;
-              patientData.phenotypeData = phenotypeArray;
+              updatePhenotypeData(phenotypeArray);
               
               console.log('formStore: Converted flat phenotype data to', phenotypeArray.length, 'items');
             } else {
               // Standard array format with {categoryId, phenotypeId, status} objects
               console.log('formStore: Using standard phenotype array format');
-              patientData.phenotypeData = [...data.phenotypeData];
+              updatePhenotypeData(data.phenotypeData);
               
               // Also convert to object format
               const phenotypeObj = {};
@@ -494,14 +406,13 @@ export const useFormStore = defineStore('form', () => {
                   });
                 });
                 
-                patientData.phenotypeData = phenotypeArray;
+                updatePhenotypeData(phenotypeArray);
                 console.log('formStore: Phenotype data converted to array format with', 
                            phenotypeArray.length, 'items');
               }
             }
           }
         }
-        
         
         // Handle top-level category
         if (data.category) {
@@ -544,10 +455,7 @@ export const useFormStore = defineStore('form', () => {
         // Handle selected panels/tests
         if (data.selectedPanels && Array.isArray(data.selectedPanels)) {
           console.log('formStore: Setting selected panels:', data.selectedPanels);
-          selectedTests.value = [...data.selectedPanels];
-        } else if (data.selectedTests && Array.isArray(data.selectedTests)) {
-          console.log('formStore: Setting selected tests:', data.selectedTests);
-          selectedTests.value = [...data.selectedTests];
+          updateSelectedPanels(data.selectedPanels);
         }
         
         // Handle phenotype data
@@ -583,7 +491,6 @@ export const useFormStore = defineStore('form', () => {
       
       // Force a Vue reactivity update on the main objects
       patientData.personalInfo = { ...patientData.personalInfo };
-      selectedTests.value = [...selectedTests.value];
       
       return true;
     } catch (error) {
@@ -616,7 +523,6 @@ export const useFormStore = defineStore('form', () => {
     sectionValidation,
     
     // Additional state
-    selectedTests,
     phenotypeDataObj,
     showPedigree,
     pedigreeDataUrl,
@@ -664,7 +570,6 @@ export const useFormStore = defineStore('form', () => {
     
     // Additional methods
     updatePatientData,
-    updateSelectedTests,
     updatePhenotypeDataObj,
     updatePedigreeDataUrl,
     setShowPedigree,

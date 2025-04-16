@@ -26,8 +26,10 @@
  * not to enter sensitive personal data. Once acknowledged, it emits a
  * 'dismiss' event.
  */
-export default {
-  name: 'Disclaimer',
+import { defineComponent } from 'vue';
+
+export default defineComponent({
+  name: 'AppDisclaimer',
   data() {
     return {
       dialog: true,
@@ -39,7 +41,7 @@ export default {
       this.$emit('dismiss');
     },
   },
-};
+});
 </script>
 
 <style scoped>

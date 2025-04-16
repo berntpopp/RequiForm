@@ -18,12 +18,13 @@
 </template>
 
 <script>
+import { defineComponent } from 'vue';
 import appConfig from '../config/appConfig.js';
 import pdfConfig from '../data/pdfConfig.json';
 import testsData from '../data/tests.json';
 
-export default {
-  name: 'Footer',
+export default defineComponent({
+  name: 'AppFooter',
   props: {
     disclaimerAcknowledged: {
       type: Boolean,
@@ -41,7 +42,7 @@ export default {
       testSchemaVersion: (testsData.schema && testsData.schema.version) || 'N/A',
     };
   },
-};
+});
 </script>
 
 <style scoped>

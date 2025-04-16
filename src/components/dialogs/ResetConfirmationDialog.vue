@@ -20,17 +20,14 @@
  * @file ResetConfirmationDialog.vue - Dialog for confirming application reset
  * @module components/dialogs/ResetConfirmationDialog
  */
-import { ref } from 'vue';
+// import { computed } from 'vue'; // Remove unused import
 
 const props = defineProps({
   /**
    * Controls dialog visibility
    * @type {Boolean}
    */
-  modelValue: {
-    type: Boolean,
-    required: true
-  }
+  modelValue: Boolean
 });
 
 const emit = defineEmits([

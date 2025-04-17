@@ -12,7 +12,7 @@
  */
 
 // No longer using computed
-import { faqContent } from '../data/faqContent';
+import { useFaqService } from '../services/faqService';
 import { useUiStore } from '../stores/uiStore';
 
 /**
@@ -40,7 +40,8 @@ export function useFaq() {
    * - answer: The answer text, which may include HTML formatting
    * - category: Optional category for grouping related FAQs
    */
-  const faqItems = faqContent;
+  // Get the reactive, localized FAQ items from the service composable
+  const { localizedFaqContent } = useFaqService();
   
   /**
    * Opens the FAQ modal dialog.
@@ -66,7 +67,7 @@ export function useFaq() {
   
   return {
     // Data
-    faqItems,
+    faqItems: localizedFaqContent,
     
     // Methods
     openFaq,

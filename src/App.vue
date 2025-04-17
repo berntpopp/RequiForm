@@ -96,7 +96,7 @@
 
       <FAQDialog
         v-model="uiStore.showFAQModal"
-        :faqItems="Array.isArray(faq.faqItems) ? faq.faqItems : []"
+        :faqItems="faq.faqItems.value"
         @close="faq.closeFaq"
       />
 

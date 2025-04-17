@@ -3,6 +3,28 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="referrer" content="no-referrer" />
+
+    <!-- SEO and Social Sharing Meta Tags -->
+    <title>%VITE_APP_BASE_TITLE%%VITE_APP_TITLE_SUFFIX%</title>
+    <meta name="description" content="%VITE_APP_DESCRIPTION%">
+    <link rel="canonical" href="%VITE_CANONICAL_URL%" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="%VITE_CANONICAL_URL%">
+    <meta property="og:title" content="%VITE_APP_BASE_TITLE%%VITE_APP_TITLE_SUFFIX%">
+    <meta property="og:description" content="%VITE_APP_DESCRIPTION%">
+    <meta property="og:image" content="%VITE_SOCIAL_IMAGE_URL%">
+    <meta property="og:site_name" content="%VITE_ORGANIZATION_NAME%">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="%VITE_CANONICAL_URL%">
+    <meta property="twitter:title" content="%VITE_APP_BASE_TITLE%%VITE_APP_TITLE_SUFFIX%">
+    <meta property="twitter:description" content="%VITE_APP_DESCRIPTION%">
+    <meta property="twitter:image" content="%VITE_SOCIAL_IMAGE_URL%">
+
+    <!-- Favicon Links -->
     <!-- Remove old Vite favicon and add new RequiForm links -->
     <!-- <link rel="icon" type="image/svg+xml" href="/vite.svg" /> -->
     <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
@@ -10,10 +32,34 @@
     <link rel="shortcut icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
+
     <!-- Add meta theme color if desired/provided by generator -->
     <!-- <meta name="theme-color" content="#ffffff"> --> 
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>RequiForm</title>
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "%VITE_APP_BASE_TITLE%%VITE_APP_TITLE_SUFFIX%",
+      "description": "%VITE_APP_DESCRIPTION%",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "All (Web Browser)",
+      "url": "%VITE_CANONICAL_URL%",
+      "browserRequirements": "Requires JavaScript",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "creator": {
+         "@type": "Organization",
+         "name": "%VITE_ORGANIZATION_NAME%",
+         "url": "%VITE_ORGANIZATION_URL%"
+       }
+    }
+    </script>
 
     <!-- Load local jQuery -->
     <script src="/vendor/jquery-3.7.1.min.js"></script>

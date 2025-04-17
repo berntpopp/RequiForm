@@ -117,6 +117,37 @@ http://localhost:5173/#givenName=Jane&familyName=Doe&birthdate=1990-02-01&insura
 
 This URL will pre-populate the form with Jane Doe's information and select the specified panels in the nephrology category.
 
+## Deployment & Configuration
+
+### Customizing Metadata (SEO & Social Sharing)
+
+RequiForm uses Vite's environment variable system to allow customization of HTML metadata (like titles, descriptions, canonical URLs, and social media previews) for different deployments (e.g., self-hosted instances). This is useful for branding or setting context specific to your organization.
+
+The following variables can be set in a `.env` file (e.g., `.env.local` for local overrides, or a specific `.env.[mode]` file) at the project root **before building the application** (`npm run build`):
+
+- `VITE_APP_BASE_TITLE`: The main application title (Default: `RequiForm`).
+- `VITE_APP_TITLE_SUFFIX`: A suffix added to the base title (e.g., `| My Institution`). Useful for branding. (Default: empty).
+- `VITE_APP_DESCRIPTION`: The meta description used for SEO and social sharing. (Default: Focuses on general form generation).
+- `VITE_CANONICAL_URL`: The canonical URL for the deployment. Crucial for SEO if hosting on a different domain. (Default: GitHub Pages URL).
+- `VITE_ORGANIZATION_NAME`: Name of the organization deploying the instance. Used in structured data and potentially `og:site_name`. (Default: empty).
+- `VITE_ORGANIZATION_URL`: URL of the deploying organization. Used in structured data. (Default: empty).
+- `VITE_SOCIAL_IMAGE_URL`: Absolute URL to the image used for Open Graph and Twitter cards (recommended size: 1200x630px). (Default: Points to the default image in the `/public` folder of the GitHub Pages deployment).
+
+**Example `.env.local` for customization:**
+
+```env
+# .env.local - Example overrides for a self-hosted instance
+VITE_APP_BASE_TITLE=Clinical Forms
+VITE_APP_TITLE_SUFFIX=| University Hospital
+VITE_APP_DESCRIPTION=Secure form tool provided by University Hospital.
+VITE_CANONICAL_URL=https://forms.university-hospital.org/
+VITE_ORGANIZATION_NAME=University Hospital Genetics Clinic
+VITE_ORGANIZATION_URL=https://university-hospital.org/genetics
+VITE_SOCIAL_IMAGE_URL=https://forms.university-hospital.org/assets/social-preview.png
+```
+
+**Important:** After creating or modifying your `.env` file, you must rebuild the application (`npm run build`) for the changes to take effect in the generated `index.html`. Ensure your custom `VITE_SOCIAL_IMAGE_URL` points to an accessible image if you override it.
+
 ## Downloading Local Assets
 
 To ensure that RequiForm functions offline without relying on external CDN dependencies, download the following JavaScript and CSS assets and place them in the appropriate directories.

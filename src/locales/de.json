@@ -13,7 +13,8 @@
       "saveData": "Daten speichern",
       "loadData": "Daten laden",
       "generatePdf": "PDF generieren",
-      "moreActions": "Weitere Aktionen"
+      "moreActions": "Weitere Aktionen",
+      "toggleLanguage": "Sprache zwischen Deutsch und Englisch wechseln"
     },
     "tooltips": {
       "themeToggleLight": "Zu hellem Design wechseln",
@@ -26,7 +27,8 @@
       "pasteData": "Daten einfügen",
       "saveData": "Daten speichern",
       "loadData": "Daten laden",
-      "generatePdf": "PDF generieren"
+      "generatePdf": "PDF generieren",
+      "toggleLanguage": "Sprache wechseln (DE/EN)"
     },
     "menu": {
       "reset": "Anwendung zurücksetzen",
@@ -37,7 +39,8 @@
       "pasteData": "Daten einfügen",
       "saveData": "Daten speichern",
       "loadData": "Daten laden",
-      "generatePdf": "PDF generieren"
+      "generatePdf": "PDF generieren",
+      "toggleLanguage": "Sprache wechseln"
     }
   },
   "patientForm": {
@@ -199,16 +202,16 @@
   },
   "loadDataDialog": {
     "title": "Formulardaten laden",
-    "instruction": "Wählen Sie eine JSON-Datei zum Importieren aus:",
+    "instruction": "Wählen Sie eine zuvor gespeicherte JSON-Datei aus, um die Formulardaten zu laden.",
     "labels": {
-      "fileInput": "Datei auswählen"
-    },
-    "validation": {
-      "fileRequired": "Bitte wählen Sie eine Datei aus"
+      "fileInput": "JSON-Datei auswählen"
     },
     "buttons": {
       "cancel": "Abbrechen",
       "import": "Importieren"
+    },
+    "validation": {
+      "fileRequired": "Bitte wählen Sie eine Datei zum Importieren aus."
     }
   },
   "resetConfirmationDialog": {

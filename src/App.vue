@@ -13,6 +13,8 @@
       @save-data="uiStore.openSaveDataDialog"
       @load-data="uiStore.openLoadDataDialog"
       @open-paste-data="uiStore.openPasteDataDialog"
+      @toggle-language="toggleLanguage"
+      @toggle-log-viewer="toggleLogViewer"
     />
 
     <!-- Disclaimer Modal: shown if not yet acknowledged or if reopened -->
@@ -195,7 +197,7 @@ const faq = useFaq();
 const formActions = useFormActions();
 
 // Initialize i18n
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 // Set up provides for child components
 provide('ui', uiStore);
@@ -394,6 +396,19 @@ async function handleGeneratePdf() {
   await pdfGenerator.generatePdf();
 }
 
+// Function to toggle language between English and German
+const toggleLanguage = () => {
+  const newLocale = locale.value === 'en' ? 'de' : 'en';
+  locale.value = newLocale;
+  document.documentElement.lang = newLocale; // Update root HTML lang attribute
+  localStorage.setItem('userLanguage', newLocale); // Save preference
+  logService.info(`Language switched to ${newLocale.toUpperCase()}`);
+};
+
+// Function to toggle the log viewer
+const toggleLogViewer = () => {
+  uiStore.toggleLogViewer();
+}
 </script>
 
 <style scoped>

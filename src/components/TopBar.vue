@@ -39,6 +39,13 @@
             {{ isDark ? t('topbar.tooltips.themeToggleLight') : t('topbar.tooltips.themeToggleDark') }}
           </v-tooltip>
         </v-btn>
+        <!-- Language Toggle Button -->
+        <v-btn icon @click="$emit('toggle-language')" :aria-label="t('topbar.aria.toggleLanguage')">
+          <v-icon>{{ currentLanguageIcon }}</v-icon>
+          <v-tooltip activator="parent" location="bottom">
+            {{ t('topbar.tooltips.toggleLanguage') }}
+          </v-tooltip>
+        </v-btn>
         <!-- Reset Application Button -->
         <v-btn icon @click="$emit('reset-form')" :aria-label="t('topbar.aria.reset')">
           <v-icon>mdi-restart</v-icon>
@@ -125,6 +132,13 @@
               <!-- Title reflects the action - same as tooltip -->
               <v-list-item-title>{{ isDark ? t('topbar.tooltips.themeToggleLight') : t('topbar.tooltips.themeToggleDark') }}</v-list-item-title>
             </v-list-item>
+            <!-- Language Toggle Menu Item -->
+            <v-list-item @click="$emit('toggle-language')">
+              <template v-slot:prepend>
+                <v-icon>{{ currentLanguageIcon }}</v-icon>
+              </template>
+              <v-list-item-title>{{ t('topbar.menu.toggleLanguage') }}</v-list-item-title>
+            </v-list-item>
             <v-list-item @click="$emit('reset-form')">
               <template v-slot:prepend>
                 <v-icon>mdi-restart</v-icon>
@@ -188,10 +202,11 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'; // Import computed
 import { useI18n } from 'vue-i18n'; // Import useI18n
 import { brandingConfig } from '@/services/brandingConfigService'; // Import branding config
 
-const { t } = useI18n(); // Initialize translation function
+const { t, locale } = useI18n(); // Initialize translation function and get locale
 
 /**
  * TopBar component for RequiForm.
@@ -207,7 +222,7 @@ const { t } = useI18n(); // Initialize translation function
  *   isDark {Boolean} - Whether the dark theme is active.
  *
  * Emits:
- *   toggle-theme, reset-form, open-faq, start-tour, copy-url, copy-encrypted-url, generate-pdf, save-data, load-data, open-paste-data.
+ *   toggle-theme, reset-form, open-faq, start-tour, copy-url, copy-encrypted-url, generate-pdf, save-data, load-data, open-paste-data, toggle-language.
  */
 defineProps({
   isDark: {
@@ -215,6 +230,13 @@ defineProps({
     required: true,
   },
 });
+
+// Computed property for the language toggle icon (now local to TopBar)
+const currentLanguageIcon = computed(() => {
+  // Example: display 'EN' or 'DE' based on current locale
+  return locale.value === 'en' ? 'mdi-alpha-e-box-outline' : 'mdi-alpha-d-box-outline'; 
+});
+
 </script>
 
 <style scoped>

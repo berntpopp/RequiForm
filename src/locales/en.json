@@ -13,7 +13,8 @@
       "saveData": "Save Data",
       "loadData": "Load Data",
       "generatePdf": "Generate PDF",
-      "moreActions": "More Actions"
+      "moreActions": "More Actions",
+      "toggleLanguage": "Switch Language between German and English"
     },
     "tooltips": {
       "themeToggleLight": "Switch to Light Theme",
@@ -26,7 +27,8 @@
       "pasteData": "Paste Data",
       "saveData": "Save Data",
       "loadData": "Load Data",
-      "generatePdf": "Generate PDF"
+      "generatePdf": "Generate PDF",
+      "toggleLanguage": "Switch Language (DE/EN)"
     },
     "menu": {
       "reset": "Reset Application",
@@ -37,7 +39,8 @@
       "pasteData": "Paste Data",
       "saveData": "Save Data",
       "loadData": "Load Data",
-      "generatePdf": "Generate PDF"
+      "generatePdf": "Generate PDF",
+      "toggleLanguage": "Switch Language"
     }
   },
   "patientForm": {

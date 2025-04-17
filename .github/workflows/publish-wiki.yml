@@ -1,24 +1,27 @@
-name: Publish Wiki
+name: Publish Wiki Documentation
 
 on:
   push:
     branches:
-      - main # Trigger the workflow on push events to the main branch
+      - main # Or your default branch
+    paths:
+      - 'docs/**' # Trigger if anything in docs changes
   workflow_dispatch: # Allows manual triggering
 
 permissions:
   contents: write # Grant write permission to GITHUB_TOKEN for pushing to the wiki repo
 
 jobs:
-  publish:
+  publish-wiki:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # Allow workflow to push to the wiki
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Publish Wiki Content
-        uses: SwiftDocOrg/github-wiki-publish-action@v1
+      - name: Publish Documentation to Wiki
+        uses: Andrew-Chen-Wang/github-wiki-action@v4
         with:
-          path: "docs" # Specify the directory containing the wiki markdown files
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: "docs" # Path to the directory containing wiki files

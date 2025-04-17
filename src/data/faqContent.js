@@ -42,6 +42,11 @@ export const faqContent = [
     answer:
       'RequiForm uses a specific <strong>JSON format</strong> for saving and loading data via files. You can inspect the format by saving your current form data. When importing, the application expects data in this structure. For pasting data, you can use the same JSON structure or provide URL-encoded data (like from a shared link).',
   },
+  {
+    category: 'Data Handling & Security',
+    question: 'Can I share the collected data securely?',
+    answer: 'Yes! You can share the collected data securely using the "Copy Encrypted Link" feature. This creates a special link containing the data, encrypted with a password you provide. The data is encrypted directly in your browser using the strong AES-GCM standard from the Web Crypto API. When someone opens the link, they must enter the correct password to decrypt the data in <strong>their</strong> browser. The password is never stored or sent over the internet, ensuring confidentiality and integrity. Only someone with the exact link <strong>and</strong> the correct password can access the data.',
+  },
 
   // --- Features ---
   {

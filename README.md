@@ -2,6 +2,12 @@
 
 **RequiForm** is a client-side web application for generating and managing genetic test requisition forms. It aims to streamline the process of filling out patient information, selecting specific genetic tests or panels, and producing a final PDF (with an embedded QR code) that can be shared or printed.
 
+## Project Documentation (Wiki)
+
+**For detailed user guides, technical information, security details, and development instructions, please visit the [Project Wiki](https://github.com/BerntPopp/RequiForm/wiki).**
+
+The Wiki is automatically updated from the `/docs` directory in this repository via GitHub Actions.
+
 ## Key Features
 
 1. **Patient Data Entry**  
@@ -32,6 +38,11 @@
    - Allows users to filter logs by severity level using a dropdown menu in the log viewer header.
    - Includes a button to download the current log entries as a JSON file for troubleshooting or record-keeping.
    - Helps diagnose issues without requiring browser developer tools.
+
+7. **Secure Link Sharing**
+   - Create password-protected links to share the collected data.
+   - The data is encrypted client-side in your browser using strong AES-GCM encryption (Web Crypto API) before generating the link.
+   - Decryption also happens client-side in the recipient's browser only when the correct password is entered.
 
 ## Project Goals
 

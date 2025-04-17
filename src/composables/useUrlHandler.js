@@ -15,7 +15,7 @@
 
 import { ref } from 'vue';
 import { parsePatientDataFromUrl, clearUrlParameters } from '../utils/urlUtils';
-import { encryptData, decryptData } from '../utils/cryptoUtils';
+import { encryptData, decryptData } from '../utils/cryptoUtilsWebCrypto'; // Import new crypto functions
 import { useUiStore } from '../stores/uiStore';
 import { useFormStore } from '../stores/formStore';
 import logService from '@/services/logService';
@@ -89,9 +89,10 @@ export function useUrlHandler() {
    * - Legacy flat structure from older URLs
    * - Special case handling for specific panels like nephrology
    * 
+   * @param {string} passwordParam - Optional password from URL parameter.
    * @returns {void}
    */
-  function initializeFromUrl() {
+  async function initializeFromUrl() {
     // --- URL Length Check ---
     if (window.location.href.length > MAX_URL_LENGTH) {
       logService.warn(`[URL Handler] Incoming URL length (${window.location.href.length}) exceeds maximum allowed (${MAX_URL_LENGTH}). Aborting initialization.`);
@@ -166,7 +167,7 @@ export function useUrlHandler() {
       if (passwordParam) {
         logService.debug('Found password parameter. Attempting direct decryption.');
         // Immediately try decrypting if password is also provided
-        handlePasswordSubmit(passwordParam);
+        await handlePasswordSubmit(passwordParam);
       } else {
         // Show password dialog if no password provided in URL
         logService.debug('Password not found in URL. Showing password dialog.');
@@ -316,34 +317,29 @@ export function useUrlHandler() {
   }
   
   /**
-   * Creates an encrypted URL using the provided password.
-   * This function:
-   * 1. Exports the current form data
-   * 2. Compacts it by removing empty values
-   * 3. Encrypts the data using the provided password
-   * 4. Creates a URL with the encrypted data as a HASH parameter
+   * Creates an encrypted URL with the current application state using AES-GCM.
+   * The result is a URL with the encrypted data in the hash fragment.
+   * e.g., http://example.com/#encrypted={...encrypted data...}
    * 
-   * The resulting URL format is: 
-   * http://example.com/#encrypted={...encrypted data...}
-   * 
-   * @param {string} password - Password to use for encryption
-   * @returns {string|null} The complete URL with encrypted data, or null if encryption failed
+   * @param {string} password - Password to use for encryption.
+   * @returns {Promise<string|null>} A promise resolving to the complete URL with encrypted data, or null if encryption failed.
    */
-  function createEncryptedUrl(password) {
+  async function createEncryptedUrl(password) {
     try {
       // Get the current form data
       const fullData = formStore.exportFormData();
       
-      // Create a compact version by removing empty fields
-      const compactData = removeEmptyValues(fullData);
-      logService.debug('Creating encrypted URL with compact data format');
-      
-      // Stringify the data
+      // Compact the data if necessary, or decide which parts to include
+      const compactData = {
+          patientData: fullData.patientData,
+          phenotypeData: fullData.phenotypeData,
+          showPedigree: fullData.showPedigree,
+      };
       const jsonData = JSON.stringify(compactData);
       logService.debug(`JSON data length before encryption: ${jsonData.length} characters`);
       
       // Encrypt the data
-      const encryptedData = encryptData(jsonData, password);
+      const encryptedData = await encryptData(jsonData, password);
       
       // Create the base URL (current location without parameters)
       const baseUrl = window.location.protocol + '//' + 
@@ -363,137 +359,115 @@ export function useUrlHandler() {
       }
       
       return url;
-    } catch (error) {
-      logService.error('Error creating encrypted URL:', error);
-      uiStore.showSnackbar("Error creating encrypted URL.");
-      return null;
+    } catch (error) { // Catch errors from encryptData
+      console.error('Error creating encrypted URL:', error);
+      uiStore.showSnackbar('error', `Encryption failed: ${error.message || 'Unknown error'}`);
+      // Re-throw a more generic error or specific known ones
+      throw new Error('Failed to create encrypted URL.'); 
     }
   }
   
   /**
-   * Copies the encrypted URL to the clipboard.
-   * Generates an encrypted URL using createEncryptedUrl() and copies it to the
-   * system clipboard. Shows user feedback via a snackbar notification.
+   * Prompts the user for a password and copies the resulting AES-GCM encrypted URL
+   * to the clipboard.
    * 
-   * @param {string} password - Password to use for encryption
-   * @returns {Promise<boolean>} Promise resolving to true if copy was successful, false otherwise
-   * @throws {Error} May throw if clipboard operations are not supported or fail
+   * @param {string} password - Password obtained from the user for encryption.
+   * @returns {Promise<boolean>} A promise resolving to true if the URL was successfully generated and copied, false otherwise.
    */
   async function copyEncryptedUrl(password) {
     try {
-      const url = createEncryptedUrl(password);
+      const url = await createEncryptedUrl(password);
       if (!url) return false;
       
       await navigator.clipboard.writeText(url);
       uiStore.showSnackbar("Encrypted URL copied to clipboard!");
       return true;
     } catch (error) {
-      logService.error('Error copying encrypted URL to clipboard:', error);
-      uiStore.showSnackbar("Error copying encrypted URL to clipboard.");
+      // Error is already logged and shown by createEncryptedUrl
+      // uiStore.showSnackbar('error', `Failed to copy encrypted link: ${error.message}`);
+      console.error('Failed to generate or copy encrypted link:', error);
       return false;
     }
   }
   
   /**
-   * Decrypts data from the URL using the provided password.
-   * This function:
-   * 1. Retrieves encrypted data from URL parameters
-   * 2. Attempts to decrypt it using the provided password
-   * 3. Parses the decrypted JSON data
-   * 4. Imports the data into the application state
-   * 5. Clears the URL parameters for security
-   * 
-   * If decryption fails, it sets an error message in the UI store.
-   * 
-   * @param {string} encryptedData - Encrypted data from URL
-   * @param {string} password - Password for decryption
-   * @returns {boolean} True if decryption and data import were successful, false otherwise
+   * Decrypts data from an encrypted URL parameter using AES-GCM.
+   * @param {string} encryptedPayload - The encrypted data string from the URL.
+   * @param {string} password - The password for decryption.
+   * @returns {Promise<object|null>} A promise resolving to the decrypted data object or null on failure.
    */
-  function decryptUrlData(encryptedData, password) {
+  async function decryptUrlData(encryptedPayload, password) {
+    if (!encryptedPayload || !password) {
+      console.warn('Decryption skipped: Missing encrypted data or password.');
+      uiStore.setDecryptionError('Missing data or password.'); // Inform UI store
+      return null;
+    }
+    uiStore.setDecryptionError(null); // Clear previous errors
+
     try {
-      // --- Encrypted Data Length Check (before costly ops) ---
-      // Estimate potential size after Base64 decoding (approx 3/4)
-      // Check raw length before atob
-      if (encryptedData.length > MAX_PARAM_LENGTH * 4 / 3 + 100) { // Add buffer for Base64 overhead
-         logService.warn(`[URL Handler] Incoming 'encrypted' parameter raw length (${encryptedData.length}) suggests decoded size might exceed limit (${MAX_PARAM_LENGTH} bytes). Aborting decryption.`);
-         uiStore.setDecryptionError('Encrypted data is too large to process.');
-         // Clear potentially harmful param
-         clearUrlParameters(); 
-         pendingEncryptedValue.value = '';
-         return false;
+      // Use the new AES-GCM decryption function
+      const decryptedJsonString = await decryptData(encryptedPayload, password);
+      
+      // Sanitize before parsing JSON to prevent prototype pollution
+      const parsedData = JSON.parse(decryptedJsonString);
+      // IMPORTANT: Sanitize the parsed object
+      sanitizeParsedJson(parsedData);
+
+      // Basic validation of the decrypted structure (optional but recommended)
+      if (typeof parsedData !== 'object' || parsedData === null || !parsedData.patientData || !parsedData.phenotypeData) {
+          throw new Error('Decrypted data has an invalid structure.');
       }
-      logService.debug('Found encrypted data in URL hash. Decrypting...');
+      
+      console.log('Decryption successful.');
+      return parsedData;
 
-      // Decrypt the data (assuming cryptoUtils handles potential atob errors)
-      // Pass the raw value which might still be URI encoded
-      const decryptedJson = decryptData(decodeURIComponent(encryptedData), password);
-
-      if (!decryptedJson) { // decryptData might return null/empty on failure
-          throw new Error('Decryption function returned empty result.');
-      }
-
-      // --- Decrypted Data Length Check ---
-      if (decryptedJson.length > MAX_PARAM_LENGTH) {
-          logService.warn(`[URL Handler] Incoming 'encrypted' parameter length (${decryptedJson.length}) exceeds maximum allowed (${MAX_PARAM_LENGTH}). Aborting processing.`);
-          uiStore.setDecryptionError('Decrypted data is too large.');
-          // Clear potentially harmful param
-          clearUrlParameters(); 
-          pendingEncryptedValue.value = '';
-          return false; // Stop processing
-      }
-      // -----------------------------------
-
-      // Parse the JSON data
-      let decryptedData = JSON.parse(decryptedJson);
-
-      // --- Sanitize Parsed JSON ---
-      decryptedData = sanitizeParsedJson(decryptedData);
-      logService.debug('Sanitized decrypted JSON data.');
-      // ---------------------------
-
-      // Import the sanitized data
-      formStore.importFormData(decryptedData, true); // Pass true for URL import
-
-      // Clear the URL parameters
-      clearUrlParameters();
-
-      // Reset the pending value
-      pendingEncryptedValue.value = '';
-
-      // Success!
-      uiStore.showSnackbar("Data decrypted and loaded successfully!");
-      // Call cancelDecryption which closes the dialog and clears the error state
-      uiStore.cancelDecryption();
-      return true;
     } catch (error) {
-      logService.error('Error decrypting or processing data:', error);
-      // Handle specific errors if needed (e.g., distinguish JSON parse from decryption)
-      uiStore.setDecryptionError("Decryption or data processing failed. Please check password or data format.");
-      // Don't clear params here, user might want to retry password
-      return false;
+      console.error('Decryption failed:', error);
+      // Set specific error message in UI store for feedback
+      uiStore.setDecryptionError(error.message || 'Decryption failed. Check password or link.');
+      return null; // Indicate failure
     }
   }
 
   /**
    * Handles the submission of the password from the dialog or URL.
+   * It attempts to decrypt the pending encrypted data using the provided password
+   * and imports the data if successful.
    * @param {string} password - The submitted password.
+   * @returns {Promise<void>} A promise that resolves when the handling is complete.
    */
-  const handlePasswordSubmit = (password) => {
+  const handlePasswordSubmit = async (password) => {
+    // Check if there's pending encrypted data AND a password
     if (pendingEncryptedValue.value && password) {
       logService.debug('Password submitted. Attempting decryption.');
+      
       // Pass both the pending encrypted data and the password
-      const success = decryptUrlData(pendingEncryptedValue.value, password);
-      if (success) {
-        // uiStore will close the dialog
-        pendingEncryptedValue.value = null; // Clear pending data
+      // Capture the actual data object returned by decryptUrlData
+      const decryptedData = await decryptUrlData(pendingEncryptedValue.value, password);
+
+      if (decryptedData) { // Check if decryption returned data (not null)
+        logService.debug('Decryption successful, importing data.');
+        // ---> CORRECTLY IMPORT THE DATA <--- 
+        formStore.importFormData(decryptedData, true); // Pass true for URL import
+        
+        // ---> CLEAR STATE/URL AFTER SUCCESS <--- 
+        pendingEncryptedValue.value = null; // Clear pending data *after* successful import
+        clearUrlParameters(); // Clear URL params after successful load
+        
+        uiStore.cancelDecryption(); // Close dialog and clear error state
+        uiStore.showSnackbar("Data decrypted and loaded successfully!"); 
       } else {
-        // Keep dialog open on failure, allow retry
+        // Decryption failed (decryptUrlData returned null and set error in uiStore)
         logService.warn('Decryption attempt failed with submitted password.');
+        // The error message should already be set in uiStore by decryptUrlData
+        // Do not clear pendingEncryptedValue here, user might retry password
       }
     } else {
+       // This log message indicates a problem - e.g. handler called twice?
+       // Check UI component logic if this repeats unexpectedly.
       logService.warn('Password submission handler called without pending encrypted data or password.');
     }
-  }
+  };
 
   return {
     // State

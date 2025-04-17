@@ -19,6 +19,12 @@ import { encryptData, decryptData } from '../utils/cryptoUtils';
 import { useUiStore } from '../stores/uiStore';
 import { useFormStore } from '../stores/formStore';
 import logService from '@/services/logService';
+import { sanitizeParsedJson } from '../utils/jsonSanitizer'; // Import the sanitizer
+
+// --- Configuration Constants ---
+const MAX_URL_LENGTH = 20 * 1024; // 20 KB limit for the entire URL
+const MAX_PARAM_LENGTH = 100 * 1024; // 100 KB limit for individual 'data' or decrypted 'encrypted' parameters
+// -----------------------------
 
 /**
  * Vue composable that provides URL handling functionality for the application.
@@ -32,6 +38,7 @@ import logService from '@/services/logService';
  *   @returns {Function} createEncryptedUrl - Function to create an encrypted URL
  *   @returns {Function} copyEncryptedUrl - Function to copy the encrypted URL to clipboard
  *   @returns {Function} decryptUrlData - Function to decrypt data from URL parameters
+ *   @returns {Function} handlePasswordSubmit - Function to handle password submission for decryption
  */
 export function useUrlHandler() {
   // Reference to the pending encrypted value from URL
@@ -85,97 +92,101 @@ export function useUrlHandler() {
    * @returns {void}
    */
   function initializeFromUrl() {
-    // Parse data from URL
-    const parsedData = parsePatientDataFromUrl();
-    logService.debug('Parsed data from URL:', parsedData);
-    
-    if (Object.keys(parsedData).length > 0) {
-      // Check if we have actual patient data vs empty structure
-      const hasPatientData = 
-        (parsedData.personalInfo && Object.values(parsedData.personalInfo).some(val => val)) ||
-        (parsedData.selectedPanels && parsedData.selectedPanels.length > 0) ||
-        (parsedData.phenotypeData && parsedData.phenotypeData.length > 0) ||
-        (parsedData.patientData && parsedData.patientData.personalInfo && 
-          Object.values(parsedData.patientData.personalInfo).some(val => val)) ||
-        parsedData.category;  // Check for category field
-      
-      if (hasPatientData) {
-        logService.debug('Initializing from URL data');
-        
-        // Handle the new data format where all data is inside a nested 'patientData' property
-        // This comes from the hash format with the full form export
-        if (parsedData.patientData) {
-          logService.debug('Found nested data structure, importing from patientData');
-          
-          // Check for a category in multiple possible locations
-          let categoryValue = parsedData.category || '';
-          
-          // Look in nested personalInfo for category (legacy format inside nested structure)
-          if (!categoryValue && parsedData.patientData.personalInfo && parsedData.patientData.personalInfo.category) {
-            categoryValue = parsedData.patientData.personalInfo.category;
-            logService.debug('Found category in nested personalInfo:', categoryValue);
-          }
-          
-          // Look for a direct category field in nested patientData
-          if (!categoryValue && parsedData.patientData.category) {
-            categoryValue = parsedData.patientData.category;
-            logService.debug('Found category in nested patientData:', categoryValue);
-          }
-          
-          // If the URL contained the 'nephrology' panel, set the category to nephrology
-          // This is a domain-specific fix for the main use case
-          if (!categoryValue && 
-              parsedData.selectedTests && 
-              parsedData.selectedTests.includes('nephronophthise')) {
-            categoryValue = 'nephrology';
-            logService.debug('Setting category based on selected test (nephronophthise):', categoryValue);
-          }
-          
-          // Propagate the found category to all locations for maximum compatibility
-          if (categoryValue) {
-            logService.debug('Propagating category to all data locations:', categoryValue);
-            parsedData.category = categoryValue;
-            
-            // Ensure it's in the nested patientData too
-            if (!parsedData.patientData.category) {
-              parsedData.patientData.category = categoryValue;
-            }
-            
-            // Also ensure it's in the nested personalInfo for full compatibility
-            if (!parsedData.patientData.personalInfo) {
-              parsedData.patientData.personalInfo = {};
-            }
-            parsedData.patientData.personalInfo.category = categoryValue;
-          }
-          
-          formStore.importFormData(parsedData, true);
-        } else {
-          // This is the legacy format where patient data is at the root
-          logService.debug('Found legacy data structure, importing directly');
-          formStore.importFormData({
-            patientData: parsedData,
-          }, true);
-        }
-        
-        // Clean up URL parameters
-        clearUrlParameters();
-        
-        // Notify the user
-        uiStore.showSnackbar("Data loaded from URL successfully!");
+    // --- URL Length Check ---
+    if (window.location.href.length > MAX_URL_LENGTH) {
+      logService.warn(`[URL Handler] Incoming URL length (${window.location.href.length}) exceeds maximum allowed (${MAX_URL_LENGTH}). Aborting initialization.`);
+      uiStore.showSnackbar('Error: URL is too long to process.', 'error');
+      // Optionally clear parameters or navigate away
+      // clearUrlParameters(); 
+      return; // Stop processing
+    }
+    // ------------------------
+
+    // Parse data from URL (Handles both query and hash)
+    const dataParam = getParameterFromHash('data');
+    const encryptedParam = getParameterFromHash('encrypted');
+
+    if (dataParam) {
+      // Parameter Length Check
+      if (dataParam.length > MAX_PARAM_LENGTH) {
+        logService.warn(`[URL Handler] Incoming 'data' parameter length (${dataParam.length}) exceeds maximum allowed (${MAX_PARAM_LENGTH}). Aborting processing.`);
+        uiStore.showSnackbar('Error: Input data is too large.', 'error');
+        clearUrlParameters(); // Clear potentially harmful param
+        return; // Stop processing
       }
+      logService.debug('Found "data" parameter in URL hash.');
+      try {
+        // Decode the parameter value (URLSearchParams/manual split might have partially decoded)
+        // Use decodeURIComponent to handle potential double encoding
+        const decodedDataParam = decodeURIComponent(dataParam);
+
+        // --- Parameter Length Check ---
+        if (decodedDataParam.length > MAX_PARAM_LENGTH) {
+          logService.warn(`[URL Handler] Incoming 'data' parameter length (${decodedDataParam.length}) exceeds maximum allowed (${MAX_PARAM_LENGTH}). Aborting processing.`);
+          uiStore.showSnackbar('Error: Input data is too large.', 'error');
+          clearUrlParameters(); // Clear potentially harmful param
+          return; // Stop processing
+        }
+        // ----------------------------
+
+        // Parse the JSON data
+        let parsedJsonData = JSON.parse(decodedDataParam);
+
+        // --- Sanitize Parsed JSON ---
+        parsedJsonData = sanitizeParsedJson(parsedJsonData);
+        logService.debug('Sanitized JSON data from "data" parameter.');
+        // ---------------------------
+
+        // Import the sanitized data
+        formStore.importFormData(parsedJsonData, true); // Pass true to indicate URL import
+
+        // Clear URL parameters after successful import
+        clearUrlParameters();
+        uiStore.showSnackbar('Data loaded successfully from URL!');
+
+      } catch (error) {
+        logService.error('Error processing "data" parameter from URL:', error);
+        uiStore.showSnackbar('Error loading data from URL. The data might be corrupted.', 'error');
+        // Clear potentially corrupted params
+        clearUrlParameters();
+      }
+    } else if (encryptedParam) {
+      // Parameter Length Check (Encrypted Data)
+      if (encryptedParam.length > MAX_PARAM_LENGTH) {
+        logService.warn(`[URL Handler] Incoming 'encrypted' parameter length (${encryptedParam.length}) exceeds maximum allowed (${MAX_PARAM_LENGTH}). Aborting decryption.`);
+        uiStore.showSnackbar("Error: Encrypted data is too large.", 'error');
+        clearUrlParameters(); // Clear potentially harmful param
+        return; // Stop processing before decryption
+      }
+      logService.debug('Found "encrypted" parameter in URL hash. Prompting for password.');
+      // Store the raw encrypted value 
+      const encryptedDataFromUrl = encryptedParam; 
+      const passwordParam = getParameterFromHash('password');
+
+      if (passwordParam) {
+        logService.debug('Found password parameter. Attempting direct decryption.');
+        // Immediately try decrypting if password is also provided
+        handlePasswordSubmit(passwordParam);
+      } else {
+        // Show password dialog if no password provided in URL
+        logService.debug('Password not found in URL. Showing password dialog.');
+        uiStore.openDecryptionDialog();
+        pendingEncryptedValue.value = encryptedDataFromUrl;
+      }
+
     } else {
-      // Check for encrypted data IN HASH
-      const encryptedValue = getParameterFromHash('encrypted');
-      if (encryptedValue) {
-        // URLSearchParams might decode automatically. If encryptData expects the raw,
-        // potentially still encoded value, we passed that from getParameterFromHash.
-        // We might need to decodeURIComponent here if getParameterFromHash didn't return raw.
-        // Let's assume the raw value is needed for decryption function.
-        // No, the original code used encodeURIComponent, so the value in the hash
-        // IS URI encoded. The decryption process likely expects the decoded value.
-        const decodedEncryptedValue = decodeURIComponent(encryptedValue);
-        pendingEncryptedValue.value = decodedEncryptedValue;
-        uiStore.openDecryptionDialog(decodedEncryptedValue);
+      // Fallback for legacy query parameters (optional, based on parsePatientDataFromUrl's capability)
+      const legacyData = parsePatientDataFromUrl(); // Ensure this doesn't re-parse hash
+      if (Object.keys(legacyData).length > 0) {
+        logService.debug('Found legacy query parameters. Importing...');
+        // NOTE: Legacy data might also need sanitization if it involves JSON parsing internally
+        // Assuming parsePatientDataFromUrl returns a safe structure or we trust its source.
+        // If parsePatientDataFromUrl uses JSON.parse, sanitization should be added there.
+        formStore.importFormData(legacyData, true);
+        clearUrlParameters();
+        uiStore.showSnackbar('Legacy data loaded successfully from URL!');
+      } else {
+        logService.debug('No relevant data parameters found in URL.');
       }
     }
   }
@@ -215,7 +226,8 @@ export function useUrlHandler() {
       
       // Check if the URL exceeds browser limits (typically ~2048 chars)
       if (shareableUrl.length > 2000) {
-        uiStore.showSnackbar("Warning: URL is very long and may not work in all browsers.");
+        logService.warn(`[URL Handler] Generated plain data URL length (${shareableUrl.length}) exceeds 2000 characters. This may cause issues in some browsers or tools.`);
+        uiStore.showSnackbar('Warning: Generated URL is very long and might not work everywhere.', 'warning', { timeout: 7000 });
       }
       
       return shareableUrl;
@@ -344,6 +356,12 @@ export function useUrlHandler() {
       const url = `${baseUrl}#encrypted=${encodeURIComponent(encryptedData)}`;
       logService.debug(`Encrypted URL (hash) length: ${url.length} characters`);
       
+      // Check if the generated URL exceeds a reasonable length
+      if (url.length > 2000) {
+        logService.warn(`[URL Handler] Generated encrypted URL length (${url.length}) exceeds 2000 characters. This may cause issues in some browsers or tools.`);
+        uiStore.showSnackbar('Warning: Generated encrypted URL is very long and might not work everywhere.', 'warning', { timeout: 7000 });
+      }
+      
       return url;
     } catch (error) {
       logService.error('Error creating encrypted URL:', error);
@@ -387,44 +405,96 @@ export function useUrlHandler() {
    * 
    * If decryption fails, it sets an error message in the UI store.
    * 
+   * @param {string} encryptedData - Encrypted data from URL
    * @param {string} password - Password for decryption
    * @returns {boolean} True if decryption and data import were successful, false otherwise
    */
-  function decryptUrlData(password) {
+  function decryptUrlData(encryptedData, password) {
     try {
-      if (!pendingEncryptedValue.value) {
-        pendingEncryptedValue.value = getParameterFromHash('encrypted');
-        if (!pendingEncryptedValue.value) {
-          uiStore.showSnackbar("No encrypted data found in URL.");
-          return false;
-        }
+      // --- Encrypted Data Length Check (before costly ops) ---
+      // Estimate potential size after Base64 decoding (approx 3/4)
+      // Check raw length before atob
+      if (encryptedData.length > MAX_PARAM_LENGTH * 4 / 3 + 100) { // Add buffer for Base64 overhead
+         logService.warn(`[URL Handler] Incoming 'encrypted' parameter raw length (${encryptedData.length}) suggests decoded size might exceed limit (${MAX_PARAM_LENGTH} bytes). Aborting decryption.`);
+         uiStore.setDecryptionError('Encrypted data is too large to process.');
+         // Clear potentially harmful param
+         clearUrlParameters(); 
+         pendingEncryptedValue.value = '';
+         return false;
       }
-      
-      // Decrypt the data
-      const decryptedJson = decryptData(pendingEncryptedValue.value, password);
-      
+      logService.debug('Found encrypted data in URL hash. Decrypting...');
+
+      // Decrypt the data (assuming cryptoUtils handles potential atob errors)
+      // Pass the raw value which might still be URI encoded
+      const decryptedJson = decryptData(decodeURIComponent(encryptedData), password);
+
+      if (!decryptedJson) { // decryptData might return null/empty on failure
+          throw new Error('Decryption function returned empty result.');
+      }
+
+      // --- Decrypted Data Length Check ---
+      if (decryptedJson.length > MAX_PARAM_LENGTH) {
+          logService.warn(`[URL Handler] Incoming 'encrypted' parameter length (${decryptedJson.length}) exceeds maximum allowed (${MAX_PARAM_LENGTH}). Aborting processing.`);
+          uiStore.setDecryptionError('Decrypted data is too large.');
+          // Clear potentially harmful param
+          clearUrlParameters(); 
+          pendingEncryptedValue.value = '';
+          return false; // Stop processing
+      }
+      // -----------------------------------
+
       // Parse the JSON data
-      const decryptedData = JSON.parse(decryptedJson);
-      
-      // Import the data
-      formStore.importFormData(decryptedData, true);
-      
+      let decryptedData = JSON.parse(decryptedJson);
+
+      // --- Sanitize Parsed JSON ---
+      decryptedData = sanitizeParsedJson(decryptedData);
+      logService.debug('Sanitized decrypted JSON data.');
+      // ---------------------------
+
+      // Import the sanitized data
+      formStore.importFormData(decryptedData, true); // Pass true for URL import
+
       // Clear the URL parameters
       clearUrlParameters();
-      
+
       // Reset the pending value
       pendingEncryptedValue.value = '';
-      
+
       // Success!
       uiStore.showSnackbar("Data decrypted and loaded successfully!");
+      // Call cancelDecryption which closes the dialog and clears the error state
+      uiStore.cancelDecryption();
       return true;
     } catch (error) {
-      logService.error('Error decrypting data:', error);
-      uiStore.setDecryptionError("Decryption failed. Please check your password and try again.");
+      logService.error('Error decrypting or processing data:', error);
+      // Handle specific errors if needed (e.g., distinguish JSON parse from decryption)
+      uiStore.setDecryptionError("Decryption or data processing failed. Please check password or data format.");
+      // Don't clear params here, user might want to retry password
       return false;
     }
   }
-  
+
+  /**
+   * Handles the submission of the password from the dialog or URL.
+   * @param {string} password - The submitted password.
+   */
+  const handlePasswordSubmit = (password) => {
+    if (pendingEncryptedValue.value && password) {
+      logService.debug('Password submitted. Attempting decryption.');
+      // Pass both the pending encrypted data and the password
+      const success = decryptUrlData(pendingEncryptedValue.value, password);
+      if (success) {
+        // uiStore will close the dialog
+        pendingEncryptedValue.value = null; // Clear pending data
+      } else {
+        // Keep dialog open on failure, allow retry
+        logService.warn('Decryption attempt failed with submitted password.');
+      }
+    } else {
+      logService.warn('Password submission handler called without pending encrypted data or password.');
+    }
+  }
+
   return {
     // State
     pendingEncryptedValue,
@@ -436,5 +506,6 @@ export function useUrlHandler() {
     createEncryptedUrl,
     copyEncryptedUrl,
     decryptUrlData,
+    handlePasswordSubmit,
   };
 }

@@ -19,6 +19,7 @@ import { parsePastedData } from '../utils/dataParser';
 import { useUiStore } from '../stores/uiStore';
 import { useFormStore } from '../stores/formStore';
 import logService from '../services/logService'; // Import log service
+import { sanitizeParsedJson } from '../utils/jsonSanitizer'; // Import the sanitizer
 
 /**
  * Vue composable that provides data persistence functionality for the application.
@@ -96,9 +97,14 @@ export function useDataPersistence() {
       importedFile.value = file;
       
       // Read and parse the file
-      const jsonData = await readJsonFile(file);
+      let jsonData = await readJsonFile(file); // Use 'let' as it will be reassigned
       
-      // Check if the data contains expected fields
+      // --- Sanitize Parsed JSON ---
+      jsonData = sanitizeParsedJson(jsonData);
+      logService.debug('Sanitized JSON data from file.');
+      // ---------------------------
+
+      // Check if the data contains expected fields (using sanitized data)
       if (!isValidFormData(jsonData)) {
         uiStore.setLoadDataError("Invalid data format. The file does not contain valid RequiForm data.");
         return false;
@@ -220,10 +226,15 @@ export function useDataPersistence() {
 
     try {
       // First try to parse as JSON
-      const jsonData = JSON.parse(inputData);
+      let jsonData = JSON.parse(inputData); // Use 'let'
       logService.debug('Successfully parsed as JSON:', jsonData);
+
+      // --- Sanitize Parsed JSON ---
+      jsonData = sanitizeParsedJson(jsonData);
+      logService.debug('Sanitized JSON data from pasted input.');
+      // ---------------------------
       
-      // If it's valid JSON and has the expected structure, import it directly
+      // If it's valid JSON and has the expected structure, import it directly (using sanitized data)
       if (isValidFormData(jsonData)) {
         logService.debug('Valid form data format detected, importing directly');
         // Import the data directly with debug logging

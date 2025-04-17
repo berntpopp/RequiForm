@@ -12,6 +12,14 @@
  * @module utils/cryptoUtils
  */
 
+// --- Security Warning --- 
+// The XOR encryption used in this module provides only basic obfuscation.
+// It is NOT cryptographically secure. The algorithm and key derivation are
+// visible in the client-side code, making it easily reversible by anyone
+// inspecting the source. Do NOT use this for sensitive data requiring strong
+// confidentiality or integrity protection.
+// ------------------------
+
 /**
  * Encrypts a string using the provided password.
  * Uses a simple XOR-based encryption for client-side only security.
@@ -25,6 +33,10 @@
  * @param {string} password - The password to use for encryption
  * @return {string} The encrypted data as a base64-encoded string
  * @throws {Error} If data or password are missing
+ * 
+ * @warning **Security Risk:** This XOR encryption is NOT secure. It provides only
+ *          obfuscation and can be reversed by analyzing client-side code.
+ *          Do not rely on this for protecting sensitive information.
  */
 export function encryptData(data, password) {
   if (!data || !password) {
@@ -59,16 +71,30 @@ export function encryptData(data, password) {
  * @return {string} The decrypted data as a string (typically JSON)
  * @throws {Error} If encryptedData or password are missing
  * @throws {Error} If decryption fails due to incorrect password or invalid data
+ * 
+ * @warning **Security Risk:** Matches the weakness of `encryptData`. Decryption is
+ *          possible by analyzing client-side code if the password is known or guessed.
+ *          Do not rely on this for protecting sensitive information.
  */
 export function decryptData(encryptedData, password) {
   if (!encryptedData || !password) {
     throw new Error('Encrypted data and password are required for decryption');
   }
 
+  let decodedData;
   try {
-    // Decode the Base64 string
-    const decodedData = atob(encryptedData);
-    
+    // Log input length for debugging
+    console.debug(`[decryptData] Input length: ${encryptedData?.length}, Password length: ${password?.length}`);
+
+    try {
+      decodedData = atob(encryptedData);
+      console.debug('[decryptData] Base64 decoding successful.');
+    } catch (e) {
+      console.error('[decryptData] Base64 decoding failed:', e);
+      // Provide a more specific error if atob fails
+      throw new Error('Decryption failed: Invalid Base64 data.');
+    }
+
     // Generate the same key from the password
     const key = generateKeyFromPassword(password);
     
@@ -80,8 +106,10 @@ export function decryptData(encryptedData, password) {
     }
     
     return result;
-  } catch {
-    throw new Error('Decryption failed. Incorrect password or invalid data.');
+  } catch (error) {
+    // Re-throw specific errors or a generic one
+    console.error(`[decryptData] Error during decryption process: ${error.message}`);
+    throw new Error(error.message || 'Decryption failed. Incorrect password or invalid data.');
   }
 }
 

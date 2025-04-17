@@ -261,10 +261,7 @@ function handleEncryptionConfirm(password) {
  * @param {string} password - The password for decryption
  */
 function handleDecryptionConfirm(password) {
-  const success = urlHandler.decryptUrlData(password);
-  if (success) {
-    uiStore.cancelDecryption();
-  }
+  urlHandler.handlePasswordSubmit(password);
 }
 
 /**

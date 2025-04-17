@@ -14,6 +14,7 @@
 
 import { ref } from 'vue';
 import { initializeTour, shouldShowTour } from '../services/tourService';
+import logService from '@/services/logService';
 
 /**
  * Vue composable that provides application tour functionality.
@@ -61,10 +62,10 @@ export function useAppTour() {
    */
   function startTour() {
     if (tourInstance.value) {
-      console.log("Starting application tour...");
+      logService.info("Starting application tour...");
       tourInstance.value.start();
     } else {
-      console.error("Tour instance not available.");
+      logService.error("App Tour: Could not start, tour instance not available.");
     }
   }
   

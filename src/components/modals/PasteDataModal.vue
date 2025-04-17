@@ -121,6 +121,7 @@
  */
 import { ref, computed, defineProps, defineEmits, watch } from 'vue';
 import { parsePastedData, generateExampleData } from '../../utils/dataParser';
+import logService from '@/services/logService'; // Import logService
 
 const props = defineProps({
   modelValue: {
@@ -173,9 +174,9 @@ function parseData() {
     return;
   }
   
-  console.log('PasteDataModal: Parsing data:', pastedText.value.substring(0, 100) + '...');
+  logService.debug('PasteDataModal: Parsing data:', pastedText.value.substring(0, 100) + '...');
   parseResult.value = parsePastedData(pastedText.value);
-  console.log('PasteDataModal: Parse result:', parseResult.value);
+  logService.debug('PasteDataModal: Parse result:', parseResult.value);
   
   errorMessage.value = parseResult.value.success ? '' : parseResult.value.error;
 }
@@ -187,7 +188,7 @@ function importData() {
   if (parseResult.value && parseResult.value.success) {
     // Convert the parsed data object to a JSON string for compatibility with the importFromJson function
     const jsonString = JSON.stringify(parseResult.value.data);
-    console.log('PasteDataModal: Sending data for import:', parseResult.value.data);
+    logService.info('PasteDataModal: Sending data for import:', parseResult.value.data);
     emit('import', jsonString);
     
     // Manually close the dialog to ensure UI flow continues

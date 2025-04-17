@@ -60,7 +60,7 @@ export function useDataPersistence() {
       
       if (result) {
         uiStore.showSnackbar("Data saved successfully!");
-        logService.debug('Data saved successfully to', fileName); // Replaced console.log
+        logService.debug('Data saved successfully to', fileName);
         return true;
       } else {
         uiStore.showSnackbar("Error saving data to file.");
@@ -108,7 +108,7 @@ export function useDataPersistence() {
       formStore.importFormData(jsonData, true);
       
       uiStore.showSnackbar("Data loaded successfully!");
-      logService.debug('Data loaded from file:', file.name, jsonData); // Replaced console.log
+      logService.debug('Data loaded from file:', file.name, jsonData);
       return true;
     } catch (error) {
       logService.error('Error loading data from file:', error); // Replaced console.error
@@ -137,11 +137,11 @@ export function useDataPersistence() {
         return false;
       }
       
-      logService.debug('Processing pasted data:', pastedText.substring(0, 100) + '...'); // Replaced console.log
+      logService.debug('Processing pasted data:', pastedText.substring(0, 100) + '...');
       
       // Parse the formatted text data using the imported utility
       const parseResult = parsePastedData(pastedText);
-      logService.debug('Parse result:', parseResult); // Replaced console.log
+      logService.debug('Parse result:', parseResult);
       
       if (!parseResult.success) {
         logService.error('Parse failed:', parseResult.error); // Replaced console.error
@@ -150,7 +150,7 @@ export function useDataPersistence() {
       }
       
       // Import the successfully parsed data
-      logService.debug('Importing parsed data:', parseResult.data); // Replaced console.log
+      logService.debug('Importing parsed data:', parseResult.data);
       formStore.importFormData(parseResult.data, true);
       
       // Force a UI update cycle by triggering a sync
@@ -162,7 +162,7 @@ export function useDataPersistence() {
         patientData: formStore.patientData,
         selectedTests: formStore.selectedTests,
         phenotypeDataObj: formStore.phenotypeDataObj
-      }); // Replaced console.log
+      });
       
       uiStore.showSnackbar("Data imported successfully!");
       return true;
@@ -216,23 +216,23 @@ export function useDataPersistence() {
       return false;
     }
 
-    logService.debug('Attempting to import data:', inputData.substring(0, 100) + '...'); // Replaced console.log
+    logService.debug('Attempting to import data:', inputData.substring(0, 100) + '...');
 
     try {
       // First try to parse as JSON
       const jsonData = JSON.parse(inputData);
-      logService.debug('Successfully parsed as JSON:', jsonData); // Replaced console.log
+      logService.debug('Successfully parsed as JSON:', jsonData);
       
       // If it's valid JSON and has the expected structure, import it directly
       if (isValidFormData(jsonData)) {
-        logService.debug('Valid form data format detected, importing directly'); // Replaced console.log
+        logService.debug('Valid form data format detected, importing directly');
         // Import the data directly with debug logging
         const result = formStore.importFormData(jsonData, true);
         logService.debug('Import result:', result, 'Current form state:', {
           patientData: formStore.patientData,
           selectedTests: formStore.selectedTests,
           phenotypeDataObj: formStore.phenotypeDataObj
-        }); // Replaced console.log
+        });
         
         // Force a UI update cycle by triggering a sync
         formStore.syncLegacyPatientData();
@@ -247,7 +247,7 @@ export function useDataPersistence() {
       }
     } catch (error) {
       // If JSON parsing fails, try to process it as formatted text
-      logService.debug('Not valid JSON, trying formatted text processing:', error.message); // Replaced console.log
+      logService.debug('Not valid JSON, trying formatted text processing:', error.message);
       return processPastedData(inputData);
     }
   }

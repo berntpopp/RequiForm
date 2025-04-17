@@ -13,6 +13,7 @@
 
 <script setup>
 import { onMounted, defineExpose } from 'vue'
+import logService from '@/services/logService'
 // Import pedigreejs functions from the ES module build now located in src/vendor.
 import { 
   pedigreejs, 
@@ -23,7 +24,7 @@ import {
 
 function initPedigree() {
   if (!pedigreejs || !pedigreejs_pedcache || !pedigreejs_io) {
-    console.error('pedigreejs libraries are not loaded.')
+    logService.error('pedigreejs libraries are not loaded.')
     return
   }
 
@@ -78,7 +79,7 @@ function initPedigree() {
     } else if (e instanceof Error) {
       msg = e.message
     }
-    console.error('PedigreeJS ::: ' + msg, e)
+    logService.error('PedigreeJS initialization error: ' + msg, e)
   }
 }
 
@@ -132,10 +133,10 @@ function getPedigreeData() {
     
     // Get the current dataset from the cache
     const dataset = pedigreejs_pedcache.current(opts);
-    console.log('[PedigreeDrawer] Raw pedigree dataset:', JSON.stringify(dataset));
+    logService.debug('[PedigreeDrawer] Raw pedigree dataset fetched from cache:', dataset);
     
     if (!dataset || dataset.length === 0) {
-      console.warn('[PedigreeDrawer] No pedigree data found in cache');
+      logService.warn('[PedigreeDrawer] No pedigree data found in cache');
       return null;
     }
     
@@ -197,10 +198,10 @@ function getPedigreeData() {
     // Format code 2 = standard PED format
     const result = [2, pedData];
     
-    console.log('[PedigreeDrawer] Final compact pedigree data:', JSON.stringify(result));
+    logService.debug('[PedigreeDrawer] Final compact pedigree data prepared:', result);
     return result;
   } catch (error) {
-    console.error('[PedigreeDrawer] Error extracting pedigree data:', error);
+    logService.error('[PedigreeDrawer] Error getting pedigree data:', error);
     return null;
   }
 }
@@ -209,22 +210,24 @@ onMounted(() => {
   initPedigree()
 })
 
-// Expose both the image URL and data structure functions for parent components
-defineExpose({ getPedigreeDataUrl, getPedigreeData })
+// Expose functions for parent components
+defineExpose({
+  getPedigreeDataUrl,
+  getPedigreeData,
+  initPedigree
+})
 </script>
 
 <style scoped>
 .pedigree-container {
+  min-height: 300px; /* Ensure it has height even before rendering */
   border: 1px solid #ccc;
-  padding: 8px;
+  margin-bottom: 1em;
+  position: relative; /* Needed if pedigreejs uses absolute positioning */
 }
-.full-screen {
-  position: fixed;
-  top: 0;
-  left: 0;
+
+#pedigreejs {
   width: 100%;
   height: 100%;
-  background: white;
-  z-index: 9999;
 }
 </style>

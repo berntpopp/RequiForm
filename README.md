@@ -26,6 +26,13 @@
    - Designed to run entirely on the client (no backend), reducing security risks.  
    - Optionally packaged with Electron for a local desktop application.
 
+6. **In-App Logging**
+   - Provides a built-in log viewer accessible via a button (log icon) in the footer.
+   - Displays timestamped application events, warnings, and errors, color-coded by severity (Debug, Info, Warn, Error).
+   - Allows users to filter logs by severity level using a dropdown menu in the log viewer header.
+   - Includes a button to download the current log entries as a JSON file for troubleshooting or record-keeping.
+   - Helps diagnose issues without requiring browser developer tools.
+
 ## Project Goals
 
 - **Security & Privacy**: Keep sensitive patient data strictly within the client environment.  

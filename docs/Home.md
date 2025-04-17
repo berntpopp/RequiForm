@@ -1,6 +1,6 @@
 # Welcome to the RequiForm Wiki
 
-**RequiForm** is a client-side web application for generating and managing genetic test requisition forms. It aims to streamline the process of filling out patient information, selecting specific genetic tests or panels, and producing a final PDF (with embedded QR codes) that can be shared or printed.
+**RequiForm** is a client-side web application for generating and managing test requisition forms. It aims to streamline the process of filling out patient information, selecting specific genetic tests or panels, and producing a final PDF (with embedded QR codes) that can be shared or printed.
 
 This Wiki provides comprehensive documentation for users and contributors.
 

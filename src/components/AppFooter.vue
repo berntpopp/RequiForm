@@ -33,6 +33,60 @@
         </template>
         <span>Toggle Log Viewer</span>
       </v-tooltip>
+
+      <!-- GitHub Repository Link -->
+      <v-tooltip location="top">
+        <template v-slot:activator="{ props: tooltipProps }">
+          <v-btn
+            icon="mdi-github"
+            variant="text"
+            size="small"
+            class="ml-2"
+            href="https://github.com/BerntPopp/RequiForm"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="GitHub Repository"
+            v-bind="tooltipProps"
+          ></v-btn>
+        </template>
+        <span>GitHub Repository</span>
+      </v-tooltip>
+
+      <!-- License Link -->
+      <v-tooltip location="top">
+        <template v-slot:activator="{ props: tooltipProps }">
+          <v-btn
+            icon="mdi-license"
+            variant="text"
+            size="small"
+            class="ml-2"
+            href="https://github.com/BerntPopp/RequiForm/blob/main/LICENSE"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="License Information"
+            v-bind="tooltipProps"
+          ></v-btn>
+        </template>
+        <span>License (MIT)</span>
+      </v-tooltip>
+
+      <!-- Wiki Link -->
+      <v-tooltip location="top">
+        <template v-slot:activator="{ props: tooltipProps }">
+          <v-btn
+            icon="mdi-book-open-variant"
+            variant="text"
+            size="small"
+            class="ml-2"
+            href="https://github.com/BerntPopp/RequiForm/wiki"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Wiki Documentation"
+            v-bind="tooltipProps"
+          ></v-btn>
+        </template>
+        <span>Wiki / Documentation</span>
+      </v-tooltip>
     </div>
   </v-footer>
 </template>

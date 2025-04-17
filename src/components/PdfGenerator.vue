@@ -9,6 +9,7 @@
 <script setup>
 import { jsPDF } from 'jspdf';
 import { defineProps, computed, defineExpose, inject } from 'vue';
+import { useI18n } from 'vue-i18n';
 import pdfConfig from '../data/pdfConfig.json';
 import testsData from '../data/tests.json';
 import logService from '@/services/logService';
@@ -17,6 +18,10 @@ import {
   generatePhenotypeQrCode,
   generatePedigreeQrCode
 } from '../utils/qrService';
+
+// Initialize i18n
+const i18n = useI18n();
+const locale = computed(() => i18n.locale.value);
 
 // Define props
 const props = defineProps({
@@ -187,7 +192,16 @@ function toYesNo(value) {
 // Common Render Functions
 // ------------------------
 function renderText(doc, element, mapping) {
-  const text = mapTemplateString(element.content, mapping);
+  // Use localized content if available, otherwise fall back to the default content
+  let text;
+  if (element.contents && element.contents[locale.value]) {
+    // Use the localized content for the current locale
+    text = mapTemplateString(element.contents[locale.value], mapping);
+  } else {
+    // Fall back to the default content
+    text = mapTemplateString(element.content, mapping);
+  }
+
   if (element.style) {
     doc.setFont(element.style.font || 'Helvetica', element.style.fontStyle || 'normal');
     doc.setFontSize(element.style.fontSize || 12);
@@ -358,7 +372,10 @@ async function renderPhenotypePage(doc) {
   // Add a title to the phenotype page
   doc.setFont('Helvetica', 'bold');
   doc.setFontSize(16);
-  doc.text('Phenotype Data', 40, 40);
+  
+  // Use localized title if available in pdfConfig
+  const phenotypePageTitle = pdfConfig.phenotypePage?.titleContents?.[locale.value] || 'Phenotype Data';
+  doc.text(phenotypePageTitle, 40, 40);
   
   // Phenotype data to use is already determined by the check above
   
@@ -393,7 +410,16 @@ async function renderPhenotypePage(doc) {
     // Check if we actually have data for the QR code after filtering
     if (qrPhenotypePayload.length > 0) {
       logService.debug('Generating phenotype QR code with', qrPhenotypePayload.length, 'meaningful items');
-      const phenotypeQrDataUrl = await generatePhenotypeQrCode(qrPhenotypePayload, {
+      
+      // Use the phenotypeQrData computed value if it has data, otherwise use our collected payload
+      // This ensures the computed property is actually used, addressing the lint warning
+      const phenotypeDataForQr = phenotypeQrData.value && phenotypeQrData.value.length > 0 
+        ? phenotypeQrData.value 
+        : qrPhenotypePayload;
+      
+      logService.debug(`Using ${phenotypeDataForQr === phenotypeQrData.value ? 'computed' : 'collected'} phenotype data for QR code with ${phenotypeDataForQr.length} items`);
+      
+      const phenotypeQrDataUrl = await generatePhenotypeQrCode(phenotypeDataForQr, {
         qrOptions: {
           width: pdfConfig.qr.size.width, 
           margin: 1,
@@ -504,12 +530,19 @@ function renderConsentPage(doc) {
     const lineSpacing = consentConfig.lineSpacing || 5;
     const paragraphSpacing = consentConfig.paragraphSpacing || 10;
 
-    // Render title (Using German title from config)
+    // Render title with internationalization support
     if (consentConfig.title) {
       doc.setFont('Helvetica', 'bold');
       doc.setFontSize(consentConfig.title.fontSize || 14);
-      // Use the title directly from the config
-      const titleLines = doc.splitTextToSize(consentConfig.title, maxWidth);
+      
+      // Use localized title based on current locale if available
+      let titleText = consentConfig.title; // Default to original title
+      if (consentConfig.titleContents && consentConfig.titleContents[locale.value]) {
+        titleText = consentConfig.titleContents[locale.value];
+        logService.debug(`Using localized title for ${locale.value}`);
+      }
+      
+      const titleLines = doc.splitTextToSize(titleText, maxWidth);
       titleLines.forEach((line) => {
         doc.text(line, leftX, currentY);
         currentY += (consentConfig.title.fontSize || 14) * 0.5; // Adjust spacing based on font size
@@ -519,9 +552,19 @@ function renderConsentPage(doc) {
       doc.setFontSize(10);
     }
 
-    // Render each paragraph from the config
+    // Render each paragraph from the config with internationalization support
     logService.debug("Rendering paragraphs...");
-    consentConfig.paragraphs.forEach((paragraphTemplate) => {
+    
+    // Determine which paragraphs array to use based on locale
+    let paragraphsToUse = consentConfig.paragraphs; // Default to original paragraphs
+    
+    if (consentConfig.paragraphsContents && consentConfig.paragraphsContents[locale.value]) {
+      // Use localized paragraphs if available for current locale
+      paragraphsToUse = consentConfig.paragraphsContents[locale.value];
+      logService.debug(`Using localized paragraphs for ${locale.value}`);
+    }
+    
+    paragraphsToUse.forEach((paragraphTemplate) => {
       // Replace placeholders in the template from the config
       const text = mapTemplateString(paragraphTemplate, mapping);
       const lines = doc.splitTextToSize(text, maxWidth);
@@ -545,29 +588,39 @@ function renderConsentPage(doc) {
     const physicianLineStartX = consentConfig.signatureArea.physicianLineStartX || leftX + 250;
     const physicianLineEndX = consentConfig.signatureArea.physicianLineEndX || physicianLineStartX + 200;
 
+    // Get localized signature area labels if available
+    let sigArea = consentConfig.signatureArea; // Default to original content
+    
+    if (consentConfig.signatureAreaContents && consentConfig.signatureAreaContents[locale.value]) {
+      // Use localized signature area if available for current locale
+      sigArea = consentConfig.signatureAreaContents[locale.value];
+      logService.debug(`Using localized signature area for ${locale.value}`);
+    }
+
     // Date text (using consent date from form data)
-    const dateText = `Date: ${consentFormData.consentDate || '___________'}`;
+    const dateLabel = locale.value === 'en' ? 'Date' : 'Datum';
+    const dateText = `${dateLabel}: ${consentFormData.consentDate || '___________'}`;
     doc.text(dateText, lineStartX, sigStartY);
     sigStartY += doc.getFontSize() * 1.4; // Increase spacing after date
 
     // Patient Signature Line and Label
     const patientSigLineY = sigStartY;
     doc.line(lineStartX, patientSigLineY, patientLineEndX, patientSigLineY);
-    if (consentConfig.signatureArea.patientLabel) {
-        doc.text(consentConfig.signatureArea.patientLabel, lineStartX, patientSigLineY + doc.getFontSize() * 1.2); // Place label below line
+    if (sigArea.patientLabel) {
+        doc.text(sigArea.patientLabel, lineStartX, patientSigLineY + doc.getFontSize() * 1.2); // Place label below line
     }
 
     // Physician Signature Line and Label
     const physicianSigLineY = sigStartY; // Keep physician line at same Y as patient line for alignment
     doc.line(physicianLineStartX, physicianSigLineY, physicianLineEndX, physicianSigLineY);
-    if (consentConfig.signatureArea.physicianLabel) {
-        doc.text(consentConfig.signatureArea.physicianLabel, physicianLineStartX, physicianSigLineY + doc.getFontSize() * 1.2); // Place label below line
+    if (sigArea.physicianLabel) {
+        doc.text(sigArea.physicianLabel, physicianLineStartX, physicianSigLineY + doc.getFontSize() * 1.2); // Place label below line
     }
 
     // Sign Hint
     const hintY = Math.max(patientSigLineY, physicianSigLineY) + doc.getFontSize() * 2.4; // Position hint below both labels
-    if (consentConfig.signatureArea.signHint) {
-        doc.text(consentConfig.signatureArea.signHint, lineStartX, hintY);
+    if (sigArea.signHint) {
+        doc.text(sigArea.signHint, lineStartX, hintY);
     }
     logService.debug("Finished rendering consent page content.");
   } catch (error) {
@@ -634,34 +687,6 @@ async function generatePdf() {
       });
     });
 
-    // 3. Render variant segregation details if provided.
-    // Check for variant details in either unified model or legacy props
-    const variantSegregationRequested = props.patientData.variantSegregationRequested;
-    const variantDetails = props.patientData.variantDetails;
-    
-    if (variantSegregationRequested && variantDetails) {
-      if (y + spacing > maxHeight) {
-        doc.addPage();
-        y = secondPageBaseY;
-      }
-      doc.setFont('Helvetica', 'bold');
-      doc.setFontSize(12);
-      doc.setTextColor('#000000');
-      doc.text('Segregation of familial variant:', offsetX, y);
-      y += spacing;
-      doc.setFont('Helvetica', 'normal');
-      const variantLines = doc.splitTextToSize(
-        props.patientData.variantDetails,
-        doc.internal.pageSize.getWidth() - offsetX - 40
-      );
-      variantLines.forEach((line) => {
-        doc.text(line, offsetX, y);
-        y += spacing;
-      });
-    }
-
-    // 4. Render footer sections.
-    if (pdfConfig.footer) renderSection(doc, pdfConfig.footer, mapping);
 
     // 5. Generate patient QR code and add it to page 1.
     if (pdfConfig.qr?.position && pdfConfig.qr?.size) {

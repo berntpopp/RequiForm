@@ -1,12 +1,12 @@
 <template>
   <v-dialog :model-value="modelValue" max-width="800" scrollable @update:model-value="$emit('update:modelValue', $event)">
     <v-card>
-      <v-card-title class="headline">Frequently Asked Questions</v-card-title>
+      <v-card-title class="headline">{{ t('faqDialog.title') }}</v-card-title>
       <v-card-text class="pt-4">
         <!-- Search Filter -->
         <v-text-field
           v-model="searchQuery"
-          label="Search FAQs"
+          :label="t('faqDialog.searchLabel')"
           prepend-inner-icon="mdi-magnify"
           variant="outlined"
           density="compact"
@@ -34,13 +34,13 @@
             </v-expansion-panel>
           </template>
           <v-alert v-if="!Object.keys(groupedFaqItems).length" type="info" variant="tonal" class="mt-4">
-            No FAQs match your search criteria.
+            {{ t('faqDialog.noResults') }}
           </v-alert>
         </v-expansion-panels>
       </v-card-text>
       <v-card-actions>
         <v-spacer></v-spacer>
-        <v-btn text @click="close">Close</v-btn>
+        <v-btn text @click="close">{{ t('faqDialog.buttons.close') }}</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -54,6 +54,9 @@
  * @module components/dialogs/FAQDialog
  */
 import { ref, computed } from 'vue';
+import { useI18n } from 'vue-i18n'; // Import useI18n
+
+const { t } = useI18n(); // Initialize translation function
 
 const props = defineProps({
   /**
@@ -100,7 +103,7 @@ const filteredFaqItems = computed(() => {
 // Group filtered items by category
 const groupedFaqItems = computed(() => {
   return filteredFaqItems.value.reduce((acc, item) => {
-    const category = item.category || 'Uncategorized'; // Default category if missing
+    const category = item.category || t('faqDialog.uncategorized'); // Use t() for default category
     if (!acc[category]) {
       acc[category] = [];
     }

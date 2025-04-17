@@ -1,7 +1,7 @@
 <template>
   <v-card class="mb-4">
     <v-card-title>
-      Pedigree Chart
+      {{ t('pedigreeDrawer.title') }}
     </v-card-title>
     <v-card-text>
       <!-- The "pedigree" container is where pedigreejs will render the chart -->
@@ -21,6 +21,9 @@ import {
   pedigreejs_pedcache, 
   pedigreejs_io 
 } from '@/vendor/pedigreejs.es.v3.0.0-rc8.js'
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 function initPedigree() {
   if (!pedigreejs || !pedigreejs_pedcache || !pedigreejs_io) {

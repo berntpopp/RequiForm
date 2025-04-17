@@ -13,6 +13,8 @@
       @save-data="uiStore.openSaveDataDialog"
       @load-data="uiStore.openLoadDataDialog"
       @open-paste-data="uiStore.openPasteDataDialog"
+      @toggle-language="toggleLanguage"
+      @toggle-log-viewer="toggleLogViewer"
     />
 
     <!-- Disclaimer Modal: shown if not yet acknowledged or if reopened -->
@@ -38,7 +40,7 @@
         />
 
         <!-- Pedigree Option -->
-        <v-checkbox v-model="formStore.showPedigree" label="Include Pedigree Chart" class="mb-4" />
+        <v-checkbox v-model="formStore.showPedigree" :label="t('app.includePedigreeChart')" class="mb-4" />
         <PedigreeDrawer v-if="formStore.showPedigree" ref="pedigreeDrawerRef" @update:pedigreeDataUrl="formStore.updatePedigreeDataUrl" />
 
         <!-- Test Selector -->
@@ -94,7 +96,7 @@
 
       <FAQDialog
         v-model="uiStore.showFAQModal"
-        :faqItems="Array.isArray(faq.faqItems) ? faq.faqItems : []"
+        :faqItems="faq.faqItems.value"
         @close="faq.closeFaq"
       />
 
@@ -141,6 +143,7 @@
 
 <script setup>
 import { ref, computed, onMounted, provide, watch } from 'vue'; 
+import { useI18n } from 'vue-i18n';
 import TopBar from './components/TopBar.vue';
 import PatientForm from './components/PatientForm.vue';
 import TestSelector from './components/TestSelector.vue';
@@ -192,6 +195,9 @@ const pdfGenerator = usePdfGenerator();
 const appTour = useAppTour();
 const faq = useFaq();
 const formActions = useFormActions();
+
+// Initialize i18n
+const { t, locale } = useI18n();
 
 // Set up provides for child components
 provide('ui', uiStore);
@@ -390,6 +396,19 @@ async function handleGeneratePdf() {
   await pdfGenerator.generatePdf();
 }
 
+// Function to toggle language between English and German
+const toggleLanguage = () => {
+  const newLocale = locale.value === 'en' ? 'de' : 'en';
+  locale.value = newLocale;
+  document.documentElement.lang = newLocale; // Update root HTML lang attribute
+  localStorage.setItem('userLanguage', newLocale); // Save preference
+  logService.info(`Language switched to ${newLocale.toUpperCase()}`);
+};
+
+// Function to toggle the log viewer
+const toggleLogViewer = () => {
+  uiStore.toggleLogViewer();
+}
 </script>
 
 <style scoped>

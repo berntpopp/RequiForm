@@ -1,21 +1,21 @@
 <template>
   <v-dialog :model-value="modelValue" max-width="500" @update:model-value="$emit('update:modelValue', $event)">
     <v-card>
-      <v-card-title class="headline">Export Form Data</v-card-title>
+      <v-card-title class="headline">{{ t('saveDataDialog.title') }}</v-card-title>
       <v-card-text>
-        <p>Save your form data for later use. You can name the file to identify it easily.</p>
+        <p>{{ t('saveDataDialog.instruction') }}</p>
         <v-text-field 
           v-model="fileName" 
-          label="File Name" 
-          placeholder="requiform-data"
-          hint="Filename will be appended with .json"
+          :label="t('saveDataDialog.labels.fileName')" 
+          :placeholder="t('saveDataDialog.placeholders.fileName')"
+          :hint="t('saveDataDialog.hints.fileName')"
           persistent-hint
         />
       </v-card-text>
       <v-card-actions>
         <v-spacer></v-spacer>
-        <v-btn text @click="cancel">Cancel</v-btn>
-        <v-btn color="primary" text @click="confirm">Export</v-btn>
+        <v-btn text @click="cancel">{{ t('saveDataDialog.buttons.cancel') }}</v-btn>
+        <v-btn color="primary" text @click="confirm">{{ t('saveDataDialog.buttons.export') }}</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -28,6 +28,9 @@
  * @module components/dialogs/SaveDataDialog
  */
 import { ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
   /**
@@ -45,7 +48,7 @@ const props = defineProps({
    */
   defaultFileName: {
     type: String,
-    default: 'requiform-data'
+    default: ''
   }
 });
 
@@ -55,13 +58,14 @@ const emit = defineEmits([
   'confirm'
 ]);
 
-// Internal state for the file name input
-const fileName = ref(props.defaultFileName);
+// Internal state for the file name input - Initialize with prop or translated default
+const fileName = ref(props.defaultFileName || t('saveDataDialog.defaultFileName'));
 
 // Reset filename when dialog opens
 watch(() => props.modelValue, (newValue) => {
   if (newValue) {
-    fileName.value = props.defaultFileName;
+    // Reset to the provided prop or the translated default
+    fileName.value = props.defaultFileName || t('saveDataDialog.defaultFileName'); 
   }
 });
 

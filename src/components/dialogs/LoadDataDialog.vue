@@ -1,12 +1,12 @@
 <template>
   <v-dialog :model-value="modelValue" max-width="500" @update:model-value="$emit('update:modelValue', $event)">
     <v-card>
-      <v-card-title class="headline">Load Form Data</v-card-title>
+      <v-card-title class="headline">{{ t('loadDataDialog.title') }}</v-card-title>
       <v-card-text>
-        <p>Select a JSON file to import:</p>
+        <p>{{ t('loadDataDialog.instruction') }}</p>
         <v-file-input
           v-model="file"
-          label="Select file"
+          :label="t('loadDataDialog.labels.fileInput')"
           accept=".json"
           prepend-icon="mdi-file-import"
           show-size
@@ -19,8 +19,8 @@
       </v-card-text>
       <v-card-actions>
         <v-spacer></v-spacer>
-        <v-btn text @click="cancel">Cancel</v-btn>
-        <v-btn color="primary" text @click="confirm" :disabled="!file">Import</v-btn>
+        <v-btn text @click="cancel">{{ t('loadDataDialog.buttons.cancel') }}</v-btn>
+        <v-btn color="primary" text @click="confirm" :disabled="!file">{{ t('loadDataDialog.buttons.import') }}</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -33,6 +33,9 @@
  * @module components/dialogs/LoadDataDialog
  */
 import { ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
   /**
@@ -85,7 +88,7 @@ function cancel() {
  */
 function confirm() {
   if (!file.value) {
-    errorMessage.value = 'Please select a file';
+    errorMessage.value = t('loadDataDialog.validation.fileRequired');
     return;
   }
   

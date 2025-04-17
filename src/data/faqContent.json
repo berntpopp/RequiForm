@@ -1,0 +1,116 @@
+{
+  "en": [
+    {
+      "category": "General",
+      "question": "What is RequiForm?",
+      "answer": "RequiForm is a web application designed to help clinicians and researchers easily generate standardized clinical data requisitions, particularly for genetic testing. It focuses on privacy, usability, and adherence to standards like HPO."
+    },
+    {
+      "category": "General",
+      "question": "Which browsers are supported?",
+      "answer": "RequiForm is tested on the latest versions of modern browsers like <strong>Chrome</strong>, <strong>Firefox</strong>, <strong>Edge</strong>, and <strong>Safari</strong>. While it may work on others, using an up-to-date version of these recommended browsers ensures the best experience."
+    },
+    {
+      "category": "Data Handling & Security",
+      "question": "How is my data handled? Is it secure?",
+      "answer": "<strong>All data processing happens entirely in your browser.</strong> Your data <strong>never leaves your device</strong>, and no information is stored on any servers. This client-side approach ensures maximum privacy and security for sensitive information. When using sharing features, data is either encoded directly in the URL or saved locally as a file."
+    },
+    {
+      "category": "Data Handling & Security",
+      "question": "What encryption is used for sharing?",
+      "answer": "The \"Share Encrypted Link\" option uses <strong>AES-GCM encryption</strong> with a key derived from your chosen password using <strong>PBKDF2</strong>. This is a strong, standard-based encryption method. <em>Remember: the security relies on the strength of your password and keeping it confidential.</em> The specific implementation details can be reviewed in the source code."
+    },
+    {
+      "category": "Data Handling & Security",
+      "question": "What data format is used for file import/export?",
+      "answer": "The application uses a structured <strong>JSON format</strong> for saving and loading data. This format includes patient information, selected panels, and phenotype data. The exact structure can be inspected by saving the data to a file."
+    },
+    {
+      "category": "Data Handling & Security",
+      "question": "Can I use RequiForm offline?",
+      "answer": "Yes, once the application is loaded in your browser, it can function offline. However, features requiring external resources (like fetching HPO terms if not cached) might be limited without an internet connection."
+    },
+    {
+      "category": "Features",
+      "question": "How does the HPO term search work?",
+      "answer": "You can search for Human Phenotype Ontology (HPO) terms by typing keywords or HPO IDs. The search uses an integrated HPO database to suggest relevant terms. Selecting a term adds it to the patient's phenotype profile."
+    },
+    {
+      "category": "Features",
+      "question": "Can I customize the generated PDF?",
+      "answer": "The PDF layout and content are standardized. While direct customization isn't currently supported, the application includes fields for common requirements. Future versions may offer more branding or layout options."
+    },
+    {
+      "category": "Features",
+      "question": "How do I share the form data?",
+      "answer": "You can share the data in several ways:\n<ul>\n  <li><strong>Copy URL:</strong> Generates a link with the data encoded directly in it (can be long).</li>\n  <li><strong>Copy Encrypted URL:</strong> Generates a link with the data encrypted using a password you provide.</li>\n  <li><strong>Save Data:</strong> Downloads the data as a JSON file.</li>\n</ul>"
+    },
+    {
+      "category": "Troubleshooting",
+      "question": "The application seems slow or unresponsive.",
+      "answer": "Ensure you are using a supported browser and that it's up-to-date. Try clearing your browser's cache or restarting the browser. If the issue persists, check your system's resource usage or contact support if applicable."
+    },
+    {
+      "category": "Troubleshooting",
+      "question": "I encountered an error message.",
+      "answer": "Note down the error message and the steps you took leading up to it. Try refreshing the page. If the error persists, consult the browser's developer console (usually opened with F12) for more details, which might be helpful for debugging."
+    }
+  ],
+  "de": [
+    {
+      "category": "Allgemein",
+      "question": "Was ist RequiForm?",
+      "answer": "RequiForm ist eine Webanwendung, die Klinikern und Forschern hilft, standardisierte klinische Datenanforderungen, insbesondere für Gentests, einfach zu generieren. Der Fokus liegt auf Datenschutz, Benutzerfreundlichkeit und der Einhaltung von Standards wie HPO."
+    },
+    {
+      "category": "Allgemein",
+      "question": "Welche Browser werden unterstützt?",
+      "answer": "RequiForm wird mit den neuesten Versionen moderner Browser wie <strong>Chrome</strong>, <strong>Firefox</strong>, <strong>Edge</strong> und <strong>Safari</strong> getestet. Obwohl es möglicherweise auch in anderen Browsern funktioniert, gewährleistet die Verwendung einer aktuellen Version dieser empfohlenen Browser das beste Erlebnis."
+    },
+    {
+      "category": "Datenverarbeitung & Sicherheit",
+      "question": "Wie werden meine Daten gehandhabt? Sind sie sicher?",
+      "answer": "<strong>Die gesamte Datenverarbeitung findet ausschließlich in Ihrem Browser statt.</strong> Ihre Daten <strong>verlassen niemals Ihr Gerät</strong>, und es werden keine Informationen auf Servern gespeichert. Dieser clientseitige Ansatz gewährleistet maximale Privatsphäre und Sicherheit für sensible Informationen. Bei der Nutzung von Freigabefunktionen werden Daten entweder direkt in der URL kodiert oder lokal als Datei gespeichert."
+    },
+    {
+      "category": "Datenverarbeitung & Sicherheit",
+      "question": "Welche Verschlüsselung wird für die Freigabe verwendet?",
+      "answer": "Die Option \"Verschlüsselten Link teilen\" verwendet <strong>AES-GCM-Verschlüsselung</strong> mit einem Schlüssel, der mittels <strong>PBKDF2</strong> aus Ihrem gewählten Passwort abgeleitet wird. Dies ist eine starke, standardbasierte Verschlüsselungsmethode. <em>Denken Sie daran: Die Sicherheit hängt von der Stärke Ihres Passworts und dessen Geheimhaltung ab.</em> Die spezifischen Implementierungsdetails können im Quellcode eingesehen werden."
+    },
+    {
+      "category": "Datenverarbeitung & Sicherheit",
+      "question": "Welches Datenformat wird für den Datei-Import/Export verwendet?",
+      "answer": "Die Anwendung verwendet ein strukturiertes <strong>JSON-Format</strong> zum Speichern und Laden von Daten. Dieses Format enthält Patienteninformationen, ausgewählte Panels und Phänotypdaten. Die genaue Struktur kann durch Speichern der Daten in eine Datei überprüft werden."
+    },
+    {
+      "category": "Datenverarbeitung & Sicherheit",
+      "question": "Kann ich RequiForm offline verwenden?",
+      "answer": "Ja, sobald die Anwendung in Ihrem Browser geladen ist, kann sie offline funktionieren. Funktionen, die externe Ressourcen erfordern (wie das Abrufen von HPO-Begriffen, wenn nicht zwischengespeichert), können jedoch ohne Internetverbindung eingeschränkt sein."
+    },
+    {
+      "category": "Funktionen",
+      "question": "Wie funktioniert die HPO-Begriffssuche?",
+      "answer": "Sie können nach Begriffen der Human Phenotype Ontology (HPO) suchen, indem Sie Schlüsselwörter oder HPO-IDs eingeben. Die Suche verwendet eine integrierte HPO-Datenbank, um relevante Begriffe vorzuschlagen. Die Auswahl eines Begriffs fügt ihn dem Phänotypprofil des Patienten hinzu."
+    },
+    {
+      "category": "Funktionen",
+      "question": "Kann ich das generierte PDF anpassen?",
+      "answer": "Das PDF-Layout und der Inhalt sind standardisiert. Obwohl eine direkte Anpassung derzeit nicht unterstützt wird, enthält die Anwendung Felder für gängige Anforderungen. Zukünftige Versionen könnten mehr Branding- oder Layout-Optionen bieten."
+    },
+    {
+      "category": "Funktionen",
+      "question": "Wie teile ich die Formulardaten?",
+      "answer": "Sie können die Daten auf verschiedene Arten teilen:\n<ul>\n  <li><strong>URL kopieren:</strong> Generiert einen Link, in dem die Daten direkt kodiert sind (kann lang sein).</li>\n  <li><strong>Verschlüsselte URL kopieren:</strong> Generiert einen Link, in dem die Daten mit einem von Ihnen angegebenen Passwort verschlüsselt sind.</li>\n  <li><strong>Daten speichern:</strong> Lädt die Daten als JSON-Datei herunter.</li>\n</ul>"
+    },
+    {
+      "category": "Fehlerbehebung",
+      "question": "Die Anwendung scheint langsam oder reagiert nicht.",
+      "answer": "Stellen Sie sicher, dass Sie einen unterstützten Browser verwenden und dieser aktuell ist. Versuchen Sie, den Cache Ihres Browsers zu leeren oder den Browser neu zu starten. Wenn das Problem weiterhin besteht, überprüfen Sie die Ressourcennutzung Ihres Systems oder wenden Sie sich gegebenenfalls an den Support."
+    },
+    {
+      "category": "Fehlerbehebung",
+      "question": "Ich habe eine Fehlermeldung erhalten.",
+      "answer": "Notieren Sie sich die Fehlermeldung und die Schritte, die Sie unternommen haben, bevor der Fehler auftrat. Versuchen Sie, die Seite neu zu laden. Wenn der Fehler weiterhin besteht, konsultieren Sie die Entwicklerkonsole des Browsers (normalerweise mit F12 geöffnet) für weitere Details, die bei der Fehlersuche hilfreich sein könnten."
+    }
+  ]
+}

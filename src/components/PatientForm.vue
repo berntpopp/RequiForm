@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h2 class="text-h5 mb-4">Patient Details</h2>
+    <h2 class="text-h5 mb-4">{{ t('patientForm.title') }}</h2>
     
     <!-- Group 1: Basic Information -->
     <v-row dense>
@@ -8,7 +8,7 @@
         <v-text-field
           density="compact"
           outlined
-          label="Given Name *"
+          :label="t('patientForm.labels.givenName')"
           v-model="givenName"
           prepend-inner-icon="mdi-account"
           :error="!!firstNameError"
@@ -19,7 +19,7 @@
         <v-text-field
           density="compact"
           outlined
-          label="Family Name *"
+          :label="t('patientForm.labels.familyName')"
           v-model="familyName"
           prepend-inner-icon="mdi-account-group"
           :error="!!lastNameError"
@@ -29,7 +29,7 @@
       <v-col cols="12" sm="6">
         <LocaleDatePicker 
           v-model="birthdate" 
-          label="Birthdate *"
+          :label="t('patientForm.labels.birthdate')"
           :error="!!birthdateError"
           :error-messages="birthdateError"
         />
@@ -38,8 +38,10 @@
         <v-select
           density="compact"
           outlined
-          label="Sex"
+          :label="t('patientForm.labels.sex')"
           :items="sexOptions"
+          item-title="text"
+          item-value="value"
           v-model="sex"
           prepend-inner-icon="mdi-gender-male-female"
           :error="!!sexError"
@@ -56,7 +58,7 @@
         <v-text-field
           density="compact"
           outlined
-          label="Insurance *"
+          :label="t('patientForm.labels.insurance')"
           v-model="insurance"
           prepend-inner-icon="mdi-card-account-details-outline"
           :error="!!insuranceError"
@@ -67,7 +69,7 @@
         <v-text-field
           density="compact"
           outlined
-          label="Physician Name *"
+          :label="t('patientForm.labels.physicianName')"
           v-model="physicianName"
           prepend-inner-icon="mdi-stethoscope"
           :error="!!referrerError"
@@ -84,7 +86,7 @@
         <v-select
           density="compact"
           outlined
-          label="Family History"
+          :label="t('patientForm.labels.familyHistory')"
           :items="familyHistoryOptions"
           v-model="familyHistory"
           prepend-inner-icon="mdi-history"
@@ -94,7 +96,7 @@
         <v-select
           density="compact"
           outlined
-          label="Parental Consanguinity"
+          :label="t('patientForm.labels.parentalConsanguinity')"
           :items="consanguinityOptions"
           v-model="parentalConsanguinity"
           prepend-inner-icon="mdi-human-male-female"
@@ -104,7 +106,7 @@
         <v-text-field
           density="compact"
           outlined
-          label="Diagnosis / Suspicion *"
+          :label="t('patientForm.labels.diagnosis')"
           v-model="diagnosis"
           rows="2"
           prepend-inner-icon="mdi-file-document-edit-outline"
@@ -122,7 +124,7 @@
       <v-col cols="12" sm="6">
         <LocaleDatePicker 
           v-model="orderingDate" 
-          label="Ordering Date" 
+          :label="t('patientForm.labels.orderingDate')" 
         />
       </v-col>
       <v-col cols="12" sm="6">
@@ -130,7 +132,7 @@
         <v-select
           density="compact"
           outlined
-          label="Consent"
+          :label="t('patientForm.labels.consent')"
           :items="consentOptions"
           item-title="text"
           item-value="value"
@@ -145,21 +147,21 @@
         <v-text-field
           density="compact"
           outlined
-          label="Consent Given By"
+          :label="t('patientForm.labels.consentGivenBy')"
           v-model="genDGConsentName"
         />
       </v-col>
       <v-col cols="12" sm="6">
-        <LocaleDatePicker
-          v-model="genDGConsentDate"
-          label="Consent Date"
+        <LocaleDatePicker 
+          v-model="genDGConsentDate" 
+          :label="t('patientForm.labels.consentDate')"
         />
       </v-col>
       <v-col cols="12" sm="6">
         <v-select
           density="compact"
           outlined
-          label="Report incidental findings?"
+          :label="t('patientForm.labels.consentSecondaryFindings')"
           :items="yesNoOptions"
           item-title="text"
           item-value="value"
@@ -170,7 +172,7 @@
         <v-select
           density="compact"
           outlined
-          label="Store test material?"
+          :label="t('patientForm.labels.consentMaterial')"
           :items="yesNoOptions"
           item-title="text"
           item-value="value"
@@ -181,7 +183,7 @@
         <v-select
           density="compact"
           outlined
-          label="Store results beyond 10 years (max. 30 years)?"
+          :label="t('patientForm.labels.consentExtendedStorage')"
           :items="yesNoOptions"
           item-title="text"
           item-value="value"
@@ -192,7 +194,7 @@
         <v-select
           density="compact"
           outlined
-          label="Use for research/quality assurance purposes?"
+          :label="t('patientForm.labels.consentResearch')"
           :items="yesNoOptions"
           item-title="text"
           item-value="value"
@@ -206,15 +208,15 @@
     <!-- Group 5: Variant Segregation Request -->
     <v-row dense>
       <v-col cols="12">
-        <v-checkbox v-model="variantSegregationRequested" label="Request Variant Segregation" />
+        <v-checkbox v-model="variantSegregationRequested" :label="t('patientForm.labels.requestVariantSegregation')" />
       </v-col>
       <v-col cols="12" v-if="variantSegregationRequested">
         <v-text-field
           density="compact"
           outlined
-          label="Variant Details"
+          :label="t('patientForm.labels.variantDetails')"
           v-model="variantDetails"
-          hint="Provide details for the variant segregation request"
+          :hint="t('patientForm.hints.variantDetails')"
           persistent-hint
         />
       </v-col>
@@ -225,6 +227,9 @@
 <script setup>
 import LocaleDatePicker from './LocaleDatePicker.vue'
 import { computed, inject } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 /**
  * PatientForm component to capture patient details.
@@ -256,43 +261,43 @@ const getFieldErrors = inject('getFieldErrors', () => ({})) // Fallback to empty
 // First name error
 const firstNameError = computed(() => {
   const errors = getFieldErrors('personalInfo');
-  return errors && errors.firstName ? errors.firstName : ''
+  return errors && errors.firstName ? t(errors.firstName) : ''
 })
 
 // Last name error
 const lastNameError = computed(() => {
   const errors = getFieldErrors('personalInfo');
-  return errors && errors.lastName ? errors.lastName : ''
+  return errors && errors.lastName ? t(errors.lastName) : ''
 })
 
 // Birthdate error
 const birthdateError = computed(() => {
   const errors = getFieldErrors('personalInfo');
-  return errors && errors.birthdate ? errors.birthdate : ''
+  return errors && errors.birthdate ? t(errors.birthdate) : ''
 })
 
 // Sex error
 const sexError = computed(() => {
   const errors = getFieldErrors('personalInfo');
-  return errors && errors.sex ? errors.sex : ''
+  return errors && errors.sex ? t(errors.sex) : ''
 })
 
 // Insurance error
 const insuranceError = computed(() => {
   const errors = getFieldErrors('personalInfo');
-  return errors && errors.insurance ? errors.insurance : ''
+  return errors && errors.insurance ? t(errors.insurance) : ''
 })
 
 // Referrer error (physician name)
 const referrerError = computed(() => {
   const errors = getFieldErrors('personalInfo');
-  return errors && errors.referrer ? errors.referrer : ''
+  return errors && errors.referrer ? t(errors.referrer) : ''
 })
 
 // Diagnosis error
 const diagnosisError = computed(() => {
   const errors = getFieldErrors('personalInfo');
-  return errors && errors.diagnosis ? errors.diagnosis : ''
+  return errors && errors.diagnosis ? t(errors.diagnosis) : ''
 })
 
 /**
@@ -436,21 +441,35 @@ const genDGResearch = createLegacyField('genDGConsentData', 'form', 'questionRes
 // Note: Incidental findings consent is already handled via the genDGSecondaryFindings field
 // in the GenDG consent section
 
-const sexOptions = ['male', 'female', 'undetermined']
-const familyHistoryOptions = ['conspicuous', 'inconspicuous', 'unknown']
-const consanguinityOptions = ['yes', 'no']
+// Computed properties for translated select options
+const sexOptions = computed(() => [
+  { text: t('patientForm.options.sex.male'), value: 'male' },
+  { text: t('patientForm.options.sex.female'), value: 'female' },
+  { text: t('patientForm.options.sex.undetermined'), value: 'undetermined' }
+]);
+
+const familyHistoryOptions = computed(() => [
+  { text: t('patientForm.options.familyHistory.conspicuous'), value: 'conspicuous' },
+  { text: t('patientForm.options.familyHistory.inconspicuous'), value: 'inconspicuous' },
+  { text: t('patientForm.options.familyHistory.unknown'), value: 'unknown' }
+]);
+
+const consanguinityOptions = computed(() => [
+  { text: t('patientForm.options.consanguinity.yes'), value: 'yes' },
+  { text: t('patientForm.options.consanguinity.no'), value: 'no' }
+]);
 
 // Options for the Consent select.
-const consentOptions = [
-  { text: 'Already Provided', value: 'provided' },
-  { text: 'Fill Form', value: 'fill' },
-]
+const consentOptions = computed(() => [
+  { text: t('patientForm.options.consent.provided'), value: 'provided' },
+  { text: t('patientForm.options.consent.fill'), value: 'fill' },
+]);
 
 // Options for yes/no questions.
-const yesNoOptions = [
-  { text: 'Yes', value: 'yes' },
-  { text: 'No', value: 'no' },
-]
+const yesNoOptions = computed(() => [
+  { text: t('patientForm.options.yesNo.yes'), value: 'yes' },
+  { text: t('patientForm.options.yesNo.no'), value: 'no' },
+]);
 </script>
 
 <style scoped>

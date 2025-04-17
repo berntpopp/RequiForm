@@ -17,7 +17,8 @@
           class="log-level-select"
           :class="logLevelColorClass"
         ></v-select>
-        <v-btn icon="mdi-delete-sweep" variant="text" size="small" @click="clearLogs" title="Clear Logs"></v-btn>
+        <v-btn icon="mdi-download" variant="text" size="small" @click="downloadLogs" title="Download Logs" :disabled="!logEntries.length"></v-btn>
+        <v-btn icon="mdi-delete-sweep" variant="text" size="small" @click="clearLogs" title="Clear Logs" :disabled="!logEntries.length"></v-btn>
         <v-btn icon="mdi-close" variant="text" size="small" @click="closeViewer" title="Close Logs"></v-btn>
       </div>
     </v-card-title>
@@ -75,6 +76,39 @@ const formatTimestamp = (isoString) => {
 
 const closeViewer = () => {
   uiStore.toggleLogViewer(); // Assuming toggleLogViewer action exists
+};
+
+const downloadLogs = () => {
+  if (!logEntries.value || logEntries.value.length === 0) {
+    // Optionally show a message or just do nothing
+    logService.warn('LogViewer: No logs to download.');
+    return;
+  }
+
+  try {
+    // Format logs as JSON
+    const logsJson = JSON.stringify(logEntries.value, null, 2); // Pretty print
+    const blob = new Blob([logsJson], { type: 'application/json' });
+
+    // Create a filename with a timestamp
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `requiform-logs-${timestamp}.json`;
+
+    // Create a temporary link to trigger the download
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    document.body.appendChild(link); // Required for Firefox
+    link.click();
+
+    // Clean up
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+    logService.info('LogViewer: Logs downloaded successfully.');
+  } catch (error) {
+    logService.error('LogViewer: Failed to download logs:', error);
+    // Optionally, notify the user via UI
+  }
 };
 
 const clearLogs = () => {

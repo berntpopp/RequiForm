@@ -14,7 +14,7 @@
  */
 
 import { ref } from 'vue';
-import { parsePatientDataFromUrl, clearUrlParameters, getUrlParameter } from '../utils/urlUtils';
+import { parsePatientDataFromUrl, clearUrlParameters } from '../utils/urlUtils';
 import { encryptData, decryptData } from '../utils/cryptoUtils';
 import { useUiStore } from '../stores/uiStore';
 import { useFormStore } from '../stores/formStore';
@@ -40,6 +40,37 @@ export function useUrlHandler() {
   // Get stores
   const uiStore = useUiStore();
   const formStore = useFormStore();
+  
+  /**
+   * Helper function to get a parameter from the hash fragment
+   * 
+   * @param {string} name - Name of the parameter to retrieve
+   * @returns {string|null} The value of the parameter, or null if not found
+   */
+  function getParameterFromHash(name) {
+    if (window.location.hash && window.location.hash.length > 1) {
+      // Remove leading '#' and parse
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      if (hashParams.has(name)) {
+        // URLSearchParams automatically decodes, but our encrypted data might have chars
+        // that need double encoding/decoding depending on how it was encoded.
+        // Let's return the raw value from the hash first. Decoding happens later.
+        // Need to reconstruct the raw value if URLSearchParams decoded it.
+        const hash = window.location.hash.substring(1);
+        const parts = hash.split('&');
+        for (const part of parts) {
+          const [key, value] = part.split('=');
+          if (key === name) {
+            // Return the raw, potentially encoded value
+            return value;
+          }
+        }
+        // Fallback if direct split fails but hashParams found it (less likely for our case)
+        return hashParams.get(name);
+      }
+    }
+    return null;
+  }
   
   /**
    * Initializes the application state from URL parameters if present.
@@ -133,11 +164,18 @@ export function useUrlHandler() {
         uiStore.showSnackbar("Data loaded from URL successfully!");
       }
     } else {
-      // Check for encrypted data
-      const encryptedValue = getUrlParameter('encrypted');
+      // Check for encrypted data IN HASH
+      const encryptedValue = getParameterFromHash('encrypted');
       if (encryptedValue) {
-        pendingEncryptedValue.value = encryptedValue;
-        uiStore.openDecryptionDialog(encryptedValue);
+        // URLSearchParams might decode automatically. If encryptData expects the raw,
+        // potentially still encoded value, we passed that from getParameterFromHash.
+        // We might need to decodeURIComponent here if getParameterFromHash didn't return raw.
+        // Let's assume the raw value is needed for decryption function.
+        // No, the original code used encodeURIComponent, so the value in the hash
+        // IS URI encoded. The decryption process likely expects the decoded value.
+        const decodedEncryptedValue = decodeURIComponent(encryptedValue);
+        pendingEncryptedValue.value = decodedEncryptedValue;
+        uiStore.openDecryptionDialog(decodedEncryptedValue);
       }
     }
   }
@@ -271,10 +309,10 @@ export function useUrlHandler() {
    * 1. Exports the current form data
    * 2. Compacts it by removing empty values
    * 3. Encrypts the data using the provided password
-   * 4. Creates a URL with the encrypted data as a query parameter
+   * 4. Creates a URL with the encrypted data as a HASH parameter
    * 
    * The resulting URL format is: 
-   * http://example.com/?encrypted={...encrypted data...}
+   * http://example.com/#encrypted={...encrypted data...}
    * 
    * @param {string} password - Password to use for encryption
    * @returns {string|null} The complete URL with encrypted data, or null if encryption failed
@@ -300,9 +338,11 @@ export function useUrlHandler() {
                       window.location.host + 
                       window.location.pathname;
       
-      // Add the encrypted data as a query parameter
-      const url = `${baseUrl}?encrypted=${encodeURIComponent(encryptedData)}`;
-      logService.debug(`Encrypted URL length: ${url.length} characters`);
+      // Add the encrypted data as a HASH parameter
+      // No need to encodeURIComponent for hash fragment according to standards,
+      // but Base64 might contain '+' which needs encoding. Let's keep encodeURIComponent.
+      const url = `${baseUrl}#encrypted=${encodeURIComponent(encryptedData)}`;
+      logService.debug(`Encrypted URL (hash) length: ${url.length} characters`);
       
       return url;
     } catch (error) {
@@ -353,7 +393,7 @@ export function useUrlHandler() {
   function decryptUrlData(password) {
     try {
       if (!pendingEncryptedValue.value) {
-        pendingEncryptedValue.value = getUrlParameter('encrypted');
+        pendingEncryptedValue.value = getParameterFromHash('encrypted');
         if (!pendingEncryptedValue.value) {
           uiStore.showSnackbar("No encrypted data found in URL.");
           return false;

@@ -4,6 +4,7 @@
       <v-card-title class="headline">Enter Password for Decryption</v-card-title>
       <v-card-text>
         <v-text-field 
+          ref="passwordInputRef" 
           v-model="password" 
           type="password" 
           label="Password" 
@@ -29,7 +30,7 @@
  * @file DecryptionDialog.vue - Dialog for decrypting encrypted form data
  * @module components/dialogs/DecryptionDialog
  */
-import { ref, watch } from 'vue';
+import { ref, watch, nextTick } from 'vue';
 
 const props = defineProps({
   /**
@@ -59,11 +60,43 @@ const emit = defineEmits([
 
 // Internal state for the password input
 const password = ref('');
+const passwordInputRef = ref(null);
 
-// Reset password and error when dialog opens
+// Reset password and error when dialog opens, and focus input
 watch(() => props.modelValue, (newValue) => {
   if (newValue) {
     password.value = '';
+    // Use nextTick to ensure the input element is potentially available
+    nextTick(() => {
+      let inputElement = null;
+
+      // Vuetify 3 v-text-field often exposes the input element via ref.input
+      // or sometimes nested within ref.value.$el or similar structure.
+      if (passwordInputRef.value) {
+        if (passwordInputRef.value.input && typeof passwordInputRef.value.input.focus === 'function') {
+          // Common Vuetify 3 pattern
+          inputElement = passwordInputRef.value.input;
+        } else if (passwordInputRef.value.$el && typeof passwordInputRef.value.$el.querySelector === 'function') {
+          // Fallback using querySelector on the component's root element
+          inputElement = passwordInputRef.value.$el.querySelector('input');
+        } else if (typeof passwordInputRef.value.focus === 'function') {
+          // Less likely: component itself has focus?
+          inputElement = passwordInputRef.value; // Treat component as focusable
+        }
+      }
+
+      if (inputElement && typeof inputElement.focus === 'function') {
+        inputElement.focus();
+      } else {
+        // AS A LAST RESORT: Try with a small delay after nextTick
+        // setTimeout(() => {
+        //    const delayedInputElement = passwordInputRef.value?.input || passwordInputRef.value?.$el?.querySelector('input');
+        //    if (delayedInputElement && typeof delayedInputElement.focus === 'function') {
+        //        delayedInputElement.focus();
+        //    }
+        // }, 100); // e.g., 100ms delay
+      }
+    });
   }
 });
 

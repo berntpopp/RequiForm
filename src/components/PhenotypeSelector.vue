@@ -21,9 +21,9 @@
               class="phenotype-item"
             >
               <div class="phenotype-info">
-                <strong>{{ phenotype.name }}</strong>
+                <strong>{{ getPhenotypeName(phenotype) }}</strong>
                 <span class="hpo">({{ phenotype.hpo }})</span>
-                <p class="description">{{ phenotype.description }}</p>
+                <p class="description">{{ getPhenotypeDescription(phenotype) }}</p>
               </div>
               <v-radio-group
                 v-model="localPhenotypeData[group.id][phenotype.id]"
@@ -55,6 +55,8 @@ import { brandingConfig } from '@/services/brandingConfigService'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
+const i18n = useI18n()
+const locale = computed(() => i18n.locale.value)
 
 // Props for backward compatibility
 const props = defineProps({
@@ -198,6 +200,34 @@ function togglePanel() {
 function categoryPhenotypes(categoryId) {
   const category = testsData.categories.find((cat) => cat.id === categoryId)
   return category?.phenotypes || []
+}
+
+/**
+ * Gets the phenotype name in the current language if available, falls back to default
+ * @param {Object} phenotype - The phenotype object
+ * @returns {string} The localized phenotype name
+ */
+function getPhenotypeName(phenotype) {
+  // If the phenotype has a names object with the current locale, use that
+  if (phenotype.names && phenotype.names[locale.value]) {
+    return phenotype.names[locale.value]
+  }
+  // Otherwise fall back to the name property
+  return phenotype.name
+}
+
+/**
+ * Gets the phenotype description in the current language if available, falls back to default
+ * @param {Object} phenotype - The phenotype object
+ * @returns {string} The localized phenotype description
+ */
+function getPhenotypeDescription(phenotype) {
+  // If the phenotype has a descriptions object with the current locale, use that
+  if (phenotype.descriptions && phenotype.descriptions[locale.value]) {
+    return phenotype.descriptions[locale.value]
+  }
+  // Otherwise fall back to the description property
+  return phenotype.description
 }
 
 function handlePhenotypeChange() {

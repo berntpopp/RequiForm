@@ -16,7 +16,7 @@
           outlined
           :label="t('testSelector.labels.category')"
           :items="categories"
-          item-title="title"
+          :item-title="item => getCategoryTitle(item)"
           item-value="id"
           v-model="selectedCategory"
           class="mt-2"
@@ -27,7 +27,7 @@
             outlined
             :label="t('testSelector.labels.selectPanels')"
             :items="filteredTests"
-            item-title="name"
+            :item-title="item => getTestName(item)"
             item-value="id"
             v-model="unifiedPatientData.selectedPanels"
             :return-object="false"
@@ -96,6 +96,8 @@ import logService from '@/services/logService';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
+const i18n = useI18n();
+const locale = computed(() => i18n.locale.value);
 
 /**
  * Custom filter function for autocomplete.
@@ -112,6 +114,34 @@ const customFilter = (itemTitle, queryText, item) => {
     (item && (item.searchText || (item.raw && item.raw.searchText))) || itemTitle;
   return searchValue.toLowerCase().includes(queryText.toLowerCase());
 };
+
+/**
+ * Gets the test name in the current language if available, falls back to default
+ * @param {Object} test - The test object
+ * @returns {string} The localized test name
+ */
+function getTestName(test) {
+  // If the test has a names object with the current locale, use that
+  if (test.names && test.names[locale.value]) {
+    return test.names[locale.value];
+  }
+  // Otherwise fall back to the name property
+  return test.name;
+}
+
+/**
+ * Gets the category title in the current language if available, falls back to default
+ * @param {Object} category - The category object
+ * @returns {string} The localized category title
+ */
+function getCategoryTitle(category) {
+  // If the category has a titles object with the current locale, use that
+  if (category.titles && category.titles[locale.value]) {
+    return category.titles[locale.value];
+  }
+  // Otherwise fall back to the title property
+  return category.title;
+}
 
 // Inject the unified patient data and update functions
 const unifiedPatientData = inject('patientData', { selectedPanels: ref([]) }); // Provide default structure
@@ -249,12 +279,14 @@ const searchItems = computed(() => {
   const items = [];
   categories.value.forEach(cat => {
     cat.tests.forEach(test => {
-      let searchText = test.name;
+      // Use localized name in both the displayed label and search text
+      const localizedName = getTestName(test);
+      let searchText = localizedName;
       if (test.genes && Array.isArray(test.genes)) {
         searchText += ' ' + test.genes.join(' ');
       }
       items.push({
-        label: test.name,
+        label: localizedName,
         value: test.id,
         searchText
       });

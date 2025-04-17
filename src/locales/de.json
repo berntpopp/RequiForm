@@ -105,10 +105,10 @@
       "present": "Vorhanden",
       "absent": "Fehlend"
     },
-    "noPhenotypesMessage": "Für diese Kategorie sind keine vordefinierten Phänotypen verfügbar.",
-    "selectedPanelsSummary": {
-      "title": "Ausgewählte Panels:"
-    }
+    "noPhenotypesMessage": "Für diese Kategorie sind keine vordefinierten Phänotypen verfügbar."
+  },
+  "selectedPanelsSummary": {
+    "title": "Ausgewählte Panels:"
   },
   "testSelector": {
     "title": "Panels / Tests auswählen",

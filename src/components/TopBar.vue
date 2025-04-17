@@ -1,18 +1,29 @@
 <template>
   <!-- Add a class to v-app-bar for easier targeting -->
-  <v-app-bar app color="primary" dark class="main-app-bar">
+  <v-app-bar app :color="brandingConfig.styles.topBarColor" dark class="main-app-bar">
     <!-- Inner wrapper for content -->
     <div class="content-wrapper">
       <!-- Title aligned to the start -->
       <v-toolbar-title class="flex-shrink-0">
         <v-tooltip location="bottom">
           <template v-slot:activator="{ props: tooltipProps }">
-            <h1 class="text-h5 font-weight-bold" v-bind="tooltipProps">
-              <v-icon start class="logo-icon">mdi-file-document-outline</v-icon>
-              <span class="ml-1">RequiForm</span>
+            <h1 class="text-h5 font-weight-bold d-flex align-center" v-bind="tooltipProps">
+              <!-- Logo Image -->
+              <v-img
+                v-if="brandingConfig.logoUrl"
+                :src="brandingConfig.logoUrl"
+                alt="App Logo"
+                class="header-logo mr-2"
+                max-height="32"
+                contain
+              ></v-img>
+              <!-- Default Icon (hide if logo exists) -->
+              <v-icon v-if="!brandingConfig.logoUrl" start class="logo-icon">mdi-file-document-outline</v-icon>
+              <!-- App Title Text -->
+              <span class="ml-1">{{ brandingConfig.appTitle }}</span>
             </h1>
           </template>
-          <span>RequiForm: Secure requisition form builder</span>
+          <span>{{ brandingConfig.appTitle }}: Secure requisition form builder</span>
         </v-tooltip>
       </v-toolbar-title>
 
@@ -175,7 +186,9 @@
   </v-app-bar>
 </template>
 
-<script setup lang="ts">
+<script setup>
+import { brandingConfig } from '@/services/brandingConfigService'; // Import branding config
+
 /**
  * TopBar component for RequiForm.
  *
@@ -213,6 +226,13 @@ defineProps({
 /* Ensure title doesn't shrink excessively if needed */
 .v-toolbar-title {
    flex-shrink: 0; /* Keep this */
+}
+
+.header-logo {
+  /* Styles for the custom logo image */
+  max-height: 32px; /* Control logo height */
+  width: auto; /* Maintain aspect ratio */
+  /* margin-right is added via class mr-2 */
 }
 
 .logo-icon {

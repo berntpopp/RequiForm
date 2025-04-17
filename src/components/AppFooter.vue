@@ -97,6 +97,7 @@ import { useUiStore } from '@/stores/uiStore';
 import appConfig from '../config/appConfig.js';
 import pdfConfig from '../data/pdfConfig.json';
 import testsData from '../data/tests.json';
+import { brandingConfig } from '@/services/brandingConfigService';
 
 const props = defineProps({
   disclaimerAcknowledged: {
@@ -121,7 +122,7 @@ const testSchemaVersion = computed(() => (testsData.schema && testsData.schema.v
 
 <style scoped>
 .footer {
-  background-color: #f5f5f5;
+  background-color: v-bind('brandingConfig.styles.footerBackgroundColor');
   box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
 }
 

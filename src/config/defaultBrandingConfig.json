@@ -1,0 +1,17 @@
+{
+  "styles": {
+    "topBarColor": "#a09588", 
+    "footerBackgroundColor": "#E5AA94",
+    "phenotypeSelectorBackgroundColor": "#FFFFFF"
+  },
+  "appTitle": "RequiForm",
+  "themeColors": {
+    "primary": "#a09588",
+    "secondary": "#424242"
+  },
+  "darkThemeColors": {
+    "primary": "#BDBDBD",
+    "secondary": "#757575"
+  },
+  "logoUrl": null
+}

@@ -51,6 +51,7 @@
 import { ref, computed, watch, inject } from 'vue'
 import testsData from '../data/tests.json'
 import logService from '@/services/logService'
+import { brandingConfig } from '@/services/brandingConfigService'
 
 // Props for backward compatibility
 const props = defineProps({
@@ -237,6 +238,9 @@ const groupedPanelDetails = computed(() => props.groupedPanelDetails)
 }
 .phenotype-panel {
   margin-top: 0.5rem;
+  background-color: v-bind('brandingConfig.styles.phenotypeSelectorBackgroundColor');
+  padding: 0.5rem;
+  border-radius: 4px;
 }
 .title {
   font-size: 1.1rem;

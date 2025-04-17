@@ -44,6 +44,48 @@ The Wiki is automatically updated from the `/docs` directory in this repository 
    - The data is encrypted client-side in your browser using strong AES-GCM encryption (Web Crypto API) before generating the link.
    - Decryption also happens client-side in the recipient's browser only when the correct password is entered.
 
+## Configuration
+
+### UI Branding
+
+RequiForm allows customization of certain UI elements like colors and the application title to match specific deployment needs (e.g., a self-hosted instance for a specific institution). This includes:
+
+- Top bar color (`styles.topBarColor`)
+- Footer background color (`styles.footerBackgroundColor`)
+- Phenotype selection panel background color (`styles.phenotypeSelectorBackgroundColor`)
+- Main theme colors like Primary and Secondary (`themeColors.primary`, `themeColors.secondary`), which affect buttons, highlights, etc.
+- Application Title (`appTitle`)
+- Header Logo URL (`logoUrl`) - A URL pointing to an image file to display next to the title.
+
+- **Default Configuration:** The default branding settings are defined in `src/config/defaultBrandingConfig.json`. This file serves as the base configuration and fallback.
+- **External Override:** You can override the default branding by placing a custom JSON file (e.g., `branding.json`) in your web server's deployment directory (e.g., in the `public` folder before building, or placed alongside the built `index.html` afterwards).
+- **Environment Variable:** To tell RequiForm where to find this external file, set the `VITE_BRANDING_CONFIG_PATH` environment variable during the build process. The path should be relative to the root of the deployed application (e.g., `/config/my-lab-branding.json`).
+
+```bash
+# Example for build command
+VITE_BRANDING_CONFIG_PATH=/config/my-lab-branding.json npm run build
+```
+
+- **File Structure:** Your external JSON file should mirror the structure of `defaultBrandingConfig.json`. You only need to include the keys you wish to override. For example:
+
+```json
+// Example: /config/my-lab-branding.json
+{
+  "styles": {
+    "topBarColor": "#0055A4",                   // Custom top bar color
+    "phenotypeSelectorBackgroundColor": "#EFEFEF" // Custom phenotype panel background
+  },
+  "appTitle": "My Lab RequiForm",             // Custom title
+  "themeColors": {
+    "primary": "#D40000",                    // Custom primary button/element color
+    "secondary": "#666666"                   // Custom secondary element color
+  },
+  "logoUrl": "/path/to/your/logo.png"     // Custom logo image URL (relative to deployment root)
+}
+```
+
+- **Fallback:** If `VITE_BRANDING_CONFIG_PATH` is not set, or if the specified file cannot be fetched or parsed, RequiForm will gracefully fall back to using the default values from `src/config/defaultBrandingConfig.json`.
+
 ## Project Goals
 
 - **Security & Privacy**: Keep sensitive patient data strictly within the client environment.  

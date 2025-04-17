@@ -5,10 +5,15 @@
     <div class="content-wrapper">
       <!-- Title aligned to the start -->
       <v-toolbar-title class="flex-shrink-0">
-        <h1 class="text-h5 font-weight-bold">
-          <v-icon left>mdi-file-document</v-icon>
-          <span class="ml-2">RequiForm</span>
-        </h1>
+        <v-tooltip location="bottom">
+          <template v-slot:activator="{ props: tooltipProps }">
+            <h1 class="text-h5 font-weight-bold" v-bind="tooltipProps">
+              <v-icon start class="logo-icon">mdi-file-document-outline</v-icon>
+              <span class="ml-1">RequiForm</span>
+            </h1>
+          </template>
+          <span>RequiForm: Secure requisition form builder</span>
+        </v-tooltip>
       </v-toolbar-title>
 
       <!-- Spacer pushes actions to the right -->
@@ -202,14 +207,29 @@ defineProps({
   width: 100%;
   max-width: 1200px;
   margin: 0 auto; /* Center the wrapper */
-  padding: 0 16px; /* Default horizontal padding */
-  /* Ensure default height is maintained */
-  height: inherit;
+  padding: 0 16px; /* Ensure padding for content */
 }
 
 /* Ensure title doesn't shrink excessively if needed */
 .v-toolbar-title {
    flex-shrink: 0; /* Keep this */
+}
+
+.logo-icon {
+  /* Add transition for smoothness if needed, although animation might cover it */
+  transition: transform 0.1s ease-in-out;
+}
+
+/* Apply animation only to the icon on hover */
+.logo-icon:hover {
+  animation: wiggle 0.3s ease-in-out 1; /* Faster duration, play once */
+}
+
+/* Simple wiggle animation */
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-3deg); }
+  75% { transform: rotate(3deg); }
 }
 
 #top-bar-actions button {

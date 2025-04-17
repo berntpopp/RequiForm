@@ -30,6 +30,7 @@
  * in the form. It also provides functionality to scroll to the field with the error.
  */
 import { computed, inject } from 'vue';
+import logService from '@/services/logService';
 
 defineProps({
   /**
@@ -124,7 +125,7 @@ function scrollToField(fieldName) {
       element.focus();
     }, 500);
   } else {
-    console.log(`Field not found: ${fieldName} / ${mappedFieldName}`);
+    logService.warn(`ValidationSummary: Could not find field element to scroll to: ${fieldName} (mapped: ${mappedFieldName})`);
   }
 }
 </script>

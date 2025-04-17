@@ -17,6 +17,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { usePatientData } from '../composables/usePatientData';
+import logService from '@/services/logService'; // Import log service
 
 /**
  * Pinia store for application-wide form data management.
@@ -72,7 +73,7 @@ export const useFormStore = defineStore('form', () => {
    * @returns {void}
    */
   function syncUnifiedPatientData() {
-    console.log('Syncing legacy → unified data model');
+    logService.debug('Syncing legacy → unified data model');
     // Map the legacy patient data to the unified format
     updatePersonalInfo({
       firstName: patientData.personalInfo.givenName || patientData.personalInfo.firstName || '',
@@ -93,7 +94,7 @@ export const useFormStore = defineStore('form', () => {
     // Update category if present - check multiple possible locations
     const categoryValue = patientData.category || patientData.personalInfo.category || '';
     if (categoryValue) {
-      console.log('Syncing category:', categoryValue);
+      logService.debug('Syncing category:', categoryValue);
       updateCategory(categoryValue);
     }
   }
@@ -111,7 +112,7 @@ export const useFormStore = defineStore('form', () => {
    * @returns {void}
    */
   function syncLegacyPatientData() {
-    console.log('Syncing unified → legacy data model');
+    logService.debug('Syncing unified → legacy data model');
     // Map unified model back to legacy format
     patientData.personalInfo.givenName = patientData.personalInfo.firstName || '';
     patientData.personalInfo.familyName = patientData.personalInfo.lastName || '';
@@ -301,7 +302,7 @@ export const useFormStore = defineStore('form', () => {
    * @returns {boolean} Success status (true if import successful, false otherwise)
    */
   function importFormData(data, overwrite = true) {
-    console.log('formStore: Importing data:', data);
+    logService.debug('formStore: Importing data:', data);
     
     try {
       // Special case for data copied from the URL hash format
@@ -312,11 +313,11 @@ export const useFormStore = defineStore('form', () => {
                               data.category);
       
       if (isHashFormatData) {
-        console.log('formStore: Detected hash format data with nested structure');
+        logService.debug('formStore: Detected hash format data with nested structure');
         
         // Handle the nested patientData structure
         if (data.patientData) {
-          console.log('formStore: Initializing from nested patientData:', data.patientData);
+          logService.debug('formStore: Initializing from nested patientData:', data.patientData);
           initializeFromExternalData(data.patientData, overwrite);
         }
         
@@ -325,20 +326,20 @@ export const useFormStore = defineStore('form', () => {
         
         // Handle selected panels from top level
         if (data.selectedPanels && Array.isArray(data.selectedPanels)) {
-          console.log('formStore: Setting top-level selected panels:', data.selectedPanels);
+          logService.debug('formStore: Setting top-level selected panels:', data.selectedPanels);
           updateSelectedPanels(data.selectedPanels);
         }
         
         // Handle top-level phenotype data
         if (data.phenotypeData) {
-          console.log('formStore: Processing phenotype data', 
+          logService.debug('formStore: Processing phenotype data', 
                      Array.isArray(data.phenotypeData) ? 'array format' : 'object format');
           
           // CRITICAL FIX: Handle both array and object formats of phenotype data
           if (Array.isArray(data.phenotypeData)) {
             // Handle special flat array format: [{"phenotype1":"present","phenotype2":"absent",...}]
             if (data.phenotypeData.length > 0 && !data.phenotypeData[0].categoryId && !data.phenotypeData[0].phenotypeId) {
-              console.log('formStore: Detected flat phenotype array format');
+              logService.debug('formStore: Detected flat phenotype array format');
               
               // Convert direct object keys-values to categoryId/phenotypeId/status format
               const categoryId = data.category || 'nephrology'; // Default to nephrology if no category
@@ -364,10 +365,10 @@ export const useFormStore = defineStore('form', () => {
               phenotypeDataObj.value = phenotypeObj;
               updatePhenotypeData(phenotypeArray);
               
-              console.log('formStore: Converted flat phenotype data to', phenotypeArray.length, 'items');
+              logService.debug('formStore: Converted flat phenotype data to', phenotypeArray.length, 'items');
             } else {
               // Standard array format with {categoryId, phenotypeId, status} objects
-              console.log('formStore: Using standard phenotype array format');
+              logService.debug('formStore: Using standard phenotype array format');
               updatePhenotypeData(data.phenotypeData);
               
               // Also convert to object format
@@ -384,7 +385,7 @@ export const useFormStore = defineStore('form', () => {
             }
           } else {
             // Object format like {nephrology: {phenotype1: "present", ...}}
-            console.log('formStore: Setting top-level phenotype data object:', data.phenotypeData);
+            logService.debug('formStore: Setting top-level phenotype data object:', data.phenotypeData);
             phenotypeDataObj.value = { ...data.phenotypeData };
             
             // Convert from object format to array format for UI components
@@ -394,7 +395,7 @@ export const useFormStore = defineStore('form', () => {
               const phenotypesToUse = data.phenotypeData[categoryId] || {};
               
               if (Object.keys(phenotypesToUse).length > 0) {
-                console.log('formStore: Converting phenotype object to array format for UI');
+                logService.debug('formStore: Converting phenotype object to array format for UI');
                 const phenotypeArray = [];
                 
                 // Convert to {categoryId, phenotypeId, status} format for UI components
@@ -407,7 +408,7 @@ export const useFormStore = defineStore('form', () => {
                 });
                 
                 updatePhenotypeData(phenotypeArray);
-                console.log('formStore: Phenotype data converted to array format with', 
+                logService.debug('formStore: Phenotype data converted to array format with', 
                            phenotypeArray.length, 'items');
               }
             }
@@ -416,7 +417,7 @@ export const useFormStore = defineStore('form', () => {
         
         // Handle top-level category
         if (data.category) {
-          console.log('formStore: Setting top-level category:', data.category);
+          logService.debug('formStore: Setting top-level category:', data.category);
           updateCategory(data.category);
           
           // Set category in all possible locations for maximum compatibility
@@ -428,12 +429,12 @@ export const useFormStore = defineStore('form', () => {
           }
           patientData.personalInfo.category = data.category;
           
-          console.log('formStore: Category set in multiple locations for compatibility');
+          logService.debug('formStore: Category set in multiple locations for compatibility');
         }
         
         // Handle pedigree display flag
         if (typeof data.showPedigree === 'boolean') {
-          console.log('formStore: Setting top-level show pedigree:', data.showPedigree);
+          logService.debug('formStore: Setting top-level show pedigree:', data.showPedigree);
           showPedigree.value = data.showPedigree;
         }
       } else {
@@ -441,20 +442,20 @@ export const useFormStore = defineStore('form', () => {
         
         // Handle personalInfo directly - this structure might come from the paste modal
         if (data.personalInfo) {
-          console.log('formStore: Updating personal info:', data.personalInfo);
+          logService.debug('formStore: Updating personal info:', data.personalInfo);
           // Direct update to the personal info object
           Object.assign(patientData.personalInfo, data.personalInfo);
         }
         
         // Handle patientData from file imports
         if (data.patientData) {
-          console.log('formStore: Initializing from external data:', data.patientData);
+          logService.debug('formStore: Initializing from external data:', data.patientData);
           initializeFromExternalData(data.patientData, overwrite);
         }
         
         // Handle selected panels/tests
         if (data.selectedPanels && Array.isArray(data.selectedPanels)) {
-          console.log('formStore: Setting selected panels:', data.selectedPanels);
+          logService.debug('formStore: Setting selected panels:', data.selectedPanels);
           updateSelectedPanels(data.selectedPanels);
         }
         
@@ -462,7 +463,7 @@ export const useFormStore = defineStore('form', () => {
         if (data.phenotypeData) {
           // Check if it's an array (from paste modal) or object (from file import)
           if (Array.isArray(data.phenotypeData)) {
-            console.log('formStore: Converting phenotype array to object:', data.phenotypeData);
+            logService.debug('formStore: Converting phenotype array to object:', data.phenotypeData);
             // Convert array to object format
             const phenotypeObj = {};
             data.phenotypeData.forEach(item => {
@@ -472,20 +473,20 @@ export const useFormStore = defineStore('form', () => {
             });
             phenotypeDataObj.value = phenotypeObj;
           } else {
-            console.log('formStore: Setting phenotype data object:', data.phenotypeData);
+            logService.debug('formStore: Setting phenotype data object:', data.phenotypeData);
             phenotypeDataObj.value = { ...data.phenotypeData };
           }
         }
         
         // Handle pedigree display flag
         if (typeof data.showPedigree === 'boolean') {
-          console.log('formStore: Setting show pedigree:', data.showPedigree);
+          logService.debug('formStore: Setting show pedigree:', data.showPedigree);
           showPedigree.value = data.showPedigree;
         }
       }
       
       // Synchronize data models in both directions to ensure all UI components update
-      console.log('formStore: Synchronizing data models');
+      logService.debug('formStore: Synchronizing data models');
       syncUnifiedPatientData();
       syncLegacyPatientData();
       
@@ -494,7 +495,7 @@ export const useFormStore = defineStore('form', () => {
       
       return true;
     } catch (error) {
-      console.error('formStore: Error importing data:', error);
+      logService.debug('formStore: Error importing data:', error);
       return false;
     }
   }

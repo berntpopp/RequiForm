@@ -92,6 +92,7 @@
 <script setup>
 import { ref, onMounted, watch, computed, inject, nextTick } from 'vue';
 import testsData from '../data/tests.json';
+import logService from '@/services/logService';
 
 /**
  * Custom filter function for autocomplete.
@@ -129,7 +130,7 @@ onMounted(() => {
   // PRIORITY 1: Check for panels in the global data store from URL parser
   // Use unified data directly
   if (window.requiFormData?.directPanels?.length > 0) {
-    console.log('TestSelector: Setting panels from directPanels:', window.requiFormData.directPanels);
+    logService.debug('TestSelector: Setting panels from directPanels:', window.requiFormData.directPanels);
     // v-model handles the update, no need to call updateSelectedPanels here
     
     // Set category based on the first panel found
@@ -137,7 +138,7 @@ onMounted(() => {
     for (const category of categories.value) {
       const found = category.tests.some(test => test.id === panelId);
       if (found) {
-        console.log('Auto-selecting category from panel:', category.id);
+        logService.debug('TestSelector: Auto-selecting category from panel:', category.id);
         selectedCategory.value = category.id;
         break;
       }
@@ -145,7 +146,7 @@ onMounted(() => {
   }
   // PRIORITY 2: Check for panels in the component-level global store (less likely now)
   else if (window.requiFormData?.selectedPanels?.length > 0) {
-    console.log('TestSelector: Setting panels from window.requiFormData.selectedPanels:', window.requiFormData.selectedPanels);
+    logService.debug('TestSelector: Setting panels from window.requiFormData.selectedPanels:', window.requiFormData.selectedPanels);
     // v-model handles update
     
     // Set category based on the first panel found
@@ -153,7 +154,7 @@ onMounted(() => {
     for (const category of categories.value) {
       const found = category.tests.some(test => test.id === panelId);
       if (found) {
-        console.log('Auto-selecting category from panel:', category.id);
+        logService.debug('TestSelector: Auto-selecting category from panel:', category.id);
         selectedCategory.value = category.id;
         break;
       }
@@ -161,7 +162,7 @@ onMounted(() => {
   }
   // PRIORITY 3: Check unified model from Pinia store (most common case)
   else if (unifiedSelectedPanels.value.length > 0) {
-    console.log('TestSelector: Setting panels from unifiedPatientData:', unifiedSelectedPanels.value);
+    logService.debug('TestSelector: Setting panels from unifiedPatientData:', unifiedSelectedPanels.value);
     // Panels are already in unifiedPatientData.selectedPanels via injection/v-model
     
     // Set category based on the first panel found
@@ -169,7 +170,7 @@ onMounted(() => {
     for (const category of categories.value) {
       const found = category.tests.some(test => test.id === panelId);
       if (found) {
-        console.log('Auto-selecting category from panel:', category.id);
+        logService.debug('TestSelector: Auto-selecting category from panel:', category.id);
         selectedCategory.value = category.id;
         break;
       }
@@ -177,7 +178,7 @@ onMounted(() => {
   }
   // PRIORITY 4: Check unified model for category (if no panels selected)
   else if (unifiedCategory.value) {
-    console.log('Setting initial category from unified model:', unifiedCategory.value);
+    logService.debug('TestSelector: Setting initial category from unified model:', unifiedCategory.value);
     selectedCategory.value = unifiedCategory.value;
   }
   
@@ -185,7 +186,7 @@ onMounted(() => {
   nextTick(() => {
     // Make sure selected panels are displayed by forcing the correct tab
     if (unifiedSelectedPanels.value.length > 0) { // Check unified store
-      console.log('Forcing Category Selection tab to show selected panels');
+      logService.debug('TestSelector: Forcing Category Selection tab to show selected panels');
       tab.value = 'Category Selection';
     }
   }); // Removed timeout, nextTick is usually sufficient
@@ -194,7 +195,7 @@ onMounted(() => {
 // Special domain-specific handler for nephronophthise -> nephrology mapping
 watch(unifiedSelectedPanels, (newTests) => { // Watch unified store state
   if (newTests && newTests.includes('nephronophthise') && (!selectedCategory.value || selectedCategory.value !== 'nephrology')) {
-    console.log('Auto-setting category to nephrology based on nephronophthise panel');
+    logService.debug('TestSelector: Auto-setting category to nephrology based on nephronophthise panel');
     const categoryValue = 'nephrology';
     selectedCategory.value = categoryValue;
     
@@ -224,7 +225,7 @@ watch([unifiedSelectedPanels, categories], ([newTests, newCategories]) => { // W
     
     // If we found the category, set it
     if (foundCategory) {
-      console.log('Auto-selecting category based on selected test:', foundCategory);
+      logService.debug('TestSelector: Auto-selecting category based on selected test:', foundCategory);
       selectedCategory.value = foundCategory;
     }
   }
@@ -306,7 +307,7 @@ function getChipColor(item) {
  * @param {Array} newValue - The new selected panel IDs
  */
 function forceUiUpdate(newValue) {
-  console.log('Panel selection changed in UI:', newValue);
+  logService.debug('Panel selection changed in UI:', newValue);
   
   // Force the selection tab to be active when panels are selected
   if (newValue && newValue.length > 0) {
@@ -320,7 +321,7 @@ function forceUiUpdate(newValue) {
       for (const category of categories.value) {
         const found = category.tests.some(test => test.id === panelId);
         if (found) {
-          console.log('Auto-selecting category from panel:', category.id);
+          logService.debug('TestSelector: Auto-selecting category from panel:', category.id);
           selectedCategory.value = category.id;
           break;
         }

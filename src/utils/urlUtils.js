@@ -3,6 +3,8 @@
  * @description Enhanced utility module for URL parameter handling, ensuring both query and hash parameters are properly handled.
  */
 
+import logService from '@/services/logService'; // Import log service
+
 /**
  * Parses patient data from URL parameters.
  * This function extracts data from both query parameters and hash fragments.
@@ -24,7 +26,7 @@ export function parsePatientDataFromUrl() {
     // First check query parameters (legacy format)
     const searchParams = new URLSearchParams(window.location.search);
     if (searchParams.toString()) {
-      console.log('Found query parameters:', window.location.search);
+      logService.debug('Found query parameters:', window.location.search);
       // Collect all query parameters
       for (const [key, value] of searchParams.entries()) {
         if (key === 'encrypted') continue; // Skip encrypted parameter
@@ -49,16 +51,16 @@ export function parsePatientDataFromUrl() {
           // Parse the JSON data from the 'data' parameter
           const parsedData = JSON.parse(decodeURIComponent(dataParam));
           if (typeof parsedData === 'object') {
-            console.log('Found JSON data in URL hash:', parsedData);
+            logService.debug('Found JSON data in URL hash:', parsedData);
             
             // Ensure selectedTests/selectedPanels are properly processed
             if (parsedData.patientData && parsedData.patientData.selectedPanels) {
-              console.log('Hash data contains nested selectedPanels:', parsedData.patientData.selectedPanels);
+              logService.debug('Hash data contains nested selectedPanels:', parsedData.patientData.selectedPanels);
               
               // Make sure we have both formats for maximum compatibility
               if (!parsedData.selectedTests) {
                 parsedData.selectedTests = [...parsedData.patientData.selectedPanels];
-                console.log('Added top-level selectedTests from nested data:', parsedData.selectedTests);
+                logService.debug('Added top-level selectedTests from nested data:', parsedData.selectedTests);
               }
             } else if (parsedData.selectedTests && !parsedData.patientData?.selectedPanels) {
               // Ensure patientData.selectedPanels exists if selectedTests exists
@@ -66,7 +68,7 @@ export function parsePatientDataFromUrl() {
                 parsedData.patientData = {};
               }
               parsedData.patientData.selectedPanels = [...parsedData.selectedTests];
-              console.log('Added nested selectedPanels from top-level data:', parsedData.patientData.selectedPanels);
+              logService.debug('Added nested selectedPanels from top-level data:', parsedData.patientData.selectedPanels);
             }
             
             // Ensure phenotype data is available in both formats
@@ -76,7 +78,7 @@ export function parsePatientDataFromUrl() {
                 // Add the phenotype data to nested structure
                 parsedData.patientData.phenotypeData = Array.isArray(parsedData.phenotypeData) ? 
                   [...parsedData.phenotypeData] : [parsedData.phenotypeData];
-                console.log('Added nested phenotypeData from top-level:', parsedData.patientData.phenotypeData);
+                logService.debug('Added nested phenotypeData from top-level:', parsedData.patientData.phenotypeData);
               }
               
               // Ensure category is considered for phenotype data handling
@@ -87,7 +89,7 @@ export function parsePatientDataFromUrl() {
                   const categorizedData = {};
                   categorizedData[parsedData.category] = parsedData.phenotypeData;
                   parsedData.phenotypeData = categorizedData;
-                  console.log('Categorized phenotype data by category:', parsedData.category);
+                  logService.debug('Categorized phenotype data by category:', parsedData.category);
                 }
               }
             } else if (parsedData.patientData && parsedData.patientData.phenotypeData) {
@@ -106,14 +108,14 @@ export function parsePatientDataFromUrl() {
                   parsedData.phenotypeData = item;
                 }
                 
-                console.log('Added top-level phenotypeData from nested array:', parsedData.phenotypeData);
+                logService.debug('Added top-level phenotypeData from nested array:', parsedData.phenotypeData);
               }
             }
             
             return parsedData; // Return the enhanced structured data
           }
         } catch (parseError) {
-          console.error('Error parsing JSON data from URL:', parseError);
+          logService.error('Error parsing JSON data from URL:', parseError);
         }
       }
       
@@ -138,7 +140,7 @@ export function parsePatientDataFromUrl() {
     
     // For legacy URL formats where data is flat
     if (foundData) {
-      console.log('Converting legacy format data:', params);
+      logService.debug('Converting legacy format data:', params);
       
       // Convert flat structure to unified data model
       const structuredData = {
@@ -162,7 +164,7 @@ export function parsePatientDataFromUrl() {
     
     return {};
   } catch (error) {
-    console.error('Error parsing URL parameters:', error);
+    logService.error('Error parsing URL parameters:', error);
     return {};
   }
 }
@@ -212,7 +214,7 @@ export function clearAllUrlParameters() {
     
     // Verify that both types of parameters are gone
     if (window.location.search || window.location.hash) {
-      console.warn('First attempt to clear parameters failed, trying alternate method...');
+      logService.warn('First attempt to clear parameters failed, trying alternate method...');
       
       // Second approach: Try handling hash and search separately
       if (window.location.hash) {
@@ -227,9 +229,9 @@ export function clearAllUrlParameters() {
       window.history.replaceState(null, document.title, baseUrl);
     }
     
-    console.log('URL parameters cleared successfully');
+    logService.debug('URL parameters cleared successfully');
   } catch (error) {
-    console.error('Error clearing URL parameters:', error);
+    logService.error('Error clearing URL parameters:', error);
     
     // Fallback method
     const baseUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;

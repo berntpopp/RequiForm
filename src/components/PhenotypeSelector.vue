@@ -50,6 +50,7 @@
 <script setup>
 import { ref, computed, watch, inject } from 'vue'
 import testsData from '../data/tests.json'
+import logService from '@/services/logService'
 
 // Props for backward compatibility
 const props = defineProps({
@@ -80,23 +81,23 @@ const localPhenotypeData = ref({})
 
 // Initialize from unified model if available
 if (unifiedPatientData && unifiedPatientData.phenotypeData && unifiedPatientData.phenotypeData.length > 0) {
-  console.log('PhenotypeSelector: initializing from unified data model with', unifiedPatientData.phenotypeData.length, 'phenotype items')
-  console.log('PhenotypeSelector: phenotype data items:', JSON.stringify(unifiedPatientData.phenotypeData))
+  logService.debug('PhenotypeSelector: initializing from unified data model with', unifiedPatientData.phenotypeData.length, 'phenotype items')
+  logService.debug('PhenotypeSelector: phenotype data items:', unifiedPatientData.phenotypeData)
   
   // Convert array format to map format for internal use
   unifiedPatientData.phenotypeData.forEach(item => {
     // Debug each item as we process it
-    console.log('PhenotypeSelector: processing phenotype item:', item)
+    logService.debug('PhenotypeSelector: processing phenotype item:', item)
     
     if (!localPhenotypeData.value[item.categoryId]) {
-      console.log('PhenotypeSelector: creating new category map for', item.categoryId)
+      logService.debug('PhenotypeSelector: creating new category map for', item.categoryId)
       localPhenotypeData.value[item.categoryId] = {}
     }
     localPhenotypeData.value[item.categoryId][item.phenotypeId] = item.status
-    console.log(`PhenotypeSelector: set ${item.phenotypeId} to ${item.status} in category ${item.categoryId}`)
+    logService.debug(`PhenotypeSelector: set ${item.phenotypeId} to ${item.status} in category ${item.categoryId}`)
   })
   
-  console.log('PhenotypeSelector: finished initialization, localPhenotypeData =', JSON.stringify(localPhenotypeData.value))
+  logService.debug('PhenotypeSelector: finished initialization, localPhenotypeData =', localPhenotypeData.value)
 }
 
 // Ensure each category in groupedPanelDetails has its phenotype states initialized to "no input".
@@ -124,12 +125,12 @@ watch(
 watch(
   () => unifiedPatientData?.phenotypeData,
   (newPhenotypeData) => {
-    console.log('PhenotypeSelector: watching unified phenotype data -', 
+    logService.debug('PhenotypeSelector: watching unified phenotype data -', 
                newPhenotypeData?.length || 0, 'items');
     
     if (newPhenotypeData && newPhenotypeData.length > 0) {
-      console.log('PhenotypeSelector: Found phenotype data in unified model:', 
-                 JSON.stringify(newPhenotypeData));
+      logService.debug('PhenotypeSelector: Found phenotype data in unified model:', 
+                 newPhenotypeData);
       
       // CRITICAL FIX: Handle both standard format and direct object format 
       // from URL hash that doesn't have categoryId/phenotypeId structure
@@ -140,20 +141,20 @@ watch(
                             !newPhenotypeData[0].phenotypeId;
       
       if (hasDirectFormat) {
-        console.log('PhenotypeSelector: Detected direct format phenotype data');
+        logService.debug('PhenotypeSelector: Detected direct format phenotype data');
         // Use the current category or default to nephrology
         const categoryId = unifiedPatientData?.category || 'nephrology';
         
         // Create the category if it doesn't exist
         if (!localPhenotypeData.value[categoryId]) {
-          console.log(`PhenotypeSelector: Creating category ${categoryId} for direct format data`);
+          logService.debug(`PhenotypeSelector: Creating category ${categoryId} for direct format data`);
           localPhenotypeData.value[categoryId] = {};
         }
         
         // Process all properties in the direct object as phenotype values
         Object.entries(newPhenotypeData[0]).forEach(([phenotypeId, status]) => {
           localPhenotypeData.value[categoryId][phenotypeId] = status;
-          console.log(`PhenotypeSelector: Set direct format ${phenotypeId} = ${status} in ${categoryId}`);
+          logService.debug(`PhenotypeSelector: Set direct format ${phenotypeId} = ${status} in ${categoryId}`);
         });
       } else {
         // Standard format with categoryId and phenotypeId
@@ -161,26 +162,26 @@ watch(
           if (item.categoryId && item.phenotypeId && item.status) {
             // Create category if it doesn't exist yet
             if (!localPhenotypeData.value[item.categoryId]) {
-              console.log(`PhenotypeSelector: Creating category ${item.categoryId}`);
+              logService.debug(`PhenotypeSelector: Creating category ${item.categoryId}`);
               localPhenotypeData.value[item.categoryId] = {};
             }
             
             // Set the phenotype status in our local format
             localPhenotypeData.value[item.categoryId][item.phenotypeId] = item.status;
-            console.log(`PhenotypeSelector: Set ${item.phenotypeId} = ${item.status} in ${item.categoryId}`);
+            logService.debug(`PhenotypeSelector: Set ${item.phenotypeId} = ${item.status} in ${item.categoryId}`);
           } else {
-            console.warn('PhenotypeSelector: Invalid phenotype item:', item);
+            logService.warn('PhenotypeSelector: Invalid phenotype item:', item);
           }
         });
       }
       
       // Force UI update by making a reactive change
       localPhenotypeData.value = { ...localPhenotypeData.value };
-      console.log('PhenotypeSelector: Updated phenotype data:', JSON.stringify(localPhenotypeData.value));
+      logService.debug('PhenotypeSelector: Updated phenotype data:', localPhenotypeData.value);
       
       // Force the panel to open if we have phenotype data
       showPanel.value = true;
-      console.log('PhenotypeSelector: Opening panel to show phenotype data');
+      logService.debug('PhenotypeSelector: Opening panel to show phenotype data');
     }
   },
   { immediate: true, deep: true }

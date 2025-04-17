@@ -43,6 +43,7 @@
 
 import QRCode from 'qrcode';
 import qrMappingSchema from '../config/qrMappingSchema.json';
+import logService from '@/services/logService'; // Import log service
 
 /**
  * Validates if an object conforms to the compact QR mapping schema.
@@ -61,7 +62,7 @@ import qrMappingSchema from '../config/qrMappingSchema.json';
  */
 function validateQrData(data, requiredProperties = []) {
   if (!data || typeof data !== 'object') {
-    console.error('QR data validation failed: Data must be an object');
+    logService.error('QR data validation failed: Data must be an object');
     return false;
   }
 
@@ -82,14 +83,14 @@ function validateQrData(data, requiredProperties = []) {
   const fullType = typeMap[data.t] || data.t;
   
   if (!fullType || !qrMappingSchema.properties.type.enum.includes(fullType)) {
-    console.error(`QR data validation failed: Invalid type "${data.t}"`);
+    logService.error(`QR data validation failed: Invalid type "${data.t}"`);
     return false;
   }
 
   // Check required properties
   for (const prop of requiredProperties) {
     if (!data[prop]) {
-      console.error(`QR data validation failed: Missing required property "${prop}"`);
+      logService.error(`QR data validation failed: Missing required property "${prop}"`);
       return false;
     }
   }
@@ -126,7 +127,7 @@ function validateQrData(data, requiredProperties = []) {
  */
 export function encodePhenotypeData(phenotypeData) {
   if (!phenotypeData || !Array.isArray(phenotypeData)) {
-    console.warn('Invalid phenotype data provided for QR encoding');
+    logService.warn('Invalid phenotype data provided for QR encoding');
     return [];
   }
 
@@ -135,7 +136,7 @@ export function encodePhenotypeData(phenotypeData) {
     const encoded = phenotypeData.map(item => {
       // Skip items without an ID
       if (!item || !item.id) {
-        console.debug('Skipping phenotype item with no ID');
+        logService.debug('Skipping phenotype item with no ID');
         return null;
       }
       
@@ -146,7 +147,7 @@ export function encodePhenotypeData(phenotypeData) {
         // Remove HP: prefix and leading zeros
         hpoNumber = parseInt(item.id.substring(3), 10);
         if (isNaN(hpoNumber)) {
-          console.warn(`Invalid HPO ID format: ${item.id}`);
+          logService.warn(`Invalid HPO ID format: ${item.id}`);
           return null;
         }
       } else {
@@ -162,7 +163,7 @@ export function encodePhenotypeData(phenotypeData) {
     
     return encoded;
   } catch (error) {
-    console.error('Error encoding phenotype data:', error);
+    logService.error('Error encoding phenotype data:', error);
     return [];
   }
 }
@@ -186,7 +187,7 @@ export function encodePhenotypeData(phenotypeData) {
  */
 export function decodePhenotypeData(encodedPhenotypeData) {
   if (!encodedPhenotypeData || !Array.isArray(encodedPhenotypeData)) {
-    console.warn('Invalid encoded phenotype data provided for decoding');
+    logService.warn('Invalid encoded phenotype data provided for decoding');
     return [];
   }
 
@@ -207,7 +208,7 @@ export function decodePhenotypeData(encodedPhenotypeData) {
             
             // Validate that the remaining part is a number
             if (!/^\d+$/.test(numStr)) {
-              console.warn(`Invalid phenotype format: ${item}. Expected +/-NUMBER format.`);
+              logService.warn(`Invalid phenotype format: ${item}. Expected +/-NUMBER format.`);
               return null;
             }
             
@@ -215,11 +216,11 @@ export function decodePhenotypeData(encodedPhenotypeData) {
             decoded.present = isPresent;
             return decoded;
           } catch (error) {
-            console.warn(`Error decoding phenotype string: ${item}`, error);
+            logService.warn(`Error decoding phenotype string: ${item}`, error);
             return null;
           }
         } else {
-          console.warn(`Invalid phenotype string format: ${item}. Missing +/- prefix.`);
+          logService.warn(`Invalid phenotype string format: ${item}. Missing +/- prefix.`);
           return null;
         }
       }
@@ -246,7 +247,7 @@ export function decodePhenotypeData(encodedPhenotypeData) {
           
           return decoded;
         } catch (error) {
-          console.warn('Error decoding phenotype array:', error);
+          logService.warn('Error decoding phenotype array:', error);
           return null;
         }
       } 
@@ -268,16 +269,16 @@ export function decodePhenotypeData(encodedPhenotypeData) {
           }
           return null; // Skip if no ID
         } catch (error) {
-          console.warn('Error decoding phenotype object:', error);
+          logService.warn('Error decoding phenotype object:', error);
           return null;
         }
       }
       
-      console.warn(`Unsupported phenotype data format: ${typeof item}`);
+      logService.warn(`Unsupported phenotype data format: ${typeof item}`);
       return null;
     }).filter(item => item !== null); // Remove any items that failed to decode
   } catch (error) {
-    console.error('Error decoding phenotype data:', error);
+    logService.error('Error decoding phenotype data:', error);
     return [];
   }
 }
@@ -334,7 +335,7 @@ export async function generateQrCodeDataUrl(data, options = {}) {
   const dataLength = dataString.length;
   
   // Log the character count to diagnose size issues
-  console.log(`QR code data size: ${dataLength} characters`);
+  logService.debug(`QR code data size: ${dataLength} characters`);
   
   // Calculate optimal size for QR code based on data length
   const calculatedWidth = calculateOptimalQrSize(dataLength);
@@ -364,7 +365,7 @@ export async function generateQrCodeDataUrl(data, options = {}) {
   try {
     return await QRCode.toDataURL(dataString, qrOptions);
   } catch (error) {
-    console.error('Failed to generate QR code:', error);
+    logService.error('Failed to generate QR code:', error);
     throw new Error(`QR code generation failed: ${error.message}`);
   }
 }
@@ -403,7 +404,7 @@ export async function generatePatientQrCode(patientData, options = {}) {
 
   // Convert to JSON with no whitespace
   const jsonStr = JSON.stringify(qrData).replace(/\s/g, '');
-  console.log('Patient QR data size:', jsonStr.length, 'characters');
+  logService.debug('Patient QR data size:', jsonStr.length, 'characters');
 
   return generateQrCodeDataUrl(jsonStr, options.qrOptions || {});
 }
@@ -436,7 +437,7 @@ export async function generatePhenotypeQrCode(phenotypeData, options = {}) {
 
   // Convert to JSON with no whitespace
   const jsonStr = JSON.stringify(qrData).replace(/\s/g, '');
-  console.log('Phenotype QR data size:', jsonStr.length, 'characters');
+  logService.debug('Phenotype QR data size:', jsonStr.length, 'characters');
 
   return generateQrCodeDataUrl(jsonStr, options.qrOptions || {});
 }
@@ -466,25 +467,25 @@ export async function generatePedigreeQrCode(pedigreeData, options = {}) {
   if (Array.isArray(pedigreeData)) {
     // Check if this is our standard PED format array [2, pedData]
     if (pedigreeData.length >= 2 && pedigreeData[0] === 2) {
-      console.log('[qrService] Using standard PED format');
+      logService.debug('[qrService] Using standard PED format');
       // Already in PED format - use as is
       d = pedigreeData;
     } else {
-      console.log('[qrService] Using array format');
+      logService.debug('[qrService] Using array format');
       // Some other array format, use as is
       d = pedigreeData;
     }
   } else if (pedigreeData.f === 'c' || pedigreeData.format === 'compact') {
     // Legacy object format - convert to array if needed
-    console.log('[qrService] Converting legacy object format to array');
+    logService.debug('[qrService] Converting legacy object format to array');
     d = pedigreeData;
   } else if (pedigreeData.h || pedigreeData.hasImage) {
     // Only reference to image - use simplest format
-    console.log('[qrService] Using image reference only');
+    logService.debug('[qrService] Using image reference only');
     d = [0]; // Format code 0 = image reference only
   } else {
     // Unknown format - use as is but log for debugging
-    console.log('[qrService] Unknown format:', typeof pedigreeData);
+    logService.debug('[qrService] Unknown format:', typeof pedigreeData);
     d = pedigreeData;
   }
 
@@ -496,18 +497,18 @@ export async function generatePedigreeQrCode(pedigreeData, options = {}) {
     const compressed = js.replace(/\s/g, '');
     const size = compressed.length;
     
-    console.log('[qrService] Final pedigree data size:', size, 'chars');
+    logService.debug('[qrService] Final pedigree data size:', size, 'chars');
     
     // Check if data is too large for a reliable QR code (typical limit ~4000 chars)
     if (size > 4000) {
-      console.warn('Pedigree data exceeds limit');
+      logService.warn('Pedigree data exceeds limit');
       // Fall back to image reference
       return generatePedigreeQrCode([0], { qrOptions: options.qrOptions });
     }
     
     return generateQrCodeDataUrl(compressed, options.qrOptions || {});
   } catch (error) {
-    console.error('Error generating pedigree QR:', error);
+    logService.error('Error generating pedigree QR:', error);
     // Fallback to empty QR code
     return generateQrCodeDataUrl('{}', options.qrOptions || {});
   }

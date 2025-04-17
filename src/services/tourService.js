@@ -1,5 +1,6 @@
 import Shepherd from 'shepherd.js';
 import 'shepherd.js/dist/css/shepherd.css'; // Import default Shepherd CSS
+import logService from '@/services/logService'; // Import logService
 
 /**
  * Initializes and configures the Shepherd tour instance.
@@ -117,12 +118,12 @@ function initializeTour() {
 
   // Handle tour completion/cancellation
   tour.on('complete', () => {
-    console.log('Tour completed!');
+    logService.info('Tour completed!');
     localStorage.setItem('requiformTourCompleted', 'true'); // Mark as completed
   });
 
   tour.on('cancel', () => {
-    console.log('Tour cancelled.');
+    logService.info('Tour cancelled.');
     // Decide if cancelling should also mark it as "completed" for future visits
     // localStorage.setItem('requiformTourCompleted', 'true');
   });

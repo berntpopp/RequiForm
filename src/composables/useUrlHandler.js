@@ -18,6 +18,7 @@ import { parsePatientDataFromUrl, clearUrlParameters, getUrlParameter } from '..
 import { encryptData, decryptData } from '../utils/cryptoUtils';
 import { useUiStore } from '../stores/uiStore';
 import { useFormStore } from '../stores/formStore';
+import logService from '@/services/logService';
 
 /**
  * Vue composable that provides URL handling functionality for the application.
@@ -55,7 +56,7 @@ export function useUrlHandler() {
   function initializeFromUrl() {
     // Parse data from URL
     const parsedData = parsePatientDataFromUrl();
-    console.log('Parsed data from URL:', parsedData);
+    logService.debug('Parsed data from URL:', parsedData);
     
     if (Object.keys(parsedData).length > 0) {
       // Check if we have actual patient data vs empty structure
@@ -68,12 +69,12 @@ export function useUrlHandler() {
         parsedData.category;  // Check for category field
       
       if (hasPatientData) {
-        console.log('Initializing from URL data');
+        logService.debug('Initializing from URL data');
         
         // Handle the new data format where all data is inside a nested 'patientData' property
         // This comes from the hash format with the full form export
         if (parsedData.patientData) {
-          console.log('Found nested data structure, importing from patientData');
+          logService.debug('Found nested data structure, importing from patientData');
           
           // Check for a category in multiple possible locations
           let categoryValue = parsedData.category || '';
@@ -81,13 +82,13 @@ export function useUrlHandler() {
           // Look in nested personalInfo for category (legacy format inside nested structure)
           if (!categoryValue && parsedData.patientData.personalInfo && parsedData.patientData.personalInfo.category) {
             categoryValue = parsedData.patientData.personalInfo.category;
-            console.log('Found category in nested personalInfo:', categoryValue);
+            logService.debug('Found category in nested personalInfo:', categoryValue);
           }
           
           // Look for a direct category field in nested patientData
           if (!categoryValue && parsedData.patientData.category) {
             categoryValue = parsedData.patientData.category;
-            console.log('Found category in nested patientData:', categoryValue);
+            logService.debug('Found category in nested patientData:', categoryValue);
           }
           
           // If the URL contained the 'nephrology' panel, set the category to nephrology
@@ -96,12 +97,12 @@ export function useUrlHandler() {
               parsedData.selectedTests && 
               parsedData.selectedTests.includes('nephronophthise')) {
             categoryValue = 'nephrology';
-            console.log('Setting category based on selected test (nephronophthise):', categoryValue);
+            logService.debug('Setting category based on selected test (nephronophthise):', categoryValue);
           }
           
           // Propagate the found category to all locations for maximum compatibility
           if (categoryValue) {
-            console.log('Propagating category to all data locations:', categoryValue);
+            logService.debug('Propagating category to all data locations:', categoryValue);
             parsedData.category = categoryValue;
             
             // Ensure it's in the nested patientData too
@@ -119,7 +120,7 @@ export function useUrlHandler() {
           formStore.importFormData(parsedData, true);
         } else {
           // This is the legacy format where patient data is at the root
-          console.log('Found legacy data structure, importing directly');
+          logService.debug('Found legacy data structure, importing directly');
           formStore.importFormData({
             patientData: parsedData,
           }, true);
@@ -158,7 +159,7 @@ export function useUrlHandler() {
       
       // Create a compact version by removing empty fields
       const compactData = removeEmptyValues(fullData);
-      console.log('Creating URL with compact data format');
+      logService.debug('Creating URL with compact data format');
       
       // Stringify the data
       const jsonData = JSON.stringify(compactData);
@@ -172,7 +173,7 @@ export function useUrlHandler() {
       const encodedData = encodeURIComponent(jsonData);
       const shareableUrl = `${baseUrl}#data=${encodedData}`;
       
-      console.log(`Generated URL length: ${shareableUrl.length} characters`);
+      logService.debug(`Generated URL length: ${shareableUrl.length} characters`);
       
       // Check if the URL exceeds browser limits (typically ~2048 chars)
       if (shareableUrl.length > 2000) {
@@ -181,7 +182,7 @@ export function useUrlHandler() {
       
       return shareableUrl;
     } catch (error) {
-      console.error('Error creating shareable URL:', error);
+      logService.error('Error creating shareable URL:', error);
       uiStore.showSnackbar("Error creating shareable URL.");
       return window.location.href;
     }
@@ -258,7 +259,7 @@ export function useUrlHandler() {
       uiStore.showSnackbar("URL copied to clipboard!");
       return true;
     } catch (error) {
-      console.error('Error copying URL to clipboard:', error);
+      logService.error('Error copying URL to clipboard:', error);
       uiStore.showSnackbar("Error copying URL to clipboard.");
       return false;
     }
@@ -285,11 +286,11 @@ export function useUrlHandler() {
       
       // Create a compact version by removing empty fields
       const compactData = removeEmptyValues(fullData);
-      console.log('Creating encrypted URL with compact data format');
+      logService.debug('Creating encrypted URL with compact data format');
       
       // Stringify the data
       const jsonData = JSON.stringify(compactData);
-      console.log(`JSON data length before encryption: ${jsonData.length} characters`);
+      logService.debug(`JSON data length before encryption: ${jsonData.length} characters`);
       
       // Encrypt the data
       const encryptedData = encryptData(jsonData, password);
@@ -301,11 +302,11 @@ export function useUrlHandler() {
       
       // Add the encrypted data as a query parameter
       const url = `${baseUrl}?encrypted=${encodeURIComponent(encryptedData)}`;
-      console.log(`Encrypted URL length: ${url.length} characters`);
+      logService.debug(`Encrypted URL length: ${url.length} characters`);
       
       return url;
     } catch (error) {
-      console.error('Error creating encrypted URL:', error);
+      logService.error('Error creating encrypted URL:', error);
       uiStore.showSnackbar("Error creating encrypted URL.");
       return null;
     }
@@ -329,7 +330,7 @@ export function useUrlHandler() {
       uiStore.showSnackbar("Encrypted URL copied to clipboard!");
       return true;
     } catch (error) {
-      console.error('Error copying encrypted URL to clipboard:', error);
+      logService.error('Error copying encrypted URL to clipboard:', error);
       uiStore.showSnackbar("Error copying encrypted URL to clipboard.");
       return false;
     }
@@ -378,7 +379,7 @@ export function useUrlHandler() {
       uiStore.showSnackbar("Data decrypted and loaded successfully!");
       return true;
     } catch (error) {
-      console.error('Error decrypting data:', error);
+      logService.error('Error decrypting data:', error);
       uiStore.setDecryptionError("Decryption failed. Please check your password and try again.");
       return false;
     }

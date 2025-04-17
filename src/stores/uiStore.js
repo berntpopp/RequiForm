@@ -42,6 +42,10 @@ export const useUiStore = defineStore('ui', () => {
   const pasteDataDialog = ref(false);
   const showDisclaimerModal = ref(false);
   
+  // Log viewer state
+  const LOG_VIEWER_VISIBLE_KEY = 'requiform_logViewerVisible';
+  const showLogViewer = ref(localStorage.getItem(LOG_VIEWER_VISIBLE_KEY) === 'true');
+  
   // Error states
   const decryptionError = ref('');
   const loadDataError = ref('');
@@ -270,6 +274,39 @@ export const useUiStore = defineStore('ui', () => {
     showDisclaimerModal.value = false;
   }
   
+  /**
+   * Toggles the visibility of the log viewer panel.
+   * This function inverts the current visibility state of the log viewer.
+   *
+   * @returns {void}
+   */
+  function toggleLogViewer() {
+    showLogViewer.value = !showLogViewer.value;
+    localStorage.setItem(LOG_VIEWER_VISIBLE_KEY, showLogViewer.value.toString());
+  }
+  
+  /**
+   * Opens the log viewer panel.
+   * This function sets the log viewer visibility state to true.
+   *
+   * @returns {void}
+   */
+  function openLogViewer() {
+    showLogViewer.value = true;
+    localStorage.setItem(LOG_VIEWER_VISIBLE_KEY, 'true');
+  }
+  
+  /**
+   * Closes the log viewer panel.
+   * This function sets the log viewer visibility state to false.
+   *
+   * @returns {void}
+   */
+  function closeLogViewer() {
+    showLogViewer.value = false;
+    localStorage.setItem(LOG_VIEWER_VISIBLE_KEY, 'false');
+  }
+  
   return {
     // State
     isDark,
@@ -283,6 +320,7 @@ export const useUiStore = defineStore('ui', () => {
     loadDataDialog,
     pasteDataDialog,
     showDisclaimerModal,
+    showLogViewer,
     decryptionError,
     loadDataError,
     pendingEncryptedValue,
@@ -307,5 +345,8 @@ export const useUiStore = defineStore('ui', () => {
     closePasteDataDialog,
     openDisclaimerModal,
     closeDisclaimerModal,
+    toggleLogViewer,
+    openLogViewer,
+    closeLogViewer,
   };
 });

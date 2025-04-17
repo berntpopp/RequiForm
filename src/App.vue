@@ -132,6 +132,10 @@
       :acknowledgmentTime="settingsStore.acknowledgmentTime"
       @reopen-disclaimer="uiStore.openDisclaimerModal"
     />
+
+    <!-- Log Viewer (conditionally rendered) -->
+    <LogViewer v-if="uiStore.showLogViewer" />
+
   </v-app>
 </template>
 
@@ -145,9 +149,11 @@ import PedigreeDrawer from './components/PedigreeDrawer.vue';
 import ValidationSummary from './components/ValidationSummary.vue';
 import PdfGenerator from './components/PdfGenerator.vue';
 import AppDisclaimer from './components/Disclaimer.vue';
-import AppFooter from './components/Footer.vue';
+import AppFooter from './components/AppFooter.vue';
 import PasteDataModal from './components/modals/PasteDataModal.vue';
 import SelectedPanelsSummary from './components/SelectedPanelsSummary.vue';
+import LogViewer from './components/LogViewer.vue'; 
+import logService from '@/services/logService'; 
 
 // Dialog components
 import EncryptionDialog from './components/dialogs/EncryptionDialog.vue';
@@ -191,6 +197,7 @@ const formActions = useFormActions();
 provide('ui', uiStore);
 provide('form', formStore);
 provide('settings', settingsStore);
+provide('isValid', formStore.isValid); 
 provide('validationErrors', formStore.validationErrors);
 provide('sectionValidation', formStore.sectionValidation);
 provide('validateForm', formStore.validateForm);
@@ -210,11 +217,11 @@ const pdfConfig = ref(pdfConfigData);
  */
 const groupedPanelDetails = computed(() => {
   if (!formStore || !formStore.patientData) {
-    console.warn('groupedPanelDetails: formStore or patientData not available yet.');
+    logService.warn('groupedPanelDetails: formStore or patientData not available yet.'); 
     return [];
   }
   if (!categories) {
-    console.warn('groupedPanelDetails: testsData.categories not available yet.');
+    logService.warn('groupedPanelDetails: testsData.categories not available yet.'); 
     return [];
   }
   return categories
@@ -292,8 +299,8 @@ function handleLoadDataConfirm(file) {
  */
 async function handlePastedDataImport(jsonData) {
   try {
-    console.log('App: Received data for import, length:', jsonData?.length || 0);
-    
+    logService.debug('App: Received data for import, length:', jsonData?.length || 0); 
+
     const success = await dataPersistence.importFromJson(jsonData);
     
     if (success) {
@@ -301,17 +308,17 @@ async function handlePastedDataImport(jsonData) {
       uiStore.showSnackbar('Data imported successfully!'); 
       
       setTimeout(() => {
-        console.log('App: Current form state after import:', {
+        logService.debug('App: Current form state after import:', { 
           personalInfo: formStore.patientData.personalInfo,
           selectedPanels: formStore.patientData.selectedPanels.length,
           phenotypeData: formStore.patientData.phenotypeData.length
         });
       }, 0);
     } else {
-      console.error('App: Failed to import data');
+      logService.error('App: Failed to import data'); 
     }
   } catch (error) {
-    console.error('App: Error importing data:', error);
+    logService.error('App: Error importing data:', error); 
     uiStore.showSnackbar('Error importing data. Please try again.');
   }
 }
@@ -329,7 +336,7 @@ onMounted(() => {
 // Watch for when the PDF generator reference is available
 watch(pdfGeneratorRef, (newRef) => {
   if (newRef) {
-    console.log('PDF generator reference connected');
+    logService.debug('PDF generator reference connected'); 
     pdfGenerator.setPdfGeneratorRef(newRef);
   }
 }, { immediate: true });
@@ -342,11 +349,11 @@ async function handleGeneratePdf() {
   
   formStore.setShowValidation(true);
   
-  console.log('Validation errors:', formStore.validationErrors);
-  console.log('Validation sections:', formStore.sectionValidation);
+  logService.debug('Validation errors:', formStore.validationErrors); 
+  logService.debug('Validation sections:', formStore.sectionValidation); 
   
   if (!isValid) {
-    console.log('Form validation failed. Please correct the errors before generating PDF.');
+    logService.debug('Form validation failed. Please correct the errors before generating PDF.'); 
     uiStore.showSnackbar('Please correct the form errors before generating PDF.');
     
     formStore.setShowValidation(true);
@@ -374,12 +381,12 @@ async function handleGeneratePdf() {
       
       const pedigreeData = pedigreeDrawerRef.value.getPedigreeData(); 
       if (pedigreeData) {
-        console.log('Updated pedigree data:', pedigreeData);
+        logService.debug('Updated pedigree data:', pedigreeData); 
       }
       
-      console.log('Pedigree data updated successfully for PDF generation');
+      logService.debug('Pedigree data updated successfully for PDF generation'); 
     } catch (error) {
-      console.error('Error updating pedigree data for PDF:', error);
+      logService.error('Error updating pedigree data for PDF:', error); 
     }
   }
   

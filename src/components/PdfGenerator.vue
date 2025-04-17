@@ -11,6 +11,7 @@ import { jsPDF } from 'jspdf';
 import { defineProps, computed, defineExpose, inject } from 'vue';
 import pdfConfig from '../data/pdfConfig.json';
 import testsData from '../data/tests.json';
+import logService from '@/services/logService';
 import { 
   generatePatientQrCode,
   generatePhenotypeQrCode,
@@ -141,32 +142,32 @@ const phenotypeQrData = computed(() => {
 const pedigreeQrData = computed(() => {
   // First check direct props.patientData for pedigree data
   // Log the entire patient data structure to debug
-  console.log('[PdfGenerator] Direct patientData props:', JSON.stringify(props.patientData || {}));
+  logService.debug('[PdfGenerator] Direct patientData props:', JSON.stringify(props.patientData || {}));
   
   // Check for pedigree data in props.patientData first (direct pass from App.vue)
   if (props.patientData?.pedigree?.data) {
     const pedData = props.patientData.pedigree.data;
-    console.log('[PdfGenerator] Using pedigree data from props:', JSON.stringify(pedData));
+    logService.debug('[PdfGenerator] Using pedigree data from props:', JSON.stringify(pedData));
     return pedData;
   }
   
   // Fallback to unified model if available
   if (unifiedPatientData?.pedigree?.data) {
     const pedData = unifiedPatientData.pedigree.data;
-    console.log('[PdfGenerator] Using pedigree data from unified model:', JSON.stringify(pedData));
+    logService.debug('[PdfGenerator] Using pedigree data from unified model:', JSON.stringify(pedData));
     return pedData;
   }
   
   // If we only have the image URL, we'll create a minimal object
   if (props.pedigreeDataUrl) {
-    console.log('[PdfGenerator] No pedigree data available, using hasImage fallback');
+    logService.debug('[PdfGenerator] No pedigree data available, using hasImage fallback');
     return {
       hasImage: true,
       // We can't include the full image in QR code, so we note its existence
     };
   }
   
-  console.log('[PdfGenerator] No pedigree data or image URL available');
+  logService.debug('[PdfGenerator] No pedigree data or image URL available');
   return null;
 });
 
@@ -253,7 +254,7 @@ function renderSection(doc, section, mapping) {
         renderLine(doc, element);
         break;
       default:
-        console.warn('Unknown element type:', element.type);
+        logService.debug('Unknown element type:', element.type);
     }
   });
 }
@@ -346,7 +347,7 @@ async function renderPhenotypePage(doc) {
     // Use the prepared phenotype data for the QR code
     // Make sure we have valid phenotype data before trying to generate a QR code
     if (phenotypeQrData.value && phenotypeQrData.value.length > 0) {
-      console.log('Generating phenotype QR code with', phenotypeQrData.value.length, 'items');
+      logService.debug('Generating phenotype QR code with', phenotypeQrData.value.length, 'items');
       
       // Generate phenotype QR code with minimal configuration for better size efficiency
       const phenotypeQrDataUrl = await generatePhenotypeQrCode(phenotypeQrData.value, {
@@ -374,10 +375,10 @@ async function renderPhenotypePage(doc) {
         pdfConfig.qr.size.height
       );
     } else {
-      console.log('No phenotype data available for QR code generation');
+      logService.debug('No phenotype data available for QR code generation');
     }
   } catch (qrError) {
-    console.error("Failed to generate or add phenotype QR code:", qrError);
+    logService.debug("Failed to generate or add phenotype QR code:", qrError);
   }
   doc.setFontSize(12);
   for (const catId in phenotypeDataToUse) {
@@ -412,11 +413,11 @@ async function renderPhenotypePage(doc) {
  * Renders the consent page in English using paragraphs and signature area from pdfConfig.consent.
  */
 function renderConsentPage(doc) {
-  console.log("Rendering consent page...");
+  logService.debug("Rendering consent page...");
   try {
     // Access consent data via patientData prop
     if (!props.patientData.genDGConsentData || !props.patientData.genDGConsentData.form) {
-      console.error("Consent form data is missing in PdfGenerator");
+      logService.debug("Consent form data is missing in PdfGenerator");
       return; // Don't attempt to render if data is missing
     }
 
@@ -424,8 +425,8 @@ function renderConsentPage(doc) {
     const consentFormData = props.patientData.genDGConsentData.form;
     const consentConfig = pdfConfig.consent;
 
-    console.log("Consent Form Data:", JSON.stringify(consentFormData));
-    console.log("Consent Config:", JSON.stringify(consentConfig));
+    logService.debug("Consent Form Data:", JSON.stringify(consentFormData));
+    logService.debug("Consent Config:", JSON.stringify(consentConfig));
 
     // Map the form data to the placeholders used in pdfConfig.json
     const mapping = {
@@ -463,7 +464,7 @@ function renderConsentPage(doc) {
     }
 
     // Render each paragraph from the config
-    console.log("Rendering paragraphs...");
+    logService.debug("Rendering paragraphs...");
     consentConfig.paragraphs.forEach((paragraphTemplate) => {
       // Replace placeholders in the template from the config
       const text = mapTemplateString(paragraphTemplate, mapping);
@@ -512,9 +513,9 @@ function renderConsentPage(doc) {
     if (consentConfig.signatureArea.signHint) {
         doc.text(consentConfig.signatureArea.signHint, lineStartX, hintY);
     }
-    console.log("Finished rendering consent page content.");
+    logService.debug("Finished rendering consent page content.");
   } catch (error) {
-    console.error("Error during renderConsentPage:", error);
+    logService.debug("Error during renderConsentPage:", error);
     // Optionally re-throw or handle the error further
   }
 }
@@ -524,7 +525,7 @@ function renderConsentPage(doc) {
  */
 async function generatePdf() {
   try {
-    console.log("Starting PDF generation process...");
+    logService.debug("Starting PDF generation process...");
     const doc = new jsPDF({
       orientation: 'portrait',
       unit: 'pt',
@@ -648,7 +649,7 @@ async function generatePdf() {
           pdfConfig.qr.size.height
         );
       } catch (qrError) {
-        console.error("Failed to generate or add patient QR code:", qrError);
+        logService.debug("Failed to generate or add patient QR code:", qrError);
         // Optionally inform the user or handle the error
       }
     }
@@ -657,7 +658,7 @@ async function generatePdf() {
     try {
       await renderPhenotypePage(doc);
     } catch (phenotypeError) {
-      console.error('Error rendering phenotype page:', phenotypeError);
+      logService.debug('Error rendering phenotype page:', phenotypeError);
       // Continue with PDF generation even if phenotype page fails
     }
 
@@ -668,7 +669,7 @@ async function generatePdf() {
       if (pedigreeQrData.value) {
         try {
           // Debug the actual pedigree data we're about to send to QR code
-          console.log('[PdfGenerator] Actual pedigree data being sent to QR generator:', 
+          logService.debug('[PdfGenerator] Actual pedigree data being sent to QR generator:', 
               JSON.stringify(pedigreeQrData.value));
               
           // Calculate QR code size based on data complexity
@@ -688,7 +689,7 @@ async function generatePdf() {
               }
             });
           } else {
-            console.error('[PdfGenerator] Invalid pedigree data format:', pedigreeQrData.value);
+            logService.debug('[PdfGenerator] Invalid pedigree data format:', pedigreeQrData.value);
             // Fallback to image reference with ultra-compact array code [0]
             pedigreeQrDataUrl = await generatePedigreeQrCode([0], {
               format: 'image',
@@ -699,9 +700,9 @@ async function generatePdf() {
               }
             });
           }
-          console.log('Generated pedigree QR code with PED format data');
+          logService.debug('Generated pedigree QR code with PED format data');
         } catch (qrError) {
-          console.error('Error generating pedigree QR code:', qrError);
+          logService.debug('Error generating pedigree QR code:', qrError);
           // If compact PED format fails, try with just image reference
           try {
             pedigreeQrDataUrl = await generatePedigreeQrCode({ hasImage: true }, {
@@ -712,9 +713,9 @@ async function generatePdf() {
                 errorCorrectionLevel: 'M'
               }
             });
-            console.log('Generated fallback pedigree QR code (image reference only)');
+            logService.debug('Generated fallback pedigree QR code (image reference only)');
           } catch (fallbackError) {
-            console.error('Error generating fallback pedigree QR code:', fallbackError);
+            logService.debug('Error generating fallback pedigree QR code:', fallbackError);
           }
           // Continue even if QR generation fails
         }
@@ -772,13 +773,13 @@ async function generatePdf() {
               );
             }
           } catch (renderError) {
-            console.error('Error rendering pedigree:', renderError);
+            logService.debug('Error rendering pedigree:', renderError);
           }
           resolve();
         };
         
         img.onerror = () => {
-          console.error('Error loading pedigree image.');
+          logService.debug('Error loading pedigree image.');
           resolve();
         };
       });
@@ -789,13 +790,13 @@ async function generatePdf() {
     const consentDataExists = unifiedPatientData?.consent?.dataProcessing || 
                           (props.patientData.genDGConsentData && props.patientData.genDGConsentData.provided === 'fill');
     
-    console.log('generatePdf in PdfGenerator: Checking consent data availability:', consentDataExists);
+    logService.debug('generatePdf in PdfGenerator: Checking consent data availability:', consentDataExists);
     if (consentDataExists) {
-      console.log("Attempting to render consent page...");
+      logService.debug("Attempting to render consent page...");
       try {
         renderConsentPage(doc);
       } catch (renderError) {
-        console.error("Caught error during renderConsentPage call:", renderError);
+        logService.debug("Caught error during renderConsentPage call:", renderError);
       }
     }
 
@@ -823,9 +824,9 @@ async function generatePdf() {
 
     // 10. Save the final PDF document.
     doc.save('genetic_test_requisition.pdf');
-    console.log("PDF generation process completed.");
+    logService.debug("PDF generation process completed.");
   } catch (error) {
-    console.error("Error during PDF generation process:", error);
+    logService.debug("Error during PDF generation process:", error);
     // Potentially show an error message to the user
     alert("An error occurred while generating the PDF. Please check the console for details.");
   }

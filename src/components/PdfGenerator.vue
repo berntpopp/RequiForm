@@ -293,7 +293,64 @@ function renderPanel(doc, panel, offsetX, y, spacing) {
 }
 
 async function renderPhenotypePage(doc) {
-  // Ensure we add a new page for phenotype data
+  // Helper function to convert unified phenotype data array to the map format needed for rendering
+  function convertUnifiedPhenotypeDataToMap(phenotypeArray) {
+    if (!phenotypeArray || !Array.isArray(phenotypeArray)) return {};
+    return phenotypeArray.reduce((result, item) => {
+      // Only include items with meaningful status in the map
+      if (item && item.status && item.status !== 'no input') { 
+          if (!result[item.categoryId]) {
+              result[item.categoryId] = {};
+          }
+          result[item.categoryId][item.phenotypeId] = item.status;
+      }
+      return result;
+    }, {});
+  }
+
+  // --- START: Revised Check for Meaningful Phenotype Data --- 
+  let phenotypeDataToUse = {};
+  let hasMeaningfulPhenotypes = false;
+
+  // Prioritize unified data if it exists and has content
+  const unifiedPhenotypes = unifiedPatientData?.phenotypeData || [];
+  if (unifiedPhenotypes.length > 0) {
+    phenotypeDataToUse = convertUnifiedPhenotypeDataToMap(unifiedPhenotypes);
+    // Check if the converted map actually contains meaningful data
+    hasMeaningfulPhenotypes = Object.values(phenotypeDataToUse).some(category => 
+      Object.values(category).some(status => status !== 'no input') // Re-check converted map
+    );
+    // If unified data was present but had no meaningful entries after conversion, log it.
+    if (unifiedPhenotypes.length > 0 && !hasMeaningfulPhenotypes) {
+        logService.debug("[PdfGenerator] Unified phenotype data existed but contained only 'no input' entries.");
+    }
+  }
+
+  // If unified data didn't yield meaningful phenotypes, check legacy props data
+  if (!hasMeaningfulPhenotypes && props.phenotypeData) {
+    logService.debug("[PdfGenerator] Checking legacy props.phenotypeData as unified data was empty or lacked meaningful entries.");
+    phenotypeDataToUse = props.phenotypeData; // Use legacy data directly
+    // Check legacy data for meaningful entries
+    for (const catId in phenotypeDataToUse) {
+        for (const phenId in phenotypeDataToUse[catId]) {
+            if (phenotypeDataToUse[catId][phenId] !== 'no input') {
+                hasMeaningfulPhenotypes = true;
+                break;
+            }
+        }
+        if (hasMeaningfulPhenotypes) break;
+    }
+  }
+
+  // If neither source has meaningful data, skip the page
+  if (!hasMeaningfulPhenotypes) {
+    logService.debug("[PdfGenerator] Skipping phenotype page: No meaningful data found in unified or legacy sources.");
+    return; // Exit the function early, do not add the page
+  }
+  // --- END: Revised Check ---
+
+  // --- Page addition and rendering logic starts here ---
+  logService.debug("[PdfGenerator] Proceeding to render phenotype page.");
   doc.addPage();
   const currentPage = doc.internal.getNumberOfPages();
   doc.setPage(currentPage);
@@ -303,69 +360,53 @@ async function renderPhenotypePage(doc) {
   doc.setFontSize(16);
   doc.text('Phenotype Data', 40, 40);
   
-  // Determine which phenotype data to use (prefer unified model if available)
-  const phenotypeDataToUse = unifiedPatientData?.phenotypeData?.length > 0
-    ? convertUnifiedPhenotypeDataToMap(unifiedPatientData.phenotypeData)
-    : props.phenotypeData;
-  
-  // Helper function to convert unified phenotype data array to the map format needed for rendering
-  function convertUnifiedPhenotypeDataToMap(phenotypeArray) {
-    if (!phenotypeArray || !Array.isArray(phenotypeArray)) return {};
-    
-    return phenotypeArray.reduce((result, item) => {
-      if (!result[item.categoryId]) {
-        result[item.categoryId] = {};
-      }
-      result[item.categoryId][item.phenotypeId] = item.status;
-      return result;
-    }, {});
-  }
-  
-  // Check if we have any non-empty phenotype data to render
-  let hasPhenotype = false;
-  for (const cat in phenotypeDataToUse) {
-    for (const phen in phenotypeDataToUse[cat]) {
-      if (phenotypeDataToUse[cat][phen] !== 'no input') {
-        hasPhenotype = true;
-        break;
-      }
-    }
-    if (hasPhenotype) break;
-  }
-  
-  // If no phenotype data, don't render anything
-  if (!hasPhenotype) return;
+  // Phenotype data to use is already determined by the check above
   
   // Start rendering phenotype information on the current page
   let currentY = 70; // Start below the title
-  const leftMargin = 40;
   doc.setFont('Helvetica', 'normal');
   doc.setFontSize(12);
   
-  // Add QR code for phenotype data if available
+  // --- QR Code Generation --- 
   try {
-    // Use the prepared phenotype data for the QR code
-    // Make sure we have valid phenotype data before trying to generate a QR code
-    if (phenotypeQrData.value && phenotypeQrData.value.length > 0) {
-      logService.debug('Generating phenotype QR code with', phenotypeQrData.value.length, 'items');
-      
-      // Generate phenotype QR code with minimal configuration for better size efficiency
-      const phenotypeQrDataUrl = await generatePhenotypeQrCode(phenotypeQrData.value, {
+    // Prepare QR data ONLY from meaningful entries in phenotypeDataToUse
+    const qrPhenotypePayload = [];
+    for (const catId in phenotypeDataToUse) {
+      for (const phenId in phenotypeDataToUse[catId]) {
+        const status = phenotypeDataToUse[catId][phenId];
+        if (status !== 'no input') {
+          // Find the phenotype in testsData to get its HPO ID
+          const category = testsData.categories.find((c) => c.id === catId);
+          if (category) {
+            const phenotype = category.phenotypes.find((p) => p.id === phenId);
+            if (phenotype && phenotype.hpo) {
+              const hpoNumber = phenotype.hpo.replace('HP:', ''); // Extract number
+              qrPhenotypePayload.push(`${status === 'present' ? '+' : '-'}${hpoNumber}`);
+            } else {
+              logService.warn(`Could not find HPO ID for ${catId}/${phenId} for QR code.`);
+            }
+          }
+        }
+      }
+    }
+    
+    // Check if we actually have data for the QR code after filtering
+    if (qrPhenotypePayload.length > 0) {
+      logService.debug('Generating phenotype QR code with', qrPhenotypePayload.length, 'meaningful items');
+      const phenotypeQrDataUrl = await generatePhenotypeQrCode(qrPhenotypePayload, {
         qrOptions: {
           width: pdfConfig.qr.size.width, 
-          margin: 1,  // Smaller margin for better scanning
-          errorCorrectionLevel: 'M' // Medium error correction for balance
+          margin: 1,
+          errorCorrectionLevel: 'M'
         }
       });
       
-      // Add QR code label ABOVE the QR code
       doc.setFont('Helvetica', 'bold');
       doc.setFontSize(10);
       doc.text('Phenotype QR Code', 
                pdfConfig.qr.position.x + pdfConfig.qr.size.width/2 - 40, 
                pdfConfig.qr.position.y - 10); // 10pt above the QR code
       
-      // Position the QR code according to pdfConfig settings
       doc.addImage(
         phenotypeQrDataUrl,
         'PNG',
@@ -375,38 +416,53 @@ async function renderPhenotypePage(doc) {
         pdfConfig.qr.size.height
       );
     } else {
-      logService.debug('No phenotype data available for QR code generation');
+      logService.debug('No meaningful phenotype data available for QR code generation after filtering.');
     }
   } catch (qrError) {
     logService.debug("Failed to generate or add phenotype QR code:", qrError);
   }
-  doc.setFontSize(12);
+  // --- End QR Code Generation ---
+  
+  // --- Phenotype Text Rendering ---
+  doc.setFontSize(12); // Reset font size after potential QR label
+  doc.setFont('Helvetica', 'normal'); // Reset font style
+  
+  currentY = 70; // Reset Y position for text content, independent of QR code
+  const leftMargin = 40; // Define left margin for text content
+
   for (const catId in phenotypeDataToUse) {
     const category = testsData.categories.find((c) => c.id === catId);
     if (!category || !category.phenotypes) continue;
-    const phenotypes = category.phenotypes.filter(
-      (p) => phenotypeDataToUse[catId][p.id] !== 'no input'
+    
+    // Filter phenotypes to render based on the *currently used* data source
+    const phenotypesToRender = category.phenotypes.filter(
+      (p) => phenotypeDataToUse[catId]?.[p.id] && phenotypeDataToUse[catId][p.id] !== 'no input'
     );
-    if (phenotypes.length > 0) {
+
+    if (phenotypesToRender.length > 0) {
       doc.setFont('Helvetica', 'bold');
       doc.text(category.title, leftMargin, currentY);
       currentY += 16;
       doc.setFont('Helvetica', 'normal');
-      phenotypes.forEach((p) => {
+      phenotypesToRender.forEach((p) => {
         const state = phenotypeDataToUse[catId][p.id];
-        
-        // Keep original format with name, HPO ID and state
         const line = `${p.name} (${p.hpo}): ${state}`;
         doc.text(line, leftMargin, currentY);
         currentY += 14;
         if (currentY > doc.internal.pageSize.getHeight() - 40) {
           doc.addPage();
           currentY = 40;
+          // Add category title again if page breaks within a category (optional)
+          // doc.setFont('Helvetica', 'bold');
+          // doc.text(category.title + " (continued)", leftMargin, currentY);
+          // currentY += 16;
+          // doc.setFont('Helvetica', 'normal');
         }
       });
-      currentY += 10;
+      currentY += 10; // Add space between categories
     }
   }
+  // --- End Phenotype Text Rendering ---
 }
 
 /**

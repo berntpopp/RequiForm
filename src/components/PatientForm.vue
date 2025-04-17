@@ -40,6 +40,8 @@
           outlined
           :label="t('patientForm.labels.sex')"
           :items="sexOptions"
+          item-title="text"
+          item-value="value"
           v-model="sex"
           prepend-inner-icon="mdi-gender-male-female"
           :error="!!sexError"

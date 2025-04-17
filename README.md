@@ -44,6 +44,13 @@ The Wiki is automatically updated from the `/docs` directory in this repository 
    - The data is encrypted client-side in your browser using strong AES-GCM encryption (Web Crypto API) before generating the link.
    - Decryption also happens client-side in the recipient's browser only when the correct password is entered.
 
+8. **Internationalization (i18n)**
+   - Supports multiple languages throughout the application, including the generated PDFs.
+   - Currently implements English and German translations for all user-facing content.
+   - PDF configuration uses a flexible translation structure that maintains backward compatibility.
+   - Language selection is context-aware and follows the user's locale preferences.
+   - Easily extensible to support additional languages with minimal code changes.
+
 ## Configuration
 
 ### UI Branding

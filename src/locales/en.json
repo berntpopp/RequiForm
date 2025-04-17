@@ -1,0 +1,320 @@
+{
+  "topbar": {
+    "appSubtitle": "Secure requisition form builder",
+    "aria": {
+      "themeToggleLight": "Switch to Light Theme",
+      "themeToggleDark": "Switch to Dark Theme",
+      "reset": "Reset Application",
+      "faq": "Open FAQ",
+      "tour": "Start Guided Tour",
+      "copyUrl": "Copy URL",
+      "copyEncryptedUrl": "Copy Encrypted URL",
+      "pasteData": "Paste and Import Data",
+      "saveData": "Save Data",
+      "loadData": "Load Data",
+      "generatePdf": "Generate PDF",
+      "moreActions": "More Actions"
+    },
+    "tooltips": {
+      "themeToggleLight": "Switch to Light Theme",
+      "themeToggleDark": "Switch to Dark Theme",
+      "reset": "Reset Application",
+      "faq": "FAQ",
+      "tour": "Start Guided Tour",
+      "copyUrl": "Copy URL",
+      "copyEncryptedUrl": "Copy Encrypted URL",
+      "pasteData": "Paste Data",
+      "saveData": "Save Data",
+      "loadData": "Load Data",
+      "generatePdf": "Generate PDF"
+    },
+    "menu": {
+      "reset": "Reset Application",
+      "faq": "FAQ",
+      "tour": "Start Guided Tour",
+      "copyUrl": "Copy URL",
+      "copyEncryptedUrl": "Copy Encrypted URL",
+      "pasteData": "Paste Data",
+      "saveData": "Save Data",
+      "loadData": "Load Data",
+      "generatePdf": "Generate PDF"
+    }
+  },
+  "patientForm": {
+    "title": "Patient Details",
+    "labels": {
+      "givenName": "Given Name *",
+      "familyName": "Family Name *",
+      "birthdate": "Birthdate *",
+      "sex": "Sex *",
+      "insurance": "Insurance *",
+      "physicianName": "Physician Name *",
+      "familyHistory": "Family History",
+      "parentalConsanguinity": "Parental Consanguinity",
+      "diagnosis": "Diagnosis / Suspicion *",
+      "orderingDate": "Ordering Date",
+      "consent": "Consent",
+      "consentGivenBy": "Consent Given By",
+      "consentDate": "Consent Date",
+      "consentSecondaryFindings": "Consent to receive secondary findings?",
+      "consentMaterial": "Allow use of material for quality assurance?",
+      "consentExtendedStorage": "Store results beyond 10 years (max. 30 years)?",
+      "consentResearch": "Use for research/quality assurance purposes?",
+      "requestVariantSegregation": "Request Variant Segregation",
+      "variantDetails": "Variant Details"
+    },
+    "hints": {
+      "variantDetails": "Provide details for the variant segregation request"
+    },
+    "options": {
+      "sex": {
+        "male": "Male",
+        "female": "Female",
+        "undetermined": "Undetermined"
+      },
+      "familyHistory": {
+        "conspicuous": "Conspicuous",
+        "inconspicuous": "Inconspicuous",
+        "unknown": "Unknown"
+      },
+      "consanguinity": {
+        "yes": "Yes",
+        "no": "No"
+      },
+      "consent": {
+        "provided": "Already Provided",
+        "fill": "Fill Form"
+      },
+      "yesNo": {
+        "yes": "Yes",
+        "no": "No"
+      }
+    }
+  },
+  "phenotypeSelector": {
+    "toggleButton": {
+      "hide": "Hide Phenotype Options",
+      "add": "Add Phenotypes"
+    },
+    "panelTitle": "Select Phenotype States",
+    "radioLabels": {
+      "noInput": "No Input",
+      "present": "Present",
+      "absent": "Absent"
+    },
+    "noPhenotypesMessage": "No predefined phenotypes available for this category."
+  },
+  "selectedPanelsSummary": {
+    "title": "Selected Panels:"
+  },
+  "testSelector": {
+    "title": "Select Panels / Tests",
+    "tabs": {
+      "categorySelection": "Category Selection",
+      "search": "Search"
+    },
+    "labels": {
+      "category": "Category",
+      "selectPanels": "Select Panels",
+      "searchPlaceholder": "Type a panel or gene name"
+    }
+  },
+  "footer": {
+    "versions": {
+      "app": "App:",
+      "testSchema": "Test schema:",
+      "pdfSchema": "PDF schema:"
+    },
+    "tooltips": {
+      "disclaimerAcknowledged": "Disclaimer Acknowledged:",
+      "toggleLogViewer": "Toggle Log Viewer",
+      "githubRepo": "GitHub Repository",
+      "license": "License (MIT)",
+      "wiki": "Wiki / Documentation"
+    },
+    "ariaLabels": {
+      "reopenDisclaimer": "Disclaimer Acknowledged - Click to reopen",
+      "toggleLogViewer": "Toggle Log Viewer",
+      "githubRepo": "GitHub Repository",
+      "licenseInfo": "License Information",
+      "wikiDocs": "Wiki Documentation"
+    }
+  },
+  "pasteDataModal": {
+    "title": "Paste and Import Data",
+    "instructions": "Paste your data in the text area below. The data should be formatted as key-value pairs, with each pair on a new line and separated by a colon.",
+    "labels": {
+      "pasteArea": "Paste your data here"
+    },
+    "placeholders": {
+      "pasteArea": "First Name: John\nLast Name: Doe\nBirthdate: 1990-01-01\n...\n\nClick \"Show Example\" for a complete example."
+    },
+    "example": {
+      "title": "Example format:",
+      "useButton": "Use Example Data",
+      "showButton": "Show Example",
+      "hideButton": "Hide Example"
+    },
+    "alerts": {
+      "parseSuccess": "Data successfully parsed! Click \"Import Data\" to apply these changes.",
+      "parseError": "Data could not be parsed. Please check the format."
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "parse": "Parse Data",
+      "import": "Import"
+    },
+    "validation": {
+      "pasteRequired": "Please paste data before parsing."
+    }
+  },
+  "decryptionDialog": {
+    "title": "Enter Password for Decryption",
+    "labels": {
+      "password": "Password"
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "confirm": "Confirm"
+    }
+  },
+  "encryptionDialog": {
+    "title": "Enter Password for Encryption",
+    "labels": {
+      "password": "Password"
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "confirm": "Confirm"
+    }
+  },
+  "faqDialog": {
+    "title": "Frequently Asked Questions",
+    "searchLabel": "Search FAQs",
+    "noResults": "No FAQs match your search criteria.",
+    "uncategorized": "Uncategorized",
+    "buttons": {
+      "close": "Close"
+    }
+  },
+  "loadDataDialog": {
+    "title": "Load Form Data",
+    "instruction": "Select a JSON file to import:",
+    "labels": {
+      "fileInput": "Select file"
+    },
+    "validation": {
+      "fileRequired": "Please select a file"
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "import": "Import"
+    }
+  },
+  "resetConfirmationDialog": {
+    "title": "Reset Application",
+    "confirmationText": "Are you sure you want to reset the entire application? This will clear all form data and cannot be undone.",
+    "buttons": {
+      "cancel": "Cancel",
+      "reset": "Reset"
+    }
+  },
+  "saveDataDialog": {
+    "title": "Export Form Data",
+    "instruction": "Save your form data for later use. You can name the file to identify it easily.",
+    "labels": {
+      "fileName": "File Name"
+    },
+    "placeholders": {
+      "fileName": "requiform-data"
+    },
+    "hints": {
+      "fileName": "Filename will be appended with .json"
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "export": "Export"
+    },
+    "defaultFileName": "requiform-data"
+  },
+  "logViewer": {
+    "title": "Application Logs",
+    "emptyState": "No log entries yet.",
+    "levels": {
+      "debug": "Debug",
+      "info": "Info",
+      "warn": "Warn",
+      "error": "Error"
+    },
+    "buttons": {
+      "download": "Download Logs",
+      "clear": "Clear Logs",
+      "close": "Close Logs",
+      "toggleDetails": "Toggle Details"
+    }
+  },
+  "disclaimer": {
+    "title": "Disclaimer",
+    "body": "This tool is for non-medical use only. It is not intended to provide medical advice or diagnosis. Please do not enter sensitive personal data.",
+    "acknowledgeButton": "I Acknowledge"
+  },
+  "pedigreeDrawer": {
+    "title": "Pedigree Chart"
+  },
+  "app": {
+    "includePedigreeChart": "Include Pedigree Chart"
+  },
+  "tour": {
+    "buttons": {
+      "back": "Back",
+      "next": "Next",
+      "skip": "Skip",
+      "start": "Start Tour",
+      "finish": "Finish"
+    },
+    "welcome": {
+      "text": "Welcome to RequiForm! This tour will guide you through the main features."
+    },
+    "patientForm": {
+      "text": "Start by entering the patient information in this section."
+    },
+    "testSelector": {
+      "text": "Select the required genetic tests here."
+    },
+    "phenotypes": {
+      "text": "Add relevant HPO phenotypes for the patient."
+    },
+    "topBarActions": {
+      "text": "Use the top bar actions like Generate PDF, Copy URL, etc."
+    },
+    "generatePdf": {
+      "text": "Once the form is complete, generate the PDF request form using this button."
+    },
+    "complete": {
+      "text": "You have completed the tour! You can restart it anytime from the Help menu."
+    },
+    "completed": "Tour completed!",
+    "cancelled": "Tour cancelled."
+  },
+  "validation": {
+    "required": {
+      "firstName": "First name is required.",
+      "lastName": "Last name is required.",
+      "birthdate": "Birthdate is required.",
+      "sex": "Sex is required.",
+      "insurance": "Insurance information is required.",
+      "referrer": "Referring physician is required.",
+      "diagnosis": "Diagnosis/Suspicion is required.",
+      "phenotypeId": "Phenotype ID is required.",
+      "phenotypeStatus": "Phenotype status is required."
+    },
+    "invalid": {
+      "email": "Invalid email format.",
+      "birthdate": "Birthdate must be a valid date (YYYY-MM-DD) not in the future.",
+      "hpoIdFormat": "Invalid HPO ID format."
+    },
+    "general": {
+      "missingData": "Patient data is missing."
+    }
+  }
+}

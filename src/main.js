@@ -20,6 +20,7 @@ import '@mdi/font/css/materialdesignicons.css';
 // Import the initializer and the config object
 import { initializeBranding, brandingConfig } from '@/services/brandingConfigService';
 import logService from '@/services/logService'; // Import logService
+import i18n from './i18n'; // Import i18n instance
 
 // Wrap initialization and mounting in an async function
 async function startApp() {
@@ -55,6 +56,7 @@ async function startApp() {
     const app = createApp(App);
     app.use(vuetify); // Use the configured Vuetify instance
     app.use(pinia);
+    app.use(i18n); // Use the i18n plugin
     app.mount('#app');
 
     logService.info("Application mounted.");

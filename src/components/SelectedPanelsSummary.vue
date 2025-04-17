@@ -1,6 +1,6 @@
 <template>
   <div class="selected-panels-summary mt-4" v-if="groupedPanelDetails.length">
-    <h2>Selected Panels:</h2>
+    <h2>{{ t('selectedPanelsSummary.title') }}</h2>
     <div v-for="group in groupedPanelDetails" :key="group.categoryTitle">
       <h3 class="category-header">{{ group.categoryTitle }}</h3>
       <ul>
@@ -18,6 +18,10 @@
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
+
 /**
  * SelectedPanelsSummary displays a summary of all selected test panels grouped by category.
  * @file SelectedPanelsSummary.vue - Summary component for displaying selected genetic panels

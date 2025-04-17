@@ -2,7 +2,7 @@
   <v-footer app padless class="footer">
     <div class="content-wrapper">
       <span class="versions flex-grow-1">
-        App: v{{ version }} | Test schema: v{{ testSchemaVersion }} | PDF schema: v{{ pdfSchemaVersion }}
+        {{ t('footer.versions.app') }} v{{ version }} | {{ t('footer.versions.testSchema') }} v{{ testSchemaVersion }} | {{ t('footer.versions.pdfSchema') }} v{{ pdfSchemaVersion }}
       </span>
       <v-tooltip v-if="props.disclaimerAcknowledged" location="top">
         <template v-slot:activator="{ props: tooltipProps }">
@@ -14,10 +14,10 @@
             class="ml-2"
             v-bind="tooltipProps"
             @click="emit('reopen-disclaimer')"
-            aria-label="Disclaimer Acknowledged - Click to reopen"
+            :aria-label="t('footer.ariaLabels.reopenDisclaimer')"
           ></v-btn>
         </template>
-        <span>Disclaimer Acknowledged: {{ props.acknowledgmentTime }}</span>
+        <span>{{ t('footer.tooltips.disclaimerAcknowledged') }} {{ props.acknowledgmentTime }}</span>
       </v-tooltip>
       <v-tooltip location="top">
         <template v-slot:activator="{ props: tooltipProps }">
@@ -28,10 +28,10 @@
             class="ml-2"
             v-bind="tooltipProps"
             @click="uiStore.toggleLogViewer"
-            aria-label="Toggle Log Viewer"
+            :aria-label="t('footer.ariaLabels.toggleLogViewer')"
           ></v-btn>
         </template>
-        <span>Toggle Log Viewer</span>
+        <span>{{ t('footer.tooltips.toggleLogViewer') }}</span>
       </v-tooltip>
 
       <!-- GitHub Repository Link -->
@@ -45,11 +45,11 @@
             href="https://github.com/BerntPopp/RequiForm"
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="GitHub Repository"
+            :aria-label="t('footer.ariaLabels.githubRepo')"
             v-bind="tooltipProps"
           ></v-btn>
         </template>
-        <span>GitHub Repository</span>
+        <span>{{ t('footer.tooltips.githubRepo') }}</span>
       </v-tooltip>
 
       <!-- License Link -->
@@ -63,11 +63,11 @@
             href="https://github.com/BerntPopp/RequiForm/blob/main/LICENSE"
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="License Information"
+            :aria-label="t('footer.ariaLabels.licenseInfo')"
             v-bind="tooltipProps"
           ></v-btn>
         </template>
-        <span>License (MIT)</span>
+        <span>{{ t('footer.tooltips.license') }}</span>
       </v-tooltip>
 
       <!-- Wiki Link -->
@@ -81,11 +81,11 @@
             href="https://github.com/BerntPopp/RequiForm/wiki"
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="Wiki Documentation"
+            :aria-label="t('footer.ariaLabels.wikiDocs')"
             v-bind="tooltipProps"
           ></v-btn>
         </template>
-        <span>Wiki / Documentation</span>
+        <span>{{ t('footer.tooltips.wiki') }}</span>
       </v-tooltip>
     </div>
   </v-footer>
@@ -98,6 +98,9 @@ import appConfig from '../config/appConfig.js';
 import pdfConfig from '../data/pdfConfig.json';
 import testsData from '../data/tests.json';
 import { brandingConfig } from '@/services/brandingConfigService';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
   disclaimerAcknowledged: {

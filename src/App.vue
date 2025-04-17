@@ -38,7 +38,7 @@
         />
 
         <!-- Pedigree Option -->
-        <v-checkbox v-model="formStore.showPedigree" label="Include Pedigree Chart" class="mb-4" />
+        <v-checkbox v-model="formStore.showPedigree" :label="t('app.includePedigreeChart')" class="mb-4" />
         <PedigreeDrawer v-if="formStore.showPedigree" ref="pedigreeDrawerRef" @update:pedigreeDataUrl="formStore.updatePedigreeDataUrl" />
 
         <!-- Test Selector -->
@@ -141,6 +141,7 @@
 
 <script setup>
 import { ref, computed, onMounted, provide, watch } from 'vue'; 
+import { useI18n } from 'vue-i18n';
 import TopBar from './components/TopBar.vue';
 import PatientForm from './components/PatientForm.vue';
 import TestSelector from './components/TestSelector.vue';
@@ -192,6 +193,9 @@ const pdfGenerator = usePdfGenerator();
 const appTour = useAppTour();
 const faq = useFaq();
 const formActions = useFormActions();
+
+// Initialize i18n
+const { t } = useI18n();
 
 // Set up provides for child components
 provide('ui', uiStore);

@@ -1,14 +1,14 @@
 <template>
   <v-dialog :model-value="modelValue" max-width="500" @update:model-value="$emit('update:modelValue', $event)">
     <v-card>
-      <v-card-title class="headline">Reset Application</v-card-title>
+      <v-card-title class="headline">{{ t('resetConfirmationDialog.title') }}</v-card-title>
       <v-card-text>
-        <p>Are you sure you want to reset the entire application? This will clear all form data and cannot be undone.</p>
+        <p>{{ t('resetConfirmationDialog.confirmationText') }}</p>
       </v-card-text>
       <v-card-actions>
         <v-spacer></v-spacer>
-        <v-btn text @click="cancel">Cancel</v-btn>
-        <v-btn color="error" text @click="confirm">Reset</v-btn>
+        <v-btn text @click="cancel">{{ t('resetConfirmationDialog.buttons.cancel') }}</v-btn>
+        <v-btn color="error" text @click="confirm">{{ t('resetConfirmationDialog.buttons.reset') }}</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -20,8 +20,11 @@
  * @file ResetConfirmationDialog.vue - Dialog for confirming application reset
  * @module components/dialogs/ResetConfirmationDialog
  */
-// import { computed } from 'vue'; // Remove unused import
+import { useI18n } from 'vue-i18n'; 
 
+const { t } = useI18n(); 
+
+// eslint-disable-next-line no-unused-vars
 const props = defineProps({
   /**
    * Controls dialog visibility

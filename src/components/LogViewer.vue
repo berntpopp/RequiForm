@@ -6,7 +6,7 @@
     max-height="400"
   >
     <v-card-title class="d-flex justify-space-between align-center py-2">
-      <span>Application Logs</span>
+      <span>{{ t('logViewer.title') }}</span>
       <div class="log-header-controls">
         <v-select
           v-model="currentLogLevel"
@@ -17,9 +17,9 @@
           class="log-level-select"
           :class="logLevelColorClass"
         ></v-select>
-        <v-btn icon="mdi-download" variant="text" size="small" @click="downloadLogs" title="Download Logs" :disabled="!logEntries.length"></v-btn>
-        <v-btn icon="mdi-delete-sweep" variant="text" size="small" @click="clearLogs" title="Clear Logs" :disabled="!logEntries.length"></v-btn>
-        <v-btn icon="mdi-close" variant="text" size="small" @click="closeViewer" title="Close Logs"></v-btn>
+        <v-btn icon="mdi-download" variant="text" size="small" @click="downloadLogs" :title="t('logViewer.buttons.download')" :disabled="!logEntries.length"></v-btn>
+        <v-btn icon="mdi-delete-sweep" variant="text" size="small" @click="clearLogs" :title="t('logViewer.buttons.clear')" :disabled="!logEntries.length"></v-btn>
+        <v-btn icon="mdi-close" variant="text" size="small" @click="closeViewer" :title="t('logViewer.buttons.close')"></v-btn>
       </div>
     </v-card-title>
     <v-divider></v-divider>
@@ -42,7 +42,7 @@
               size="x-small"
               @click="toggleExpand(index)"
               class="ml-1"
-              title="Toggle Details"
+              :title="t('logViewer.buttons.toggleDetails')"
             ></v-btn>
           </div>
           <v-expand-transition>
@@ -52,7 +52,7 @@
           </v-expand-transition>
         </v-list-item>
         <v-list-item v-if="!logEntries.length" class="text-center text-disabled py-2">
-            No log entries yet.
+            {{ t('logViewer.emptyState') }}
         </v-list-item>
       </v-list>
     </v-card-text>
@@ -61,9 +61,11 @@
 
 <script setup>
 import { computed, nextTick, watch, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import logService, { LogLevel } from '@/services/logService';
 import { useUiStore } from '@/stores/uiStore'; // Assuming uiStore is setup with Pinia
 
+const { t } = useI18n();
 const uiStore = useUiStore();
 
 // Use computed ref to react to changes in log entries
@@ -116,11 +118,11 @@ const clearLogs = () => {
 };
 
 // --- Log Level Selection ---
-const logLevelOptions = ref([
-  { title: 'Debug', value: LogLevel.DEBUG },
-  { title: 'Info', value: LogLevel.INFO },
-  { title: 'Warn', value: LogLevel.WARN },
-  { title: 'Error', value: LogLevel.ERROR },
+const logLevelOptions = computed(() => [
+  { title: t('logViewer.levels.debug'), value: LogLevel.DEBUG },
+  { title: t('logViewer.levels.info'), value: LogLevel.INFO },
+  { title: t('logViewer.levels.warn'), value: LogLevel.WARN },
+  { title: t('logViewer.levels.error'), value: LogLevel.ERROR },
 ]);
 
 const currentLogLevel = computed({

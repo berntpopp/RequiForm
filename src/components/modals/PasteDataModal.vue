@@ -2,21 +2,20 @@
   <v-dialog v-model="isOpen" max-width="700" persistent>
     <v-card>
       <v-card-title class="headline">
-        Paste and Import Data
+        {{ t('pasteDataModal.title') }}
       </v-card-title>
       
       <v-card-text>
         <p class="mb-4">
-          Paste your data in the text area below. The data should be formatted as key-value pairs,
-          with each pair on a new line and separated by a colon.
+          {{ t('pasteDataModal.instructions') }}
         </p>
         
         <v-textarea
           v-model="pastedText"
           outlined
           rows="10"
-          label="Paste your data here"
-          :placeholder="placeholder"
+          :label="t('pasteDataModal.labels.pasteArea')"
+          :placeholder="t('pasteDataModal.placeholders.pasteArea')"
           :error-messages="errorMessage"
           auto-grow
           class="mb-3"
@@ -28,7 +27,7 @@
           text
           class="mb-3"
         >
-          <p class="mb-1"><strong>Example format:</strong></p>
+          <p class="mb-1"><strong>{{ t('pasteDataModal.example.title') }}</strong></p>
           <pre class="text-body-2">{{ exampleText }}</pre>
           <v-btn
             x-small
@@ -37,7 +36,7 @@
             @click="populateWithExample"
             class="mt-2"
           >
-            Use Example Data
+            {{ t('pasteDataModal.example.useButton') }}
           </v-btn>
         </v-alert>
         
@@ -47,7 +46,7 @@
           text
           class="mb-3"
         >
-          {{ parseResult.error }}
+          {{ parseResult.error }} <!-- Error message comes from parser, might need translation there too -->
         </v-alert>
         
         <v-alert
@@ -56,7 +55,7 @@
           text
           class="mb-3"
         >
-          Data successfully parsed! Click "Import Data" to apply these changes.
+          {{ t('pasteDataModal.alerts.parseSuccess') }}
         </v-alert>
       </v-card-text>
 
@@ -68,7 +67,7 @@
           text
           @click="showExample = !showExample"
         >
-          {{ showExample ? 'Hide Example' : 'Show Example' }}
+          {{ showExample ? t('pasteDataModal.example.hideButton') : t('pasteDataModal.example.showButton') }}
         </v-btn>
         
         <v-spacer></v-spacer>
@@ -77,7 +76,7 @@
           text
           @click="$emit('close')"
         >
-          Cancel
+          {{ t('pasteDataModal.buttons.cancel') }}
         </v-btn>
         
         <v-btn
@@ -86,7 +85,7 @@
           @click="parseData"
           :disabled="!pastedText.trim()"
         >
-          Parse Data
+          {{ t('pasteDataModal.buttons.parse') }}
         </v-btn>
         
         <v-btn
@@ -95,7 +94,7 @@
           @click="importData"
           :disabled="!parseResult || !parseResult.success"
         >
-          Import Data
+          {{ t('pasteDataModal.buttons.import') }}
         </v-btn>
       </v-card-actions>
     </v-card>
@@ -120,8 +119,11 @@
  *           The event payload is the structured patient data object.
  */
 import { ref, computed, defineProps, defineEmits, watch } from 'vue';
+import { useI18n } from 'vue-i18n'; // Import useI18n
 import { parsePastedData, generateExampleData } from '../../utils/dataParser';
 import logService from '@/services/logService'; // Import logService
+
+const { t } = useI18n(); // Initialize translation function
 
 const props = defineProps({
   modelValue: {
@@ -140,7 +142,6 @@ const showExample = ref(false);
 
 // Example data for the placeholder/tutorial
 const exampleText = computed(() => generateExampleData());
-const placeholder = 'First Name: John\nLast Name: Doe\nBirthdate: 1990-01-01\n...\n\nClick "Show Example" for a complete example.';
 
 // Computed for v-model
 const isOpen = computed({
@@ -170,7 +171,7 @@ function resetForm() {
  */
 function parseData() {
   if (!pastedText.value.trim()) {
-    errorMessage.value = 'Please paste data before parsing.';
+    errorMessage.value = t('pasteDataModal.validation.pasteRequired'); // Use t()
     return;
   }
   
@@ -178,7 +179,8 @@ function parseData() {
   parseResult.value = parsePastedData(pastedText.value);
   logService.debug('PasteDataModal: Parse result:', parseResult.value);
   
-  errorMessage.value = parseResult.value.success ? '' : parseResult.value.error;
+  // Use the generic error key if the parser doesn't provide a specific one
+  errorMessage.value = parseResult.value.success ? '' : (parseResult.value.error || t('pasteDataModal.alerts.parseError'));
 }
 
 /**

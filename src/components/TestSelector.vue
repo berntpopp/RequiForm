@@ -1,11 +1,11 @@
 <template>
   <div>
-    <h2>Select Panels / Tests</h2>
+    <h2>{{ t('testSelector.title') }}</h2>
 
     <!-- Tabs: Category Selection and Search -->
     <v-tabs v-model="tab" bg-color="primary">
-      <v-tab value="Category Selection">Category Selection</v-tab>
-      <v-tab value="Search">Search</v-tab>
+      <v-tab value="Category Selection">{{ t('testSelector.tabs.categorySelection') }}</v-tab>
+      <v-tab value="Search">{{ t('testSelector.tabs.search') }}</v-tab>
     </v-tabs>
 
     <v-tabs-window v-model="tab">
@@ -14,7 +14,7 @@
         <v-select
           dense
           outlined
-          label="Category"
+          :label="t('testSelector.labels.category')"
           :items="categories"
           item-title="title"
           item-value="id"
@@ -25,7 +25,7 @@
           <v-select
             dense
             outlined
-            label="Select Panels"
+            :label="t('testSelector.labels.selectPanels')"
             :items="filteredTests"
             item-title="name"
             item-value="id"
@@ -58,7 +58,7 @@
         <v-autocomplete
           dense
           outlined
-          label="Type a panel or gene name"
+          :label="t('testSelector.labels.searchPlaceholder')"
           :items="searchItems"
           item-title="label"
           item-value="value"
@@ -93,6 +93,9 @@
 import { ref, onMounted, watch, computed, inject, nextTick } from 'vue';
 import testsData from '../data/tests.json';
 import logService from '@/services/logService';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 /**
  * Custom filter function for autocomplete.

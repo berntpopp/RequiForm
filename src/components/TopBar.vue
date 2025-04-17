@@ -23,7 +23,7 @@
               <span class="ml-1">{{ brandingConfig.appTitle }}</span>
             </h1>
           </template>
-          <span>{{ brandingConfig.appTitle }}: Secure requisition form builder</span>
+          <span>{{ brandingConfig.appTitle }}: {{ t('topbar.appSubtitle') }}</span>
         </v-tooltip>
       </v-toolbar-title>
 
@@ -33,77 +33,77 @@
       <!-- Action buttons - Visible on sm and up -->
       <span id="top-bar-actions" class="d-none d-sm-inline-flex">
         <!-- Theme Toggle Button -->
-        <v-btn icon @click="$emit('toggle-theme')" :aria-label="isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme'">
+        <v-btn icon @click="$emit('toggle-theme')" :aria-label="isDark ? t('topbar.aria.themeToggleLight') : t('topbar.aria.themeToggleDark')">
           <v-icon>{{ isDark ? 'mdi-weather-night' : 'mdi-white-balance-sunny' }}</v-icon>
           <v-tooltip activator="parent" location="bottom">
-            {{ isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme' }}
+            {{ isDark ? t('topbar.tooltips.themeToggleLight') : t('topbar.tooltips.themeToggleDark') }}
           </v-tooltip>
         </v-btn>
         <!-- Reset Application Button -->
-        <v-btn icon @click="$emit('reset-form')" aria-label="Reset Application">
+        <v-btn icon @click="$emit('reset-form')" :aria-label="t('topbar.aria.reset')">
           <v-icon>mdi-restart</v-icon>
           <v-tooltip activator="parent" location="bottom">
-            Reset Application
+            {{ t('topbar.tooltips.reset') }}
           </v-tooltip>
         </v-btn>
         <!-- FAQ Modal Button -->
-        <v-btn icon @click="$emit('open-faq')" aria-label="Open FAQ">
+        <v-btn icon @click="$emit('open-faq')" :aria-label="t('topbar.aria.faq')">
           <v-icon>mdi-help-circle</v-icon>
           <v-tooltip activator="parent" location="bottom">
-            FAQ
+            {{ t('topbar.tooltips.faq') }}
           </v-tooltip>
         </v-btn>
         <!-- Start Tour Button -->
-        <v-btn icon @click="$emit('start-tour')" aria-label="Start Guided Tour">
+        <v-btn icon @click="$emit('start-tour')" :aria-label="t('topbar.aria.tour')">
           <v-icon>mdi-compass-outline</v-icon>
           <v-tooltip activator="parent" location="bottom">
-            Start Guided Tour
+            {{ t('topbar.tooltips.tour') }}
           </v-tooltip>
         </v-btn>
         <!-- Copy URL Button -->
-        <v-btn icon @click="$emit('copy-url')" aria-label="Copy URL">
+        <v-btn icon @click="$emit('copy-url')" :aria-label="t('topbar.aria.copyUrl')">
           <v-icon>mdi-link-variant</v-icon>
           <v-tooltip activator="parent" location="bottom">
-            Copy URL
+            {{ t('topbar.tooltips.copyUrl') }}
           </v-tooltip>
         </v-btn>
         <!-- Copy Encrypted URL Button -->
-        <v-btn icon @click="$emit('copy-encrypted-url')" aria-label="Copy Encrypted URL">
+        <v-btn icon @click="$emit('copy-encrypted-url')" :aria-label="t('topbar.aria.copyEncryptedUrl')">
           <v-icon>mdi-lock</v-icon>
           <v-tooltip activator="parent" location="bottom">
-            Copy Encrypted URL
+            {{ t('topbar.tooltips.copyEncryptedUrl') }}
           </v-tooltip>
         </v-btn>
         
         <!-- Paste Data Button -->
-        <v-btn icon @click="$emit('open-paste-data')" aria-label="Paste and Import Data" id="paste-data-btn">
+        <v-btn icon @click="$emit('open-paste-data')" :aria-label="t('topbar.aria.pasteData')" id="paste-data-btn">
           <v-icon>mdi-clipboard-text</v-icon>
           <v-tooltip activator="parent" location="bottom">
-            Paste Data
+            {{ t('topbar.tooltips.pasteData') }}
           </v-tooltip>
         </v-btn>
         
         <!-- Save Data Button -->
-        <v-btn icon @click="$emit('save-data')" aria-label="Save Data" id="save-data-btn">
+        <v-btn icon @click="$emit('save-data')" :aria-label="t('topbar.aria.saveData')" id="save-data-btn">
           <v-icon>mdi-content-save</v-icon>
           <v-tooltip activator="parent" location="bottom">
-            Save Data
+            {{ t('topbar.tooltips.saveData') }}
           </v-tooltip>
         </v-btn>
         
         <!-- Load Data Button -->
-        <v-btn icon @click="$emit('load-data')" aria-label="Load Data" id="load-data-btn">
+        <v-btn icon @click="$emit('load-data')" :aria-label="t('topbar.aria.loadData')" id="load-data-btn">
           <v-icon>mdi-folder-open</v-icon>
           <v-tooltip activator="parent" location="bottom">
-            Load Data
+            {{ t('topbar.tooltips.loadData') }}
           </v-tooltip>
         </v-btn>
         
         <!-- Generate PDF Button -->
-        <v-btn icon @click="$emit('generate-pdf')" aria-label="Generate PDF" id="generate-pdf-btn">
+        <v-btn icon @click="$emit('generate-pdf')" :aria-label="t('topbar.aria.generatePdf')" id="generate-pdf-btn">
           <v-icon>mdi-file-pdf-box</v-icon>
           <v-tooltip activator="parent" location="bottom">
-            Generate PDF
+            {{ t('topbar.tooltips.generatePdf') }}
           </v-tooltip>
         </v-btn>
       </span>
@@ -112,7 +112,7 @@
       <div class="d-inline-flex d-sm-none">
         <v-menu offset-y>
           <template v-slot:activator="{ props }">
-            <v-btn icon v-bind="props" aria-label="More Actions">
+            <v-btn icon v-bind="props" :aria-label="t('topbar.aria.moreActions')">
               <v-icon>mdi-dots-vertical</v-icon>
             </v-btn>
           </template>
@@ -122,61 +122,62 @@
               <template v-slot:prepend>
                 <v-icon>{{ isDark ? 'mdi-weather-night' : 'mdi-white-balance-sunny' }}</v-icon>
               </template>
-              <v-list-item-title>{{ isDark ? 'Light Theme' : 'Dark Theme' }}</v-list-item-title>
+              <!-- Title reflects the action - same as tooltip -->
+              <v-list-item-title>{{ isDark ? t('topbar.tooltips.themeToggleLight') : t('topbar.tooltips.themeToggleDark') }}</v-list-item-title>
             </v-list-item>
             <v-list-item @click="$emit('reset-form')">
               <template v-slot:prepend>
                 <v-icon>mdi-restart</v-icon>
               </template>
-              <v-list-item-title>Reset Application</v-list-item-title>
+              <v-list-item-title>{{ t('topbar.menu.reset') }}</v-list-item-title>
             </v-list-item>
             <v-list-item @click="$emit('open-faq')">
               <template v-slot:prepend>
                 <v-icon>mdi-help-circle</v-icon>
               </template>
-              <v-list-item-title>FAQ</v-list-item-title>
+              <v-list-item-title>{{ t('topbar.menu.faq') }}</v-list-item-title>
             </v-list-item>
             <v-list-item @click="$emit('start-tour')">
               <template v-slot:prepend>
                 <v-icon>mdi-compass-outline</v-icon>
               </template>
-              <v-list-item-title>Start Guided Tour</v-list-item-title>
+              <v-list-item-title>{{ t('topbar.menu.tour') }}</v-list-item-title>
             </v-list-item>
             <v-list-item @click="$emit('copy-url')">
               <template v-slot:prepend>
                 <v-icon>mdi-link-variant</v-icon>
               </template>
-              <v-list-item-title>Copy URL</v-list-item-title>
+              <v-list-item-title>{{ t('topbar.menu.copyUrl') }}</v-list-item-title>
             </v-list-item>
             <v-list-item @click="$emit('copy-encrypted-url')">
               <template v-slot:prepend>
                 <v-icon>mdi-lock</v-icon>
               </template>
-              <v-list-item-title>Copy Encrypted URL</v-list-item-title>
+              <v-list-item-title>{{ t('topbar.menu.copyEncryptedUrl') }}</v-list-item-title>
             </v-list-item>
             <v-list-item @click="$emit('open-paste-data')">
               <template v-slot:prepend>
                 <v-icon>mdi-clipboard-text</v-icon>
               </template>
-              <v-list-item-title>Paste Data</v-list-item-title>
+              <v-list-item-title>{{ t('topbar.menu.pasteData') }}</v-list-item-title>
             </v-list-item>
              <v-list-item @click="$emit('save-data')">
               <template v-slot:prepend>
                 <v-icon>mdi-content-save</v-icon>
               </template>
-              <v-list-item-title>Save Data</v-list-item-title>
+              <v-list-item-title>{{ t('topbar.menu.saveData') }}</v-list-item-title>
             </v-list-item>
              <v-list-item @click="$emit('load-data')">
               <template v-slot:prepend>
                 <v-icon>mdi-folder-open</v-icon>
               </template>
-              <v-list-item-title>Load Data</v-list-item-title>
+              <v-list-item-title>{{ t('topbar.menu.loadData') }}</v-list-item-title>
             </v-list-item>
              <v-list-item @click="$emit('generate-pdf')">
               <template v-slot:prepend>
                 <v-icon>mdi-file-pdf-box</v-icon>
               </template>
-              <v-list-item-title>Generate PDF</v-list-item-title>
+              <v-list-item-title>{{ t('topbar.menu.generatePdf') }}</v-list-item-title>
             </v-list-item>
           </v-list>
         </v-menu>
@@ -187,7 +188,10 @@
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n'; // Import useI18n
 import { brandingConfig } from '@/services/brandingConfigService'; // Import branding config
+
+const { t } = useI18n(); // Initialize translation function
 
 /**
  * TopBar component for RequiForm.

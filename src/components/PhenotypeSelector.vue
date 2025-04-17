@@ -1,12 +1,12 @@
 <template>
   <div class="phenotype-selector">
     <v-btn color="primary" small @click="togglePanel">
-      {{ showPanel ? 'Hide Phenotype Options' : 'Add Phenotypes' }}
+      {{ t(showPanel ? 'phenotypeSelector.toggleButton.hide' : 'phenotypeSelector.toggleButton.add') }}
     </v-btn>
 
     <v-expand-transition>
       <div v-if="showPanel" class="phenotype-panel">
-        <h2 class="title">Select Phenotype States</h2>
+        <h2 class="title">{{ t('phenotypeSelector.panelTitle') }}</h2>
         <!-- Loop through each category with at least one selected panel -->
         <div
           v-for="group in groupedPanelDetails"
@@ -32,14 +32,14 @@
                 @change="handlePhenotypeChange(group.id, phenotype.id)"
                 class="radio-group"
               >
-                <v-radio label="No Input" value="no input" density="compact" />
-                <v-radio label="Present" value="present" density="compact" />
-                <v-radio label="Absent" value="absent" density="compact" />
+                <v-radio :label="t('phenotypeSelector.radioLabels.noInput')" value="no input" density="compact" />
+                <v-radio :label="t('phenotypeSelector.radioLabels.present')" value="present" density="compact" />
+                <v-radio :label="t('phenotypeSelector.radioLabels.absent')" value="absent" density="compact" />
               </v-radio-group>
             </div>
           </div>
           <div v-else>
-            <p>No predefined phenotypes available for this category.</p>
+            <p>{{ t('phenotypeSelector.noPhenotypesMessage') }}</p>
           </div>
         </div>
       </div>
@@ -52,6 +52,9 @@ import { ref, computed, watch, inject } from 'vue'
 import testsData from '../data/tests.json'
 import logService from '@/services/logService'
 import { brandingConfig } from '@/services/brandingConfigService'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 // Props for backward compatibility
 const props = defineProps({

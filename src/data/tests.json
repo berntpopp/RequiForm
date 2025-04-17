@@ -7,10 +7,18 @@
     {
       "id": "nephrology",
       "title": "Nephrology",
+      "titles": {
+        "en": "Nephrology",
+        "de": "Nephrologie"
+      },
       "tests": [
         {
           "id": "nephronophthise",
           "name": "Nephronophthise",
+          "names": {
+            "en": "Nephronophthisis",
+            "de": "Nephronophthise"
+          },
           "genes": [
             "INVS",
             "NPHP1 (Inkl. MLPA)",
@@ -42,6 +50,10 @@
         {
           "id": "nephrotisches_syndrom_fsgs_alport",
           "name": "Nephrotisches Syndrom, fokal segmentale Glomerulosklerose (FSGS), Alport Syndrome",
+          "names": {
+            "en": "Nephrotic Syndrome, Focal Segmental Glomerulosclerosis (FSGS), Alport Syndrome",
+            "de": "Nephrotisches Syndrom, fokal segmentale Glomerulosklerose (FSGS), Alport Syndrom"
+          },
           "genes": [
             "AVIL",
             "ACTN4",
@@ -459,7 +471,15 @@
           "id": "vesikoureteraler_reflux",
           "name": "Vesikoureteraler Reflux",
           "hpo": "HP:0012002",
-          "description": "Retrograde flow of urine from the bladder into the ureters."
+          "description": "Retrograde flow of urine from the bladder into the ureters.",
+          "names": {
+            "en": "Vesicoureteral reflux",
+            "de": "Vesikoureteraler Reflux"
+          },
+          "descriptions": {
+            "en": "Retrograde flow of urine from the bladder into the ureters.",
+            "de": "Rückfluss von Urin aus der Blase in die Harnleiter."
+          }
         },
         {
           "id": "megaureter",

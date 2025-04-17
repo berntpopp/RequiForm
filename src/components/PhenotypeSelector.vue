@@ -1,12 +1,12 @@
 <template>
   <div class="phenotype-selector">
     <v-btn color="primary" small @click="togglePanel">
-      {{ showPanel ? 'Hide Phenotype Options' : 'Add Phenotypes' }}
+      {{ t(showPanel ? 'phenotypeSelector.toggleButton.hide' : 'phenotypeSelector.toggleButton.add') }}
     </v-btn>
 
     <v-expand-transition>
       <div v-if="showPanel" class="phenotype-panel">
-        <h2 class="title">Select Phenotype States</h2>
+        <h2 class="title">{{ t('phenotypeSelector.panelTitle') }}</h2>
         <!-- Loop through each category with at least one selected panel -->
         <div
           v-for="group in groupedPanelDetails"
@@ -21,9 +21,9 @@
               class="phenotype-item"
             >
               <div class="phenotype-info">
-                <strong>{{ phenotype.name }}</strong>
+                <strong>{{ getPhenotypeName(phenotype) }}</strong>
                 <span class="hpo">({{ phenotype.hpo }})</span>
-                <p class="description">{{ phenotype.description }}</p>
+                <p class="description">{{ getPhenotypeDescription(phenotype) }}</p>
               </div>
               <v-radio-group
                 v-model="localPhenotypeData[group.id][phenotype.id]"
@@ -32,14 +32,14 @@
                 @change="handlePhenotypeChange(group.id, phenotype.id)"
                 class="radio-group"
               >
-                <v-radio label="No Input" value="no input" density="compact" />
-                <v-radio label="Present" value="present" density="compact" />
-                <v-radio label="Absent" value="absent" density="compact" />
+                <v-radio :label="t('phenotypeSelector.radioLabels.noInput')" value="no input" density="compact" />
+                <v-radio :label="t('phenotypeSelector.radioLabels.present')" value="present" density="compact" />
+                <v-radio :label="t('phenotypeSelector.radioLabels.absent')" value="absent" density="compact" />
               </v-radio-group>
             </div>
           </div>
           <div v-else>
-            <p>No predefined phenotypes available for this category.</p>
+            <p>{{ t('phenotypeSelector.noPhenotypesMessage') }}</p>
           </div>
         </div>
       </div>
@@ -52,6 +52,11 @@ import { ref, computed, watch, inject } from 'vue'
 import testsData from '../data/tests.json'
 import logService from '@/services/logService'
 import { brandingConfig } from '@/services/brandingConfigService'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+const i18n = useI18n()
+const locale = computed(() => i18n.locale.value)
 
 // Props for backward compatibility
 const props = defineProps({
@@ -195,6 +200,34 @@ function togglePanel() {
 function categoryPhenotypes(categoryId) {
   const category = testsData.categories.find((cat) => cat.id === categoryId)
   return category?.phenotypes || []
+}
+
+/**
+ * Gets the phenotype name in the current language if available, falls back to default
+ * @param {Object} phenotype - The phenotype object
+ * @returns {string} The localized phenotype name
+ */
+function getPhenotypeName(phenotype) {
+  // If the phenotype has a names object with the current locale, use that
+  if (phenotype.names && phenotype.names[locale.value]) {
+    return phenotype.names[locale.value]
+  }
+  // Otherwise fall back to the name property
+  return phenotype.name
+}
+
+/**
+ * Gets the phenotype description in the current language if available, falls back to default
+ * @param {Object} phenotype - The phenotype object
+ * @returns {string} The localized phenotype description
+ */
+function getPhenotypeDescription(phenotype) {
+  // If the phenotype has a descriptions object with the current locale, use that
+  if (phenotype.descriptions && phenotype.descriptions[locale.value]) {
+    return phenotype.descriptions[locale.value]
+  }
+  // Otherwise fall back to the description property
+  return phenotype.description
 }
 
 function handlePhenotypeChange() {

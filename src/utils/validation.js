@@ -103,37 +103,51 @@ export function isValidDate(date) {
  */
 export function validatePersonalInfo(personalInfo) {
   const errors = {};
-  
+  let valid = true;
+
+  // Validate required fields
   if (!isNotEmpty(personalInfo.firstName)) {
-    errors.firstName = 'First name is required';
+    errors.firstName = 'validation.required.firstName'; // Key instead of string
+    valid = false;
   }
-  
   if (!isNotEmpty(personalInfo.lastName)) {
-    errors.lastName = 'Last name is required';
+    errors.lastName = 'validation.required.lastName'; // Key
+    valid = false;
   }
-  
   if (!isValidDate(personalInfo.birthdate)) {
-    errors.birthdate = 'Valid birthdate is required (YYYY-MM-DD)';
+    // Check if it's required or just invalid format
+    if (!personalInfo.birthdate) {
+        errors.birthdate = 'validation.required.birthdate'; // Key
+    } else {
+        errors.birthdate = 'validation.invalid.birthdate'; // Key
+    }
+    valid = false;
   }
-  
   if (!isNotEmpty(personalInfo.sex)) {
-    errors.sex = 'Sex is required';
+    errors.sex = 'validation.required.sex'; // Key
+    valid = false;
   }
-  
   if (!isNotEmpty(personalInfo.insurance)) {
-    errors.insurance = 'Insurance information is required';
+    errors.insurance = 'validation.required.insurance'; // Key
+    valid = false;
   }
-  
   if (!isNotEmpty(personalInfo.referrer)) {
-    errors.referrer = 'Referring physician is required';
+    errors.referrer = 'validation.required.referrer'; // Key
+    valid = false;
   }
-  
   if (!isNotEmpty(personalInfo.diagnosis)) {
-    errors.diagnosis = 'Diagnosis / Suspicion is required';
+    errors.diagnosis = 'validation.required.diagnosis'; // Key
+    valid = false;
   }
   
+  // Validate optional but potentially invalid fields
+  if (personalInfo.email && !isValidEmail(personalInfo.email)) {
+      errors.email = 'validation.invalid.email'; // Key
+      valid = false; // Assuming invalid optional field makes the section invalid
+  }
+
   return {
-    valid: Object.keys(errors).length === 0,
+    valid,
     errors
   };
 }
@@ -161,8 +175,6 @@ export function validateSelectedPanels() {
   };
 }
 
-// Removed the unused helper function to fix the lint error
-
 /**
  * Validates category selection.
  * 
@@ -177,8 +189,7 @@ export function validateSelectedPanels() {
  *   @return {boolean} valid - Always true
  *   @return {Object} errors - Empty object (no errors)
  */
-export function validateCategory() {
-  // Category is optional, so always return valid
+export function validateCategory() { 
   return {
     valid: true,
     errors: {}
@@ -203,41 +214,45 @@ export function validateCategory() {
  *   @return {Object} errors - Object with field paths as keys and error messages as values
  */
 export function validatePhenotypeData(phenotypeData) {
-  // Phenotype data is optional, so we only validate it if it's present
-  if (!phenotypeData || phenotypeData.length === 0) {
-    return { valid: true, errors: {} };
-  }
-  
   const errors = {};
-  
-  // Validate each phenotype entry has the required fields
-  // We'll only validate items that have at least one property set
-  // This avoids validating empty objects or items that were just initialized
-  phenotypeData.forEach((item, index) => {
-    // Skip null or undefined items
-    if (!item) return;
-    
-    // Check if this is an actual item that the user started filling out
-    // by checking if it has at least some properties filled
-    const hasData = item.categoryId || item.phenotypeId || item.status || item.name;
-    
-    if (hasData) {
-      if (!item.categoryId) {
-        errors[`phenotypeData[${index}].categoryId`] = 'Category ID is required';
-      }
-      
-      if (!item.phenotypeId) {
-        errors[`phenotypeData[${index}].phenotypeId`] = 'Phenotype ID is required';
-      }
-      
-      if (!item.status) {
-        errors[`phenotypeData[${index}].status`] = 'Status is required';
+  let valid = true;
+
+  if (!Array.isArray(phenotypeData)) {
+    // If not an array, it's invalid structure, but maybe not a user error yet
+    // Depending on how state is managed, this might indicate a programming error
+    // For now, return valid as the user hasn't necessarily entered invalid data
+    return { valid: true, errors: {} }; 
+  }
+
+  phenotypeData.forEach((phenotype, index) => {
+    const fieldPrefix = `phenotypeData[${index}]`;
+    let itemValid = true;
+
+    // Validate required fields for each phenotype entry
+    if (!phenotype || !isNotEmpty(phenotype.id)) {
+      errors[`${fieldPrefix}.id`] = 'validation.required.phenotypeId'; // Key
+      itemValid = false;
+    } else {
+      // Optional: Validate HPO ID format if needed (assuming simple check here)
+      const hpoRegex = /^HP:\d{7}$/;
+      if (!hpoRegex.test(phenotype.id)) {
+        errors[`${fieldPrefix}.id`] = 'validation.invalid.hpoIdFormat'; // Key
+        itemValid = false;
       }
     }
+    
+    if (!phenotype || !isNotEmpty(phenotype.status)) {
+      errors[`${fieldPrefix}.status`] = 'validation.required.phenotypeStatus'; // Key
+      itemValid = false;
+    }
+
+    if (!itemValid) {
+      valid = false;
+    }
   });
-  
+
   return {
-    valid: Object.keys(errors).length === 0,
+    valid,
     errors
   };
 }
@@ -292,7 +307,7 @@ export function validatePatientData(patientData) {
   if (!patientData) {
     return {
       valid: false,
-      errors: { general: 'Patient data is missing' },
+      errors: { general: 'validation.general.missingData' }, // Key
       sections: {
         personalInfo: false,
         selectedPanels: false,

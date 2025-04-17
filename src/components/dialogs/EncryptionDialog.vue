@@ -1,21 +1,21 @@
 <template>
   <v-dialog :model-value="modelValue" max-width="500" @update:model-value="$emit('update:modelValue', $event)">
     <v-card>
-      <v-card-title class="headline">Enter Password for Encryption</v-card-title>
+      <v-card-title class="headline">{{ t('encryptionDialog.title') }}</v-card-title>
       <v-card-text>
         <v-text-field 
           ref="passwordInputRef" 
           v-model="password" 
           type="password" 
-          label="Password" 
+          :label="t('encryptionDialog.labels.password')" 
           autocomplete="off"
           @keyup.enter="confirm"
         />
       </v-card-text>
       <v-card-actions>
         <v-spacer></v-spacer>
-        <v-btn text @click="cancel">Cancel</v-btn>
-        <v-btn color="primary" text @click="confirm">Confirm</v-btn>
+        <v-btn text @click="cancel">{{ t('encryptionDialog.buttons.cancel') }}</v-btn>
+        <v-btn color="primary" text @click="confirm">{{ t('encryptionDialog.buttons.confirm') }}</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -28,6 +28,9 @@
  * @module components/dialogs/EncryptionDialog
  */
 import { ref, watch, nextTick } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = defineProps({
   /**

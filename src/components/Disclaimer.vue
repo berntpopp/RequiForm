@@ -2,17 +2,16 @@
   <v-dialog v-model="dialog" persistent max-width="600">
     <v-card>
       <v-card-title class="headline">
-        Disclaimer
+        {{ $t('disclaimer.title') }}
       </v-card-title>
       <v-card-text>
         <p>
-          This tool is for non-medical use only. It is not intended to provide medical advice or diagnosis.
-          Please do not enter sensitive personal data.
+          {{ $t('disclaimer.body') }}
         </p>
       </v-card-text>
       <v-card-actions>
         <v-spacer></v-spacer>
-        <v-btn color="primary" text @click="acknowledge">I Acknowledge</v-btn>
+        <v-btn color="primary" text @click="acknowledge">{{ $t('disclaimer.acknowledgeButton') }}</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -27,9 +26,15 @@
  * 'dismiss' event.
  */
 import { defineComponent } from 'vue';
+import { useI18n } from 'vue-i18n'; // Import useI18n
 
 export default defineComponent({
   name: 'AppDisclaimer',
+  // Inject t function using setup for Options API
+  setup() {
+    const { t } = useI18n();
+    return { t }; // Return t or use this.$t directly in template
+  },
   data() {
     return {
       dialog: true,

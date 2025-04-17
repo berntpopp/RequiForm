@@ -1,0 +1,323 @@
+{
+  "topbar": {
+    "appSubtitle": "Sicherer Anforderungsformular-Generator",
+    "aria": {
+      "themeToggleLight": "Zu hellem Design wechseln",
+      "themeToggleDark": "Zu dunklem Design wechseln",
+      "reset": "Anwendung zurücksetzen",
+      "faq": "FAQ öffnen",
+      "tour": "Geführte Tour starten",
+      "copyUrl": "URL kopieren",
+      "copyEncryptedUrl": "Verschlüsselte URL kopieren",
+      "pasteData": "Daten einfügen und importieren",
+      "saveData": "Daten speichern",
+      "loadData": "Daten laden",
+      "generatePdf": "PDF generieren",
+      "moreActions": "Weitere Aktionen",
+      "toggleLanguage": "Sprache zwischen Deutsch und Englisch wechseln"
+    },
+    "tooltips": {
+      "themeToggleLight": "Zu hellem Design wechseln",
+      "themeToggleDark": "Zu dunklem Design wechseln",
+      "reset": "Anwendung zurücksetzen",
+      "faq": "FAQ",
+      "tour": "Geführte Tour starten",
+      "copyUrl": "URL kopieren",
+      "copyEncryptedUrl": "Verschlüsselte URL kopieren",
+      "pasteData": "Daten einfügen",
+      "saveData": "Daten speichern",
+      "loadData": "Daten laden",
+      "generatePdf": "PDF generieren",
+      "toggleLanguage": "Sprache wechseln (DE/EN)"
+    },
+    "menu": {
+      "reset": "Anwendung zurücksetzen",
+      "faq": "FAQ",
+      "tour": "Geführte Tour starten",
+      "copyUrl": "URL kopieren",
+      "copyEncryptedUrl": "Verschlüsselte URL kopieren",
+      "pasteData": "Daten einfügen",
+      "saveData": "Daten speichern",
+      "loadData": "Daten laden",
+      "generatePdf": "PDF generieren",
+      "toggleLanguage": "Sprache wechseln"
+    }
+  },
+  "patientForm": {
+    "title": "Patientendetails",
+    "labels": {
+      "givenName": "Vorname *",
+      "familyName": "Familienname *",
+      "birthdate": "Geburtsdatum *",
+      "sex": "Geschlecht *",
+      "insurance": "Versicherung *",
+      "physicianName": "Arztname *",
+      "familyHistory": "Familienanamnese",
+      "parentalConsanguinity": "Elterliche Konsanguinität",
+      "diagnosis": "Diagnose / Verdacht *",
+      "orderingDate": "Bestelldatum",
+      "consent": "Einwilligung",
+      "consentGivenBy": "Einwilligung gegeben von",
+      "consentDate": "Datum der Einwilligung",
+      "consentSecondaryFindings": "Einwilligung zum Erhalt von Sekundärbefunden?",
+      "consentMaterial": "Nutzung des Materials zur Qualitätssicherung erlauben?",
+      "consentExtendedStorage": "Ergebnisse länger als 10 Jahre speichern (max. 30 Jahre)?",
+      "consentResearch": "Nutzung für Forschungs-/Qualitätssicherungszwecke?",
+      "requestVariantSegregation": "Variantensegregation anfordern",
+      "variantDetails": "Variantendetails"
+    },
+    "hints": {
+      "variantDetails": "Details zur Anforderung der Variantensegregation angeben"
+    },
+    "options": {
+      "sex": {
+        "male": "Männlich",
+        "female": "Weiblich",
+        "undetermined": "Unbestimmt"
+      },
+      "familyHistory": {
+        "conspicuous": "Auffällig",
+        "inconspicuous": "Unauffällig",
+        "unknown": "Unbekannt"
+      },
+      "consanguinity": {
+        "yes": "Ja",
+        "no": "Nein"
+      },
+      "consent": {
+        "provided": "Bereits vorhanden",
+        "fill": "Formular ausfüllen"
+      },
+      "yesNo": {
+        "yes": "Ja",
+        "no": "Nein"
+      }
+    }
+  },
+  "phenotypeSelector": {
+    "toggleButton": {
+      "hide": "Phänotyp-Optionen ausblenden",
+      "add": "Phänotypen hinzufügen"
+    },
+    "panelTitle": "Phänotyp-Zustände auswählen",
+    "radioLabels": {
+      "noInput": "Keine Angabe",
+      "present": "Vorhanden",
+      "absent": "Fehlend"
+    },
+    "noPhenotypesMessage": "Für diese Kategorie sind keine vordefinierten Phänotypen verfügbar."
+  },
+  "selectedPanelsSummary": {
+    "title": "Ausgewählte Panels:"
+  },
+  "testSelector": {
+    "title": "Panels / Tests auswählen",
+    "tabs": {
+      "categorySelection": "Kategorieauswahl",
+      "search": "Suche"
+    },
+    "labels": {
+      "category": "Kategorie",
+      "selectPanels": "Panels auswählen",
+      "searchPlaceholder": "Panel- oder Gen-Namen eingeben"
+    }
+  },
+  "footer": {
+    "versions": {
+      "app": "App:",
+      "testSchema": "Testschema:",
+      "pdfSchema": "PDF-Schema:"
+    },
+    "tooltips": {
+      "disclaimerAcknowledged": "Haftungsausschluss bestätigt:",
+      "toggleLogViewer": "Log-Anzeige umschalten",
+      "githubRepo": "GitHub-Repository",
+      "license": "Lizenz (MIT)",
+      "wiki": "Wiki / Dokumentation"
+    },
+    "ariaLabels": {
+      "reopenDisclaimer": "Haftungsausschluss bestätigt - Zum erneuten Öffnen klicken",
+      "toggleLogViewer": "Log-Anzeige umschalten",
+      "githubRepo": "GitHub-Repository",
+      "licenseInfo": "Lizenzinformationen",
+      "wikiDocs": "Wiki-Dokumentation"
+    }
+  },
+  "pasteDataModal": {
+    "title": "Daten einfügen und importieren",
+    "instructions": "Fügen Sie Ihre Daten in das Textfeld unten ein. Die Daten sollten als Schlüssel-Wert-Paare formatiert sein, wobei jedes Paar in einer neuen Zeile steht und durch einen Doppelpunkt getrennt ist.",
+    "labels": {
+      "pasteArea": "Fügen Sie Ihre Daten hier ein"
+    },
+    "placeholders": {
+      "pasteArea": "Vorname: Max\nNachname: Mustermann\nGeburtsdatum: 1990-01-01\n...\n\nKlicken Sie auf \"Beispiel anzeigen\" für ein vollständiges Beispiel."
+    },
+    "example": {
+      "title": "Beispielformat:",
+      "useButton": "Beispieldaten verwenden",
+      "showButton": "Beispiel anzeigen",
+      "hideButton": "Beispiel ausblenden"
+    },
+    "alerts": {
+      "parseSuccess": "Daten erfolgreich geparst! Klicken Sie auf \"Daten importieren\", um diese Änderungen anzuwenden.",
+      "parseError": "Daten konnten nicht geparst werden. Bitte überprüfen Sie das Format."
+    },
+    "buttons": {
+      "cancel": "Abbrechen",
+      "parse": "Daten parsen",
+      "import": "Daten importieren"
+    },
+    "validation": {
+      "pasteRequired": "Bitte fügen Sie Daten vor dem Parsen ein."
+    }
+  },
+  "decryptionDialog": {
+    "title": "Passwort zur Entschlüsselung eingeben",
+    "labels": {
+      "password": "Passwort"
+    },
+    "buttons": {
+      "cancel": "Abbrechen",
+      "confirm": "Bestätigen"
+    }
+  },
+  "encryptionDialog": {
+    "title": "Passwort zur Verschlüsselung eingeben",
+    "labels": {
+      "password": "Passwort"
+    },
+    "buttons": {
+      "cancel": "Abbrechen",
+      "confirm": "Bestätigen"
+    }
+  },
+  "faqDialog": {
+    "title": "Häufig gestellte Fragen",
+    "searchLabel": "FAQs durchsuchen",
+    "noResults": "Keine FAQs entsprechen Ihren Suchkriterien.",
+    "uncategorized": "Unkategorisiert",
+    "buttons": {
+      "close": "Schließen"
+    }
+  },
+  "loadDataDialog": {
+    "title": "Formulardaten laden",
+    "instruction": "Wählen Sie eine zuvor gespeicherte JSON-Datei aus, um die Formulardaten zu laden.",
+    "labels": {
+      "fileInput": "JSON-Datei auswählen"
+    },
+    "buttons": {
+      "cancel": "Abbrechen",
+      "import": "Importieren"
+    },
+    "validation": {
+      "fileRequired": "Bitte wählen Sie eine Datei zum Importieren aus."
+    }
+  },
+  "resetConfirmationDialog": {
+    "title": "Anwendung zurücksetzen",
+    "confirmationText": "Sind Sie sicher, dass Sie die gesamte Anwendung zurücksetzen möchten? Dies löscht alle Formulardaten und kann nicht rückgängig gemacht werden.",
+    "buttons": {
+      "cancel": "Abbrechen",
+      "reset": "Zurücksetzen"
+    }
+  },
+  "saveDataDialog": {
+    "title": "Formulardaten exportieren",
+    "instruction": "Speichern Sie Ihre Formulardaten zur späteren Verwendung. Sie können die Datei benennen, um sie leicht zu identifizieren.",
+    "labels": {
+      "fileName": "Dateiname"
+    },
+    "placeholders": {
+      "fileName": "requiform-daten"
+    },
+    "hints": {
+      "fileName": "An den Dateinamen wird .json angehängt"
+    },
+    "buttons": {
+      "cancel": "Abbrechen",
+      "export": "Exportieren"
+    },
+    "defaultFileName": "requiform-daten"
+  },
+  "logViewer": {
+    "title": "Anwendungsprotokolle",
+    "emptyState": "Noch keine Protokolleinträge.",
+    "levels": {
+      "debug": "Debug",
+      "info": "Info",
+      "warn": "Warnung",
+      "error": "Fehler"
+    },
+    "buttons": {
+      "download": "Protokolle herunterladen",
+      "clear": "Protokolle löschen",
+      "close": "Protokolle schließen",
+      "toggleDetails": "Details umschalten"
+    }
+  },
+  "disclaimer": {
+    "title": "Haftungsausschluss",
+    "body": "Dieses Werkzeug ist nur für nicht-medizinische Zwecke bestimmt. Es ist nicht dafür gedacht, medizinischen Rat oder Diagnosen zu liefern. Bitte geben Sie keine sensiblen persönlichen Daten ein.",
+    "acknowledgeButton": "Ich bestätige"
+  },
+  "pedigreeDrawer": {
+    "title": "Stammbaumdiagramm"
+  },
+  "app": {
+    "includePedigreeChart": "Stammbaumdiagramm einschließen"
+  },
+  "tour": {
+    "buttons": {
+      "back": "Zurück",
+      "next": "Weiter",
+      "skip": "Überspringen",
+      "start": "Tour starten",
+      "finish": "Beenden"
+    },
+    "welcome": {
+      "text": "Willkommen bei RequiForm! Diese Tour führt Sie durch die Hauptfunktionen."
+    },
+    "patientForm": {
+      "text": "Beginnen Sie mit der Eingabe der Patienteninformationen in diesem Abschnitt."
+    },
+    "testSelector": {
+      "text": "Wählen Sie hier die erforderlichen Gentests aus."
+    },
+    "phenotypes": {
+      "text": "Fügen Sie relevante HPO-Phänotypen für den Patienten hinzu."
+    },
+    "topBarActions": {
+      "text": "Nutzen Sie die Aktionen in der oberen Leiste wie PDF generieren, URL kopieren usw."
+    },
+    "generatePdf": {
+      "text": "Sobald das Formular vollständig ist, generieren Sie das PDF-Anforderungsformular mit dieser Schaltfläche."
+    },
+    "complete": {
+      "text": "Sie haben die Tour abgeschlossen! Sie können sie jederzeit über das Hilfe-Menü neu starten."
+    },
+    "completed": "Tour abgeschlossen!",
+    "cancelled": "Tour abgebrochen."
+  },
+  "validation": {
+    "required": {
+      "firstName": "Vorname ist erforderlich.",
+      "lastName": "Nachname ist erforderlich.",
+      "birthdate": "Geburtsdatum ist erforderlich.",
+      "sex": "Geschlecht ist erforderlich.",
+      "insurance": "Versicherungsinformationen sind erforderlich.",
+      "referrer": "Überweisender Arzt ist erforderlich.",
+      "diagnosis": "Diagnose/Verdacht ist erforderlich.",
+      "phenotypeId": "Phänotyp-ID ist erforderlich.",
+      "phenotypeStatus": "Phänotyp-Status ist erforderlich."
+    },
+    "invalid": {
+      "email": "Ungültiges E-Mail-Format.",
+      "birthdate": "Geburtsdatum muss ein gültiges Datum (JJJJ-MM-TT) sein und darf nicht in der Zukunft liegen.",
+      "hpoIdFormat": "Ungültiges HPO-ID-Format."
+    },
+    "general": {
+      "missingData": "Patientendaten fehlen."
+    }
+  }
+}

@@ -4,23 +4,35 @@
       <span class="versions flex-grow-1">
         App: v{{ version }} | Test schema: v{{ testSchemaVersion }} | PDF schema: v{{ pdfSchemaVersion }}
       </span>
-      <v-btn
-        v-if="props.disclaimerAcknowledged"
-        small
-        variant="outlined"
-        class="ml-2 disclaimer-btn"
-        @click="emit('reopen-disclaimer')"
-      >
-        Disclaimer Acknowledged: {{ props.acknowledgmentTime }}
-      </v-btn>
-      <v-btn
-        icon="mdi-math-log"
-        variant="text"
-        size="small"
-        class="ml-2"
-        title="Toggle Logs"
-        @click="uiStore.toggleLogViewer"
-      ></v-btn>
+      <v-tooltip v-if="props.disclaimerAcknowledged" location="top">
+        <template v-slot:activator="{ props: tooltipProps }">
+          <v-btn
+            icon="mdi-shield-check"
+            color="green"
+            variant="text"
+            size="small"
+            class="ml-2"
+            v-bind="tooltipProps"
+            @click="emit('reopen-disclaimer')"
+            aria-label="Disclaimer Acknowledged - Click to reopen"
+          ></v-btn>
+        </template>
+        <span>Disclaimer Acknowledged: {{ props.acknowledgmentTime }}</span>
+      </v-tooltip>
+      <v-tooltip location="top">
+        <template v-slot:activator="{ props: tooltipProps }">
+          <v-btn
+            icon="mdi-math-log"
+            variant="text"
+            size="small"
+            class="ml-2"
+            v-bind="tooltipProps"
+            @click="uiStore.toggleLogViewer"
+            aria-label="Toggle Log Viewer"
+          ></v-btn>
+        </template>
+        <span>Toggle Log Viewer</span>
+      </v-tooltip>
     </div>
   </v-footer>
 </template>

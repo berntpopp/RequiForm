@@ -144,6 +144,9 @@
 <script setup>
 import { ref, computed, onMounted, provide, watch } from 'vue'; 
 import { useI18n } from 'vue-i18n';
+
+// Get i18n for translations
+const { t, locale } = useI18n();
 import TopBar from './components/TopBar.vue';
 import PatientForm from './components/PatientForm.vue';
 import TestSelector from './components/TestSelector.vue';
@@ -196,8 +199,7 @@ const appTour = useAppTour();
 const faq = useFaq();
 const formActions = useFormActions();
 
-// Initialize i18n
-const { t, locale } = useI18n();
+// i18n was already initialized at the top
 
 // Set up provides for child components
 provide('ui', uiStore);

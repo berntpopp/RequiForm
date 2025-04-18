@@ -1,32 +1,71 @@
+/**
+ * i18n configuration file
+ * Using Vue i18n v9 stable with Vue 3
+ */
 import { createI18n } from 'vue-i18n';
-// Import locales directly to ensure they're bundled with the application
+
+// Import JSON locale files
 import enMessages from './locales/en.json';
 import deMessages from './locales/de.json';
 
-// Function to detect initial locale (e.g., from localStorage or browser)
+// Import security utility
+import { sanitizeParsedJson } from './utils/jsonSanitizer';
+
+/**
+ * Detects and returns the initial locale based on user preferences
+ * @returns {string} The detected locale code ('en' or 'de')
+ */
 function getInitialLocale() {
-  const savedLang = localStorage.getItem('userLanguage');
-  if (savedLang && ['en', 'de'].includes(savedLang)) {
-    return savedLang;
+  try {
+    // First check localStorage for saved preference
+    const savedLang = localStorage.getItem('userLanguage');
+    if (savedLang && ['en', 'de'].includes(savedLang)) {
+      return savedLang;
+    }
+    
+    // Fall back to browser language
+    const browserLang = navigator.language.split('-')[0];
+    return ['en', 'de'].includes(browserLang) ? browserLang : 'en';
+  } catch {
+    // If localStorage is not available
+    return 'en';
   }
-  // Basic browser language detection (can be more sophisticated)
-  const browserLang = navigator.language.split('-')[0];
-  return ['en', 'de'].includes(browserLang) ? browserLang : 'en'; // Default to 'en'
 }
 
+// Create deep copies of the messages and sanitize them for security
+const messages = {
+  en: JSON.parse(JSON.stringify(enMessages)),
+  de: JSON.parse(JSON.stringify(deMessages))
+};
+
+// Apply security sanitization to prevent prototype pollution
+sanitizeParsedJson(messages.en);
+sanitizeParsedJson(messages.de);
+
+// Create and export the i18n instance
 const i18n = createI18n({
-  legacy: false, // Use Composition API mode
-  locale: getInitialLocale(), // Set initial locale dynamically
-  fallbackLocale: 'en', // Fallback locale if key missing
-  messages: {
-    en: enMessages,
-    de: deMessages,
-  },
-  silentTranslationWarn: import.meta.env.PROD, // Suppress warnings in production
-  silentFallbackWarn: import.meta.env.PROD, // Suppress fallback warnings in production
-  // Optional: Suppress warnings for missing translations during development
-  // missingWarn: false,
-  // fallbackWarn: false,
+  // Use Vue 3 Composition API
+  legacy: false,
+  
+  // Set locale and fallback
+  locale: getInitialLocale(),
+  fallbackLocale: 'en',
+  
+  // Provide messages
+  messages,
+  
+  // CRITICAL: Force the full build for production
+  // This ensures the message compiler is included
+  runtimeOnly: false,
+  
+  // Disable warnings in production
+  silentTranslationWarn: import.meta.env.PROD,
+  silentFallbackWarn: import.meta.env.PROD,
+  
+  // Additional settings that help resolve compiler issues
+  warnHtmlMessage: false,
+  escapeParameter: true,
+  fullInstall: true
 });
 
 export default i18n;

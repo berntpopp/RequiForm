@@ -5,16 +5,28 @@ import { fileURLToPath, URL } from 'url';
 import vuetify from 'vite-plugin-vuetify';
 
 /* global process */
+
 export default defineConfig(({ mode }) => {
-  // Load all environment variables for the current mode (e.g. development, production)
+  // Load all environment variables for the current mode
   const env = loadEnv(mode, process.cwd(), '');
 
   return {
-    // Now the base uses the value from your .env file, e.g. VITE_ASSET_URL
-    base: env.VITE_ASSET_URL,
+    // Base path from .env file (for GitHub Pages)
+    base: env.VITE_ASSET_URL || '/',
+
     plugins: [
-      vue(),
-      vuetify({ autoImport: true }),
+      vue({
+        script: {
+          defineModel: true,
+          propsDestructure: true
+        },
+        template: {
+          compilerOptions: {
+            whitespace: 'preserve'
+          }
+        }
+      }),
+      vuetify({ autoImport: true })
     ],
     resolve: {
       alias: {
@@ -22,13 +34,25 @@ export default defineConfig(({ mode }) => {
       },
     },
     define: {
-      'process.env.VUE_APP_VERSION': JSON.stringify(process.env.npm_package_version)
-      // Add other environment variables if needed
+      // App version
+      'process.env.VUE_APP_VERSION': JSON.stringify(process.env.npm_package_version || '0.0.0'),
+      
+      // Vue i18n compiler flags
+      '__VUE_I18N_FULL_INSTALL__': true,
+      '__VUE_I18N_LEGACY_API__': false,
+      '__INTLIFY_PROD_DEVTOOLS__': false,
+      '__VUE_I18N_RUNTIME_ONLY__': false
+    },
+
+    // Configure the build process - simpler version
+    build: {
+      // Performance settings
+      chunkSizeWarningLimit: 1200
     },
     server: {
       watch: {
         usePolling: true,
       },
-    },
+    }
   };
 });

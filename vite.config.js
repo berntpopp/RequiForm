@@ -44,7 +44,7 @@ export default defineConfig(({ mode }) => {
       '__VUE_I18N_RUNTIME_ONLY__': false
     },
 
-    // Configure the build process with comprehensive optimizations for better Lighthouse scores
+    // Configure the build process with optimizations for perfect Lighthouse scores
     build: {
       // Performance settings
       chunkSizeWarningLimit: 1500,
@@ -54,11 +54,23 @@ export default defineConfig(({ mode }) => {
       
       // CSS optimization
       cssCodeSplit: true,
-      // Use the default CSS minifier instead of lightningcss to avoid platform compatibility issues
       cssMinify: true,
       
-      // Rollup build options
+      // Commonjs optimization for better tree-shaking
+      commonjsOptions: {
+        requireReturnsDefault: 'auto'
+      },
+      
+      // Rollup build options with aggressive tree shaking
       rollupOptions: {
+        // Enable aggressive tree shaking at rollup level
+        treeshake: {
+          preset: 'recommended',
+          moduleSideEffects: false,
+          tryCatchDeoptimization: false,
+          propertyReadSideEffects: false,
+          unknownGlobalSideEffects: false
+        },
         output: {
           // Extract CSS into separate files for better caching
           assetFileNames: (assetInfo) => {
@@ -79,21 +91,21 @@ export default defineConfig(({ mode }) => {
             return `assets/[name]-[hash][extname]`;
           },
           
-          // Better JavaScript chunking strategy
-          chunkFileNames: 'assets/js/[name]-[hash].js',
-          entryFileNames: 'assets/js/[name]-[hash].js',
+          // Optimized JavaScript chunking with content hashing for better caching
+          chunkFileNames: 'assets/js/[name].[hash].js',
+          entryFileNames: 'assets/js/[name].[hash].js',
           
           // Improved code splitting strategy based on module size and usage patterns
           manualChunks: (id) => {
-            // Critical first load modules - keep small
-            if (id.includes('node_modules/vue/') && 
-                !id.includes('vue-router')) {
-              return 'critical';
-            }
-            
             // Vue and related packages for deferred loading
             if (id.includes('node_modules/vue-i18n/')) {
               return 'vendor-vue';
+            }
+            
+            // Only truly critical modules for first paint
+            if (id.includes('node_modules/vue/runtime-dom') || 
+                id.includes('node_modules/vue/runtime-core')) {
+              return 'critical';
             }
             
             // Vuetify library - separate from styles

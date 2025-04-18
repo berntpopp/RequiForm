@@ -142,32 +142,45 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, provide, watch } from 'vue'; 
+import { ref, computed, onMounted, provide, watch, defineAsyncComponent } from 'vue'; 
 import { useI18n } from 'vue-i18n';
 
 // Get i18n for translations
 const { t, locale } = useI18n();
-import TopBar from './components/TopBar.vue';
-import PatientForm from './components/PatientForm.vue';
-import TestSelector from './components/TestSelector.vue';
-import PhenotypeSelector from './components/PhenotypeSelector.vue';
-import PedigreeDrawer from './components/PedigreeDrawer.vue';
-import ValidationSummary from './components/ValidationSummary.vue';
-import PdfGenerator from './components/PdfGenerator.vue';
-import AppDisclaimer from './components/Disclaimer.vue';
-import AppFooter from './components/AppFooter.vue';
-import PasteDataModal from './components/modals/PasteDataModal.vue';
-import SelectedPanelsSummary from './components/SelectedPanelsSummary.vue';
-import LogViewer from './components/LogViewer.vue'; 
-import logService from '@/services/logService'; 
 
-// Dialog components
-import EncryptionDialog from './components/dialogs/EncryptionDialog.vue';
-import DecryptionDialog from './components/dialogs/DecryptionDialog.vue';
-import FAQDialog from './components/dialogs/FAQDialog.vue';
-import ResetConfirmationDialog from './components/dialogs/ResetConfirmationDialog.vue';
-import SaveDataDialog from './components/dialogs/SaveDataDialog.vue';
-import LoadDataDialog from './components/dialogs/LoadDataDialog.vue';
+// Critical components loaded eagerly - these are needed for initial render
+import TopBar from './components/TopBar.vue';
+
+// Lazily loaded components - these will be loaded only when needed
+// Main components with dynamic imports for better tree shaking
+const PatientForm = defineAsyncComponent(() => import('./components/PatientForm.vue'));
+const TestSelector = defineAsyncComponent(() => import('./components/TestSelector.vue'));
+const PhenotypeSelector = defineAsyncComponent(() => import('./components/PhenotypeSelector.vue'));
+const SelectedPanelsSummary = defineAsyncComponent(() => import('./components/SelectedPanelsSummary.vue'));
+const PedigreeDrawer = defineAsyncComponent(() => import('./components/PedigreeDrawer.vue'));
+const ValidationSummary = defineAsyncComponent(() => import('./components/ValidationSummary.vue'));
+const AppFooter = defineAsyncComponent(() => import('./components/AppFooter.vue'));
+const LogViewer = defineAsyncComponent(() => import('./components/LogViewer.vue'));
+const AppDisclaimer = defineAsyncComponent(() => import('./components/Disclaimer.vue'));
+
+// PDF Generator can be loaded lazily as it's only used when generating PDFs
+const PdfGenerator = defineAsyncComponent({
+  loader: () => import('./components/PdfGenerator.vue'),
+  // Adding a small delay ensures it doesn't impact initial page load
+  delay: 200
+});
+
+// Dialog components are lazily loaded since they're not shown initially
+const PasteDataModal = defineAsyncComponent(() => import('./components/modals/PasteDataModal.vue'));
+const EncryptionDialog = defineAsyncComponent(() => import('./components/dialogs/EncryptionDialog.vue'));
+const DecryptionDialog = defineAsyncComponent(() => import('./components/dialogs/DecryptionDialog.vue'));
+const FAQDialog = defineAsyncComponent(() => import('./components/dialogs/FAQDialog.vue'));
+const ResetConfirmationDialog = defineAsyncComponent(() => import('./components/dialogs/ResetConfirmationDialog.vue'));
+const SaveDataDialog = defineAsyncComponent(() => import('./components/dialogs/SaveDataDialog.vue'));
+const LoadDataDialog = defineAsyncComponent(() => import('./components/dialogs/LoadDataDialog.vue'));
+
+// Import service for logging
+import logService from '@/services/logService';
 
 // Import Pinia stores
 import { useUiStore } from './stores/uiStore';

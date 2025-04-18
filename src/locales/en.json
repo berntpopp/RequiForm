@@ -269,7 +269,13 @@
   },
   "app": {
     "includePedigreeChart": "Include Pedigree Chart",
-    "languageSwitched": "Language switched successfully"
+    "languageSwitched": "Language switched successfully",
+    "toasts": {
+      "urlCopied": "URL copied to clipboard!",
+      "urlCopyError": "Error copying URL to clipboard.",
+      "encryptedUrlCopied": "Encrypted URL copied to clipboard!",
+      "formReset": "Form has been reset!"
+    }
   },
   "tour": {
     "buttons": {

@@ -269,7 +269,13 @@
   },
   "app": {
     "includePedigreeChart": "Stammbaumdiagramm einschließen",
-    "languageSwitched": "Sprache erfolgreich gewechselt"
+    "languageSwitched": "Sprache erfolgreich gewechselt",
+    "toasts": {
+      "urlCopied": "URL in die Zwischenablage kopiert!",
+      "urlCopyError": "Fehler beim Kopieren der URL in die Zwischenablage.",
+      "encryptedUrlCopied": "Verschlüsselte URL in die Zwischenablage kopiert!",
+      "formReset": "Formular wurde zurückgesetzt!"
+    }
   },
   "tour": {
     "buttons": {

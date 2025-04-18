@@ -17,6 +17,7 @@ import { ref } from 'vue';
 import { parsePatientDataFromUrl, clearUrlParameters } from '../utils/urlUtils';
 import { encryptData, decryptData } from '../utils/cryptoUtilsWebCrypto'; // Import new crypto functions
 import { useUiStore } from '../stores/uiStore';
+import { useI18n } from 'vue-i18n';
 import { useFormStore } from '../stores/formStore';
 import logService from '@/services/logService';
 import { sanitizeParsedJson } from '../utils/jsonSanitizer'; // Import the sanitizer
@@ -41,11 +42,12 @@ const MAX_PARAM_LENGTH = 100 * 1024; // 100 KB limit for individual 'data' or de
  *   @returns {Function} handlePasswordSubmit - Function to handle password submission for decryption
  */
 export function useUrlHandler() {
-  // Reference to the pending encrypted value from URL
+  // Get store and i18n instances
+  const uiStore = useUiStore();
+  const { t } = useI18n();
   const pendingEncryptedValue = ref('');
   
   // Get stores
-  const uiStore = useUiStore();
   const formStore = useFormStore();
   
   /**
@@ -307,11 +309,11 @@ export function useUrlHandler() {
     try {
       const url = createShareableUrl();
       await navigator.clipboard.writeText(url);
-      uiStore.showSnackbar("URL copied to clipboard!");
+      uiStore.showSnackbar(t('app.toasts.urlCopied'));
       return true;
     } catch (error) {
       logService.error('Error copying URL to clipboard:', error);
-      uiStore.showSnackbar("Error copying URL to clipboard.");
+      uiStore.showSnackbar(t('app.toasts.urlCopyError', 'Error copying URL to clipboard.'));
       return false;
     }
   }
@@ -380,7 +382,7 @@ export function useUrlHandler() {
       if (!url) return false;
       
       await navigator.clipboard.writeText(url);
-      uiStore.showSnackbar("Encrypted URL copied to clipboard!");
+      uiStore.showSnackbar(t('app.toasts.encryptedUrlCopied'));
       return true;
     } catch (error) {
       // Error is already logged and shown by createEncryptedUrl

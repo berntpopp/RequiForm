@@ -12,6 +12,7 @@
  */
 
 import { useUiStore } from '../stores/uiStore';
+import { useI18n } from 'vue-i18n';
 import { useFormStore } from '../stores/formStore';
 
 /**
@@ -26,9 +27,10 @@ import { useFormStore } from '../stores/formStore';
  *   @returns {Function} toggleTheme - Function to toggle light/dark theme
  */
 export function useFormActions() {
-  // Get stores
+  // Get store instances
   const uiStore = useUiStore();
   const formStore = useFormStore();
+  const { t } = useI18n();
   
   /**
    * Initiates the form reset process by showing the confirmation dialog.
@@ -70,7 +72,7 @@ export function useFormActions() {
     formStore.resetForm();
     
     // Show success notification
-    uiStore.showSnackbar("Form has been reset!");
+    uiStore.showSnackbar(t('app.toasts.formReset'));
   }
   
   /**

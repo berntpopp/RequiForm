@@ -25,3 +25,6 @@ dist-ssr
 
 # Windsurf
 *.windsurfrules
+
+# Local test directories
+serve-test/

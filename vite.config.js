@@ -78,7 +78,12 @@ export default defineConfig(({ mode }) => {
             if (/png|jpe?g|svg|gif|tiff|bmp|ico/i.test(extType)) {
               return `assets/images/[name]-[hash][extname]`;
             }
-            if (/woff|woff2/i.test(extType)) {
+            // Fonts need special handling to ensure they're accessible
+            if (/woff|woff2|ttf|eot/i.test(extType)) {
+              // Keep Material Design Icons font names intact to maintain references
+              if (assetInfo.name.includes('materialdesignicons')) {
+                return `assets/fonts/[name][extname]`;
+              }
               return `assets/fonts/[name]-[hash][extname]`;
             }
             if (/css/i.test(extType)) {

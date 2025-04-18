@@ -1,14 +1,14 @@
 <template>
   <div>
-    <v-btn @click="generatePdf" color="primary" dark>
-      Generate PDF
+    <v-btn @click="generatePdf" color="primary" dark :key="`pdf-btn-${i18nKey}`">
+      {{ t('pdfGenerator.generateButton', 'Generate PDF') }}
     </v-btn>
   </div>
 </template>
 
 <script setup>
 import { jsPDF } from 'jspdf';
-import { defineProps, computed, defineExpose, inject } from 'vue';
+import { defineProps, computed, defineExpose, inject, ref, onMounted, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 import pdfConfig from '../data/pdfConfig.json';
 import testsData from '../data/tests.json';
@@ -19,9 +19,33 @@ import {
   generatePedigreeQrCode
 } from '../utils/qrService';
 
-// Initialize i18n
+// Initialize i18n with reactivity handling
 const i18n = useI18n();
+const { t } = useI18n();
 const locale = computed(() => i18n.locale.value);
+
+// Create a reactivity key to force UI updates when language changes
+const i18nKey = ref(0);
+
+// Handle language changes with a custom event listener
+const handleI18nUpdate = () => {
+  // Increment the reactivity key to force UI updates
+  i18nKey.value++;
+  // Log the language change
+  logService.debug(`PdfGenerator: Language updated to ${locale.value}, refreshing component`);
+};
+
+onMounted(() => {
+  // Listen for language change events
+  window.addEventListener('i18n-updated', handleI18nUpdate);
+  window.addEventListener('i18n-locale-changed', handleI18nUpdate);
+});
+
+onBeforeUnmount(() => {
+  // Clean up event listeners
+  window.removeEventListener('i18n-updated', handleI18nUpdate);
+  window.removeEventListener('i18n-locale-changed', handleI18nUpdate);
+});
 
 // Define props
 const props = defineProps({
@@ -50,6 +74,9 @@ defineExpose({ generatePdf });
 
 // Compute grouped test panels based on the selected panels in the unified patient data.
 const groupedPanels = computed(() => {
+  // Force reactivity when language changes
+  // eslint-disable-next-line no-unused-vars
+  const _ = i18nKey.value;
   // Determine which tests to use (prefer unified model if available)
   const testsToUse = unifiedPatientData?.selectedPanels || []; // Use only unified model, fallback to empty array
   
@@ -67,6 +94,9 @@ const groupedPanels = computed(() => {
 // Compute patient data for QR code using the unified model if available, otherwise fallback to legacy props.
 // Selected tests are always sourced from the unified model.
 const patientQrData = computed(() => {
+  // Force reactivity when language changes
+  // eslint-disable-next-line no-unused-vars
+  const _ = i18nKey.value;
   // Get selected panels ONLY from unified model
   const panels = unifiedPatientData?.selectedPanels || [];
 
@@ -108,6 +138,9 @@ const patientQrData = computed(() => {
 
 // Compute phenotype data for QR code
 const phenotypeQrData = computed(() => {
+  // Force reactivity when language changes
+  // eslint-disable-next-line no-unused-vars
+  const _ = i18nKey.value;
   if (unifiedPatientData?.phenotypes) {
     return unifiedPatientData.phenotypes;
   }
@@ -145,6 +178,9 @@ const phenotypeQrData = computed(() => {
 
 // Compute pedigree data for QR code
 const pedigreeQrData = computed(() => {
+  // Force reactivity when language changes
+  // eslint-disable-next-line no-unused-vars
+  const _ = i18nKey.value;
   // First check direct props.patientData for pedigree data
   // Log the entire patient data structure to debug
   logService.debug('[PdfGenerator] Direct patientData props:', JSON.stringify(props.patientData || {}));
@@ -183,9 +219,17 @@ function mapTemplateString(template, mapping) {
   );
 }
 
-// Utility: Convert yes/no to German labels.
+// Utility: Convert yes/no to localized labels.
 function toYesNo(value) {
-  return value === 'yes' ? 'Ja' : 'Nein';
+  // Check current locale and use appropriate translation
+  // Force reactivity when language changes
+  const _ = i18nKey.value; // eslint-disable-line no-unused-vars
+  
+  if (locale.value === 'de') {
+    return value === 'yes' ? 'Ja' : value === 'no' ? 'Nein' : value;
+  } else {
+    return value === 'yes' ? 'Yes' : value === 'no' ? 'No' : value;
+  }
 }
 
 // ------------------------

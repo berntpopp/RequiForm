@@ -1,12 +1,12 @@
 <template>
   <div class="phenotype-selector">
-    <v-btn color="primary" small @click="togglePanel">
+    <v-btn color="primary" small @click="togglePanel" :key="`toggle-btn-${i18nKey}`">
       {{ t(showPanel ? 'phenotypeSelector.toggleButton.hide' : 'phenotypeSelector.toggleButton.add') }}
     </v-btn>
 
     <v-expand-transition>
       <div v-if="showPanel" class="phenotype-panel">
-        <h2 class="title">{{ t('phenotypeSelector.panelTitle') }}</h2>
+        <h2 class="title" :key="`phenotype-title-${i18nKey}`">{{ t('phenotypeSelector.panelTitle') }}</h2>
         <!-- Loop through each category with at least one selected panel -->
         <div
           v-for="group in groupedPanelDetails"
@@ -31,15 +31,16 @@
                 density="compact"
                 @change="handlePhenotypeChange(group.id, phenotype.id)"
                 class="radio-group"
+                :key="`radio-group-${group.id}-${phenotype.id}-${i18nKey}`"
               >
-                <v-radio :label="t('phenotypeSelector.radioLabels.noInput')" value="no input" density="compact" />
-                <v-radio :label="t('phenotypeSelector.radioLabels.present')" value="present" density="compact" />
-                <v-radio :label="t('phenotypeSelector.radioLabels.absent')" value="absent" density="compact" />
+                <v-radio :label="t('phenotypeSelector.radioLabels.noInput')" value="no input" density="compact" :key="`radio-no-input-${i18nKey}`" />
+                <v-radio :label="t('phenotypeSelector.radioLabels.present')" value="present" density="compact" :key="`radio-present-${i18nKey}`" />
+                <v-radio :label="t('phenotypeSelector.radioLabels.absent')" value="absent" density="compact" :key="`radio-absent-${i18nKey}`" />
               </v-radio-group>
             </div>
           </div>
           <div v-else>
-            <p>{{ t('phenotypeSelector.noPhenotypesMessage') }}</p>
+            <p :key="`no-phenotypes-${group.id}-${i18nKey}`">{{ t('phenotypeSelector.noPhenotypesMessage') }}</p>
           </div>
         </div>
       </div>
@@ -48,7 +49,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, inject } from 'vue'
+import { ref, computed, watch, inject, onMounted, onBeforeUnmount } from 'vue'
 import testsData from '../data/tests.json'
 import logService from '@/services/logService'
 import { brandingConfig } from '@/services/brandingConfigService'
@@ -57,6 +58,29 @@ import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
 const i18n = useI18n()
 const locale = computed(() => i18n.locale.value)
+
+// Create a reactivity key to force UI updates when language changes
+const i18nKey = ref(0)
+
+// Handle language changes with a custom event listener
+const handleI18nUpdate = () => {
+  // Increment the reactivity key to force UI updates
+  i18nKey.value++
+  // Log the language change
+  logService.debug('PhenotypeSelector: Language updated, refreshing component')
+}
+
+onMounted(() => {
+  // Listen for language change events
+  window.addEventListener('i18n-updated', handleI18nUpdate)
+  window.addEventListener('i18n-locale-changed', handleI18nUpdate)
+})
+
+onBeforeUnmount(() => {
+  // Clean up event listeners
+  window.removeEventListener('i18n-updated', handleI18nUpdate)
+  window.removeEventListener('i18n-locale-changed', handleI18nUpdate)
+})
 
 // Props for backward compatibility
 const props = defineProps({
@@ -208,6 +232,10 @@ function categoryPhenotypes(categoryId) {
  * @returns {string} The localized phenotype name
  */
 function getPhenotypeName(phenotype) {
+  // Force reactivity when locale changes by using i18nKey
+  // eslint-disable-next-line no-unused-vars
+  const _ = i18nKey.value
+  
   // If the phenotype has a names object with the current locale, use that
   if (phenotype.names && phenotype.names[locale.value]) {
     return phenotype.names[locale.value]
@@ -222,6 +250,10 @@ function getPhenotypeName(phenotype) {
  * @returns {string} The localized phenotype description
  */
 function getPhenotypeDescription(phenotype) {
+  // Force reactivity when locale changes
+  // eslint-disable-next-line no-unused-vars
+  const _ = i18nKey.value
+  
   // If the phenotype has a descriptions object with the current locale, use that
   if (phenotype.descriptions && phenotype.descriptions[locale.value]) {
     return phenotype.descriptions[locale.value]

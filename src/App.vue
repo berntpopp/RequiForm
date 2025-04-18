@@ -151,17 +151,47 @@ const { t, locale } = useI18n();
 // Critical components loaded eagerly - these are needed for initial render
 import TopBar from './components/TopBar.vue';
 
-// Lazily loaded components - these will be loaded only when needed
+// Lazily loaded components with i18n reactivity preserved
 // Main components with dynamic imports for better tree shaking
-const PatientForm = defineAsyncComponent(() => import('./components/PatientForm.vue'));
-const TestSelector = defineAsyncComponent(() => import('./components/TestSelector.vue'));
-const PhenotypeSelector = defineAsyncComponent(() => import('./components/PhenotypeSelector.vue'));
-const SelectedPanelsSummary = defineAsyncComponent(() => import('./components/SelectedPanelsSummary.vue'));
-const PedigreeDrawer = defineAsyncComponent(() => import('./components/PedigreeDrawer.vue'));
-const ValidationSummary = defineAsyncComponent(() => import('./components/ValidationSummary.vue'));
-const AppFooter = defineAsyncComponent(() => import('./components/AppFooter.vue'));
-const LogViewer = defineAsyncComponent(() => import('./components/LogViewer.vue'));
-const AppDisclaimer = defineAsyncComponent(() => import('./components/Disclaimer.vue'));
+const PatientForm = defineAsyncComponent({
+  loader: () => import('./components/PatientForm.vue'),
+  // Delay to avoid blocking main thread with too many component loads
+  delay: 0
+});
+const TestSelector = defineAsyncComponent({
+  loader: () => import('./components/TestSelector.vue'),
+  delay: 50
+});
+const PhenotypeSelector = defineAsyncComponent({
+  loader: () => import('./components/PhenotypeSelector.vue'),
+  delay: 100
+});
+const PedigreeDrawer = defineAsyncComponent({
+  loader: () => import('./components/PedigreeDrawer.vue'),
+  delay: 100
+});
+const AppFooter = defineAsyncComponent({
+  loader: () => import('./components/AppFooter.vue'),
+  delay: 0 // Load early since it's always visible
+});
+
+// Components that don't have many translations or are less critical can still be lazy-loaded
+const SelectedPanelsSummary = defineAsyncComponent({
+  loader: () => import('./components/SelectedPanelsSummary.vue'),
+  delay: 50
+});
+const ValidationSummary = defineAsyncComponent({
+  loader: () => import('./components/ValidationSummary.vue'),
+  delay: 0 // Load early since it's visible when there are errors
+});
+const LogViewer = defineAsyncComponent({
+  loader: () => import('./components/LogViewer.vue'),
+  delay: 200 // Not immediately needed
+});
+const AppDisclaimer = defineAsyncComponent({
+  loader: () => import('./components/Disclaimer.vue'),
+  delay: 0 // Load early if needed
+});
 
 // PDF Generator can be loaded lazily as it's only used when generating PDFs
 const PdfGenerator = defineAsyncComponent({
@@ -170,14 +200,35 @@ const PdfGenerator = defineAsyncComponent({
   delay: 200
 });
 
-// Dialog components are lazily loaded since they're not shown initially
-const PasteDataModal = defineAsyncComponent(() => import('./components/modals/PasteDataModal.vue'));
-const EncryptionDialog = defineAsyncComponent(() => import('./components/dialogs/EncryptionDialog.vue'));
-const DecryptionDialog = defineAsyncComponent(() => import('./components/dialogs/DecryptionDialog.vue'));
-const FAQDialog = defineAsyncComponent(() => import('./components/dialogs/FAQDialog.vue'));
-const ResetConfirmationDialog = defineAsyncComponent(() => import('./components/dialogs/ResetConfirmationDialog.vue'));
-const SaveDataDialog = defineAsyncComponent(() => import('./components/dialogs/SaveDataDialog.vue'));
-const LoadDataDialog = defineAsyncComponent(() => import('./components/dialogs/LoadDataDialog.vue'));
+// Dialog components are lazily loaded with improved i18n reactivity
+const PasteDataModal = defineAsyncComponent({
+  loader: () => import('./components/modals/PasteDataModal.vue'),
+  delay: 200 // Not immediately needed
+});
+const EncryptionDialog = defineAsyncComponent({
+  loader: () => import('./components/dialogs/EncryptionDialog.vue'),
+  delay: 300 // Not immediately needed
+});
+const DecryptionDialog = defineAsyncComponent({
+  loader: () => import('./components/dialogs/DecryptionDialog.vue'),
+  delay: 300 // Not immediately needed
+});
+const FAQDialog = defineAsyncComponent({
+  loader: () => import('./components/dialogs/FAQDialog.vue'),
+  delay: 300 // Not immediately needed
+});
+const ResetConfirmationDialog = defineAsyncComponent({
+  loader: () => import('./components/dialogs/ResetConfirmationDialog.vue'),
+  delay: 300 // Not immediately needed
+});
+const SaveDataDialog = defineAsyncComponent({
+  loader: () => import('./components/dialogs/SaveDataDialog.vue'),
+  delay: 300 // Not immediately needed
+});
+const LoadDataDialog = defineAsyncComponent({
+  loader: () => import('./components/dialogs/LoadDataDialog.vue'),
+  delay: 300 // Not immediately needed
+});
 
 // Import service for logging
 import logService from '@/services/logService';
@@ -411,19 +462,53 @@ async function handleGeneratePdf() {
   await pdfGenerator.generatePdf();
 }
 
-// Function to toggle language between English and German
+// Function to toggle language between English and German with comprehensive reactivity
 const toggleLanguage = () => {
+  // Determine the new locale (toggle between English and German)
   const newLocale = locale.value === 'en' ? 'de' : 'en';
+  
+  // Save the new language preference to localStorage for persistence
+  localStorage.setItem('userLanguage', newLocale);
+  
+  // Set the locale in i18n
   locale.value = newLocale;
   document.documentElement.lang = newLocale; // Update root HTML lang attribute
-  localStorage.setItem('userLanguage', newLocale); // Save preference
-  logService.info(`Language switched to ${newLocale.toUpperCase()}`);
+  
+  // Log the change with detailed information
+  logService.info(`Language switched to ${newLocale.toUpperCase()} - triggering reactive updates`);
+  
+  // Show notification to the user
+  uiStore.showSnackbar(t('app.languageSwitched'));
+
+  // Multi-phase reactive update process:
+  // Phase 1: Create a custom event with locale information that components can use
+  window.dispatchEvent(new CustomEvent('i18n-locale-changed', { 
+    detail: { locale: newLocale, timestamp: Date.now() } 
+  }));
+  
+  // Phase 2: Dispatch a simpler event that's easier for components to listen for
+  window.dispatchEvent(new Event('i18n-updated'));
+  
+  // Phase 3: Force global UI refresh via the theme - this creates a reactivity cascade
+  const currentTheme = uiStore.isDark;
+  uiStore.setDarkTheme(!currentTheme);
+  
+  // Phase 4: Secondary refresh wave with delayed timing for components that load later
+  setTimeout(() => {
+    // Restore the original theme
+    uiStore.setDarkTheme(currentTheme);
+    
+    // Additional event dispatch for any components that might have missed the first one
+    window.dispatchEvent(new Event('i18n-updated'));
+  }, 50);
 };
 
 // Function to toggle the log viewer
 const toggleLogViewer = () => {
   uiStore.toggleLogViewer();
 }
+
+// ... rest of the code remains the same ...
 </script>
 
 <style scoped>

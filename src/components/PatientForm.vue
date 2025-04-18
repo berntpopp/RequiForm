@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h2 class="text-h5 mb-4">{{ t('patientForm.title') }}</h2>
+    <h2 class="text-h5 mb-4" :key="`patient-title-${i18nKey}`">{{ t('patientForm.title') }}</h2>
     
     <!-- Group 1: Basic Information -->
     <v-row dense>
@@ -8,7 +8,7 @@
         <v-text-field
           density="compact"
           outlined
-          :label="t('patientForm.labels.givenName')"
+          :label="t('patientForm.labels.givenName')" :key="`given-name-input-${i18nKey}`"
           v-model="givenName"
           prepend-inner-icon="mdi-account"
           :error="!!firstNameError"
@@ -19,7 +19,7 @@
         <v-text-field
           density="compact"
           outlined
-          :label="t('patientForm.labels.familyName')"
+          :label="t('patientForm.labels.familyName')" :key="`family-name-input-${i18nKey}`"
           v-model="familyName"
           prepend-inner-icon="mdi-account-group"
           :error="!!lastNameError"
@@ -29,7 +29,7 @@
       <v-col cols="12" sm="6">
         <LocaleDatePicker 
           v-model="birthdate" 
-          :label="t('patientForm.labels.birthdate')"
+          :label="t('patientForm.labels.birthdate')" :key="`birthdate-input-${i18nKey}`"
           :error="!!birthdateError"
           :error-messages="birthdateError"
         />
@@ -38,7 +38,7 @@
         <v-select
           density="compact"
           outlined
-          :label="t('patientForm.labels.sex')"
+          :label="t('patientForm.labels.sex')" :key="`sex-input-${i18nKey}`"
           :items="sexOptions"
           item-title="text"
           item-value="value"
@@ -58,7 +58,7 @@
         <v-text-field
           density="compact"
           outlined
-          :label="t('patientForm.labels.insurance')"
+          :label="t('patientForm.labels.insurance')" :key="`insurance-input-${i18nKey}`"
           v-model="insurance"
           prepend-inner-icon="mdi-card-account-details-outline"
           :error="!!insuranceError"
@@ -69,7 +69,7 @@
         <v-text-field
           density="compact"
           outlined
-          :label="t('patientForm.labels.physicianName')"
+          :label="t('patientForm.labels.physicianName')" :key="`physician-input-${i18nKey}`"
           v-model="physicianName"
           prepend-inner-icon="mdi-stethoscope"
           :error="!!referrerError"
@@ -86,7 +86,7 @@
         <v-select
           density="compact"
           outlined
-          :label="t('patientForm.labels.familyHistory')"
+          :label="t('patientForm.labels.familyHistory')" :key="`family-history-input-${i18nKey}`"
           :items="familyHistoryOptions"
           v-model="familyHistory"
           prepend-inner-icon="mdi-history"
@@ -96,7 +96,7 @@
         <v-select
           density="compact"
           outlined
-          :label="t('patientForm.labels.parentalConsanguinity')"
+          :label="t('patientForm.labels.parentalConsanguinity')" :key="`consanguinity-input-${i18nKey}`"
           :items="consanguinityOptions"
           v-model="parentalConsanguinity"
           prepend-inner-icon="mdi-human-male-female"
@@ -106,7 +106,7 @@
         <v-text-field
           density="compact"
           outlined
-          :label="t('patientForm.labels.diagnosis')"
+          :label="t('patientForm.labels.diagnosis')" :key="`diagnosis-input-${i18nKey}`"
           v-model="diagnosis"
           rows="2"
           prepend-inner-icon="mdi-file-document-edit-outline"
@@ -124,7 +124,7 @@
       <v-col cols="12" sm="6">
         <LocaleDatePicker 
           v-model="orderingDate" 
-          :label="t('patientForm.labels.orderingDate')" 
+          :label="t('patientForm.labels.orderingDate')" :key="`ordering-date-input-${i18nKey}`" 
         />
       </v-col>
       <v-col cols="12" sm="6">
@@ -132,7 +132,7 @@
         <v-select
           density="compact"
           outlined
-          :label="t('patientForm.labels.consent')"
+          :label="t('patientForm.labels.consent')" :key="`consent-input-${i18nKey}`"
           :items="consentOptions"
           item-title="text"
           item-value="value"
@@ -147,21 +147,21 @@
         <v-text-field
           density="compact"
           outlined
-          :label="t('patientForm.labels.consentGivenBy')"
+          :label="t('patientForm.labels.consentGivenBy')" :key="`consent-given-by-input-${i18nKey}`"
           v-model="genDGConsentName"
         />
       </v-col>
       <v-col cols="12" sm="6">
         <LocaleDatePicker 
           v-model="genDGConsentDate" 
-          :label="t('patientForm.labels.consentDate')"
+          :label="t('patientForm.labels.consentDate')" :key="`consent-date-input-${i18nKey}`"
         />
       </v-col>
       <v-col cols="12" sm="6">
         <v-select
           density="compact"
           outlined
-          :label="t('patientForm.labels.consentSecondaryFindings')"
+          :label="t('patientForm.labels.consentSecondaryFindings')" :key="`consent-secondary-input-${i18nKey}`"
           :items="yesNoOptions"
           item-title="text"
           item-value="value"
@@ -172,7 +172,7 @@
         <v-select
           density="compact"
           outlined
-          :label="t('patientForm.labels.consentMaterial')"
+          :label="t('patientForm.labels.consentMaterial')" :key="`consent-material-input-${i18nKey}`"
           :items="yesNoOptions"
           item-title="text"
           item-value="value"
@@ -183,7 +183,7 @@
         <v-select
           density="compact"
           outlined
-          :label="t('patientForm.labels.consentExtendedStorage')"
+          :label="t('patientForm.labels.consentExtendedStorage')" :key="`consent-extended-input-${i18nKey}`"
           :items="yesNoOptions"
           item-title="text"
           item-value="value"
@@ -194,7 +194,7 @@
         <v-select
           density="compact"
           outlined
-          :label="t('patientForm.labels.consentResearch')"
+          :label="t('patientForm.labels.consentResearch')" :key="`consent-research-input-${i18nKey}`"
           :items="yesNoOptions"
           item-title="text"
           item-value="value"
@@ -208,12 +208,17 @@
     <!-- Group 5: Variant Segregation Request -->
     <v-row dense>
       <v-col cols="12">
-        <v-checkbox v-model="variantSegregationRequested" :label="t('patientForm.labels.requestVariantSegregation')" />
+        <v-checkbox
+          density="compact"
+          :label="t('patientForm.labels.requestVariantSegregation')" :key="`variant-segregation-input-${i18nKey}`"
+          v-model="variantSegregationRequested"
+        />
       </v-col>
       <v-col cols="12" v-if="variantSegregationRequested">
         <v-text-field
           density="compact"
           outlined
+          :key="`variant-details-field-${i18nKey}`"
           :label="t('patientForm.labels.variantDetails')"
           v-model="variantDetails"
           :hint="t('patientForm.hints.variantDetails')"
@@ -226,10 +231,31 @@
 
 <script setup>
 import LocaleDatePicker from './LocaleDatePicker.vue'
-import { computed, inject } from 'vue';
+import { computed, inject, ref, onMounted, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+// Get i18n instance
 const { t } = useI18n();
+
+// Create a reactivity key to force re-renders when language changes
+const i18nKey = ref(0);
+
+// Listen for global language change events and trigger reactive updates
+const handleI18nUpdate = () => {
+  i18nKey.value++;
+};
+
+onMounted(() => {
+  // Listen for both custom events
+  window.addEventListener('i18n-updated', handleI18nUpdate);
+  window.addEventListener('i18n-locale-changed', handleI18nUpdate);
+});
+
+onBeforeUnmount(() => {
+  // Clean up event listeners
+  window.removeEventListener('i18n-updated', handleI18nUpdate);
+  window.removeEventListener('i18n-locale-changed', handleI18nUpdate);
+});
 
 /**
  * PatientForm component to capture patient details.
@@ -441,35 +467,59 @@ const genDGResearch = createLegacyField('genDGConsentData', 'form', 'questionRes
 // Note: Incidental findings consent is already handled via the genDGSecondaryFindings field
 // in the GenDG consent section
 
-// Computed properties for translated select options
-const sexOptions = computed(() => [
+/**
+ * Computed properties for translated select options.
+ * Each option is reactive to language changes via the i18nKey.
+ */
+const sexOptions = computed(() => {
+  // Using the i18nKey to trigger reactivity on language change
+  // eslint-disable-next-line no-unused-vars
+  const _ = i18nKey.value;
+  return [
   { text: t('patientForm.options.sex.male'), value: 'male' },
   { text: t('patientForm.options.sex.female'), value: 'female' },
   { text: t('patientForm.options.sex.undetermined'), value: 'undetermined' }
-]);
+  ];
+});
 
-const familyHistoryOptions = computed(() => [
+const familyHistoryOptions = computed(() => {
+  // eslint-disable-next-line no-unused-vars
+  const _ = i18nKey.value;
+  return [
   { text: t('patientForm.options.familyHistory.conspicuous'), value: 'conspicuous' },
   { text: t('patientForm.options.familyHistory.inconspicuous'), value: 'inconspicuous' },
   { text: t('patientForm.options.familyHistory.unknown'), value: 'unknown' }
-]);
+  ];
+});
 
-const consanguinityOptions = computed(() => [
+const consanguinityOptions = computed(() => {
+  // eslint-disable-next-line no-unused-vars
+  const _ = i18nKey.value;
+  return [
   { text: t('patientForm.options.consanguinity.yes'), value: 'yes' },
   { text: t('patientForm.options.consanguinity.no'), value: 'no' }
-]);
+  ];
+});
 
 // Options for the Consent select.
-const consentOptions = computed(() => [
+const consentOptions = computed(() => {
+  // eslint-disable-next-line no-unused-vars
+  const _ = i18nKey.value;
+  return [
   { text: t('patientForm.options.consent.provided'), value: 'provided' },
   { text: t('patientForm.options.consent.fill'), value: 'fill' },
-]);
+  ];
+});
 
 // Options for yes/no questions.
-const yesNoOptions = computed(() => [
+const yesNoOptions = computed(() => {
+  // eslint-disable-next-line no-unused-vars
+  const _ = i18nKey.value;
+  return [
   { text: t('patientForm.options.yesNo.yes'), value: 'yes' },
   { text: t('patientForm.options.yesNo.no'), value: 'no' },
-]);
+  ];
+});
 </script>
 
 <style scoped>

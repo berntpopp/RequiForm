@@ -40,7 +40,7 @@
           </v-tooltip>
         </v-btn>
         <!-- Language Toggle Button -->
-        <v-btn icon @click="$emit('toggle-language')" :aria-label="t('topbar.aria.toggleLanguage')">
+        <v-btn icon @click="handleLanguageToggle" :aria-label="t('topbar.aria.toggleLanguage')">
           <v-icon>{{ currentLanguageIcon }}</v-icon>
           <v-tooltip activator="parent" location="bottom">
             {{ t('topbar.tooltips.toggleLanguage') }}
@@ -123,7 +123,8 @@
               <v-icon>mdi-dots-vertical</v-icon>
             </v-btn>
           </template>
-          <v-list density="compact">
+          <!-- Force reactivity with key binding -->
+          <v-list density="compact" :key="reactivityKey">
             <!-- Replicate actions as list items -->
             <v-list-item @click="$emit('toggle-theme')">
               <template v-slot:prepend>
@@ -133,7 +134,7 @@
               <v-list-item-title>{{ isDark ? t('topbar.tooltips.themeToggleLight') : t('topbar.tooltips.themeToggleDark') }}</v-list-item-title>
             </v-list-item>
             <!-- Language Toggle Menu Item -->
-            <v-list-item @click="$emit('toggle-language')">
+            <v-list-item @click="handleLanguageToggle" :key="`lang-toggle-${reactivityKey}`">
               <template v-slot:prepend>
                 <v-icon>{{ currentLanguageIcon }}</v-icon>
               </template>
@@ -202,11 +203,56 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'; // Import computed
+import { computed, ref, onMounted, onBeforeUnmount } from 'vue'; // Import necessary Vue APIs
 import { useI18n } from 'vue-i18n'; // Import useI18n
 import { brandingConfig } from '@/services/brandingConfigService'; // Import branding config
 
 const { t, locale } = useI18n(); // Initialize translation function and get locale
+
+// Create a reactivity trigger for forcing re-renders
+const reactivityKey = ref(0);
+
+// Listen for language changes and update the component
+const handleLocaleChange = () => {
+  // Force component re-rendering
+  reactivityKey.value++;
+};
+
+// Special handler for language toggle button/menu item
+const handleLanguageToggle = () => {
+  // Immediately update the reactivity key before emitting the event
+  reactivityKey.value++;
+  // Then emit the event to the parent
+  emit('toggle-language');
+};
+
+onMounted(() => {
+  // Listen for both custom events
+  window.addEventListener('i18n-updated', handleLocaleChange);
+  window.addEventListener('i18n-locale-changed', handleLocaleChange);
+});
+
+onBeforeUnmount(() => {
+  // Clean up event listeners
+  window.removeEventListener('i18n-updated', handleLocaleChange);
+  window.removeEventListener('i18n-locale-changed', handleLocaleChange);
+});
+
+// Define emit for TypeScript safety and better code organization
+const emit = defineEmits([
+  'toggle-theme', 
+  'reset-form', 
+  'open-faq', 
+  'start-tour', 
+  'copy-url', 
+  'copy-encrypted-url', 
+  'generate-pdf', 
+  'save-data', 
+  'load-data', 
+  'open-paste-data', 
+  'toggle-language',
+  'toggle-log-viewer'
+]);
 
 /**
  * TopBar component for RequiForm.
@@ -220,9 +266,6 @@ const { t, locale } = useI18n(); // Initialize translation function and get loca
  *
  * Props:
  *   isDark {Boolean} - Whether the dark theme is active.
- *
- * Emits:
- *   toggle-theme, reset-form, open-faq, start-tour, copy-url, copy-encrypted-url, generate-pdf, save-data, load-data, open-paste-data, toggle-language.
  */
 defineProps({
   isDark: {
@@ -231,9 +274,12 @@ defineProps({
   },
 });
 
-// Computed property for the language toggle icon (now local to TopBar)
+// Computed property for the language toggle icon with reactivity key
 const currentLanguageIcon = computed(() => {
-  // Example: display 'EN' or 'DE' based on current locale
+  // Using reactivityKey to force re-computation when language changes
+  const _ = reactivityKey.value; // eslint-disable-line no-unused-vars
+  
+  // Return the appropriate icon based on current locale
   return locale.value === 'en' ? 'mdi-alpha-e-box-outline' : 'mdi-alpha-d-box-outline'; 
 });
 

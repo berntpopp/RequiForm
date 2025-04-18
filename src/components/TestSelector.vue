@@ -1,9 +1,9 @@
 <template>
   <div>
-    <h2>{{ t('testSelector.title') }}</h2>
+    <h2 :key="`test-title-${i18nKey}`">{{ t('testSelector.title') }}</h2>
 
     <!-- Tabs: Category Selection and Search -->
-    <v-tabs v-model="tab" bg-color="primary">
+    <v-tabs v-model="tab" bg-color="primary" :key="`tabs-${i18nKey}`">
       <v-tab value="Category Selection">{{ t('testSelector.tabs.categorySelection') }}</v-tab>
       <v-tab value="Search">{{ t('testSelector.tabs.search') }}</v-tab>
     </v-tabs>
@@ -14,7 +14,7 @@
         <v-select
           dense
           outlined
-          :label="t('testSelector.labels.category')"
+          :label="t('testSelector.labels.category')" :key="`category-select-${i18nKey}`"
           :items="categories"
           :item-title="item => getCategoryTitle(item)"
           item-value="id"
@@ -25,7 +25,7 @@
           <v-select
             dense
             outlined
-            :label="t('testSelector.labels.selectPanels')"
+            :label="t('testSelector.labels.selectPanels')" :key="`panels-select-${i18nKey}`"
             :items="filteredTests"
             :item-title="item => getTestName(item)"
             item-value="id"
@@ -58,7 +58,7 @@
         <v-autocomplete
           dense
           outlined
-          :label="t('testSelector.labels.searchPlaceholder')"
+          :label="t('testSelector.labels.searchPlaceholder')" :key="`search-input-${i18nKey}`"
           :items="searchItems"
           item-title="label"
           item-value="value"
@@ -90,7 +90,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed, inject, nextTick } from 'vue';
+import { ref, onMounted, onBeforeUnmount, watch, computed, inject, nextTick } from 'vue';
 import testsData from '../data/tests.json';
 import logService from '@/services/logService';
 import { useI18n } from 'vue-i18n';
@@ -98,6 +98,32 @@ import { useI18n } from 'vue-i18n';
 const { t } = useI18n();
 const i18n = useI18n();
 const locale = computed(() => i18n.locale.value);
+
+// Create a reactivity key to force UI updates when language changes
+const i18nKey = ref(0);
+
+// Handle language changes with a custom event listener
+const handleI18nUpdate = () => {
+  // Increment the reactivity key to force UI updates
+  i18nKey.value++;
+  // Also force re-calculation of computed properties
+  nextTick(() => {
+    // Update the filteredTests and searchItems with new locale
+    forceUiUpdate(unifiedPatientData.selectedPanels);
+  });
+};
+
+onMounted(() => {
+  // Listen for language change events
+  window.addEventListener('i18n-updated', handleI18nUpdate);
+  window.addEventListener('i18n-locale-changed', handleI18nUpdate);
+});
+
+onBeforeUnmount(() => {
+  // Clean up event listeners
+  window.removeEventListener('i18n-updated', handleI18nUpdate);
+  window.removeEventListener('i18n-locale-changed', handleI18nUpdate);
+});
 
 /**
  * Custom filter function for autocomplete.
@@ -264,8 +290,11 @@ watch([unifiedSelectedPanels, categories], ([newTests, newCategories]) => { // W
   }
 }, { immediate: true });
 
-// Pure computed property with no side effects
+// Computed property for tests filtered by category, with i18n reactivity
 const filteredTests = computed(() => {
+  // Using i18nKey to trigger reactivity when language changes
+  // eslint-disable-next-line no-unused-vars
+  const _ = i18nKey.value;
   const cat = categories.value.find(c => c.id === selectedCategory.value);
   return cat ? cat.tests : [];
 });
@@ -276,6 +305,9 @@ const filteredTests = computed(() => {
  * @return {Array<Object>} Array of search items.
  */
 const searchItems = computed(() => {
+  // Using i18nKey to force reactivity when language changes
+  // eslint-disable-next-line no-unused-vars
+  const _ = i18nKey.value;
   const items = [];
   categories.value.forEach(cat => {
     cat.tests.forEach(test => {

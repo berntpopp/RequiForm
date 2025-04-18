@@ -264,8 +264,12 @@
   "pedigreeDrawer": {
     "title": "Pedigree Chart"
   },
+  "pdfGenerator": {
+    "generateButton": "Generate PDF"
+  },
   "app": {
-    "includePedigreeChart": "Include Pedigree Chart"
+    "includePedigreeChart": "Include Pedigree Chart",
+    "languageSwitched": "Language switched successfully"
   },
   "tour": {
     "buttons": {

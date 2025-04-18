@@ -264,8 +264,12 @@
   "pedigreeDrawer": {
     "title": "Stammbaumdiagramm"
   },
+  "pdfGenerator": {
+    "generateButton": "PDF Generieren"
+  },
   "app": {
-    "includePedigreeChart": "Stammbaumdiagramm einschließen"
+    "includePedigreeChart": "Stammbaumdiagramm einschließen",
+    "languageSwitched": "Sprache erfolgreich gewechselt"
   },
   "tour": {
     "buttons": {

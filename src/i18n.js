@@ -1,4 +1,5 @@
 import { createI18n } from 'vue-i18n';
+// Import locales directly to ensure they're bundled with the application
 import enMessages from './locales/en.json';
 import deMessages from './locales/de.json';
 
@@ -21,6 +22,8 @@ const i18n = createI18n({
     en: enMessages,
     de: deMessages,
   },
+  silentTranslationWarn: import.meta.env.PROD, // Suppress warnings in production
+  silentFallbackWarn: import.meta.env.PROD, // Suppress fallback warnings in production
   // Optional: Suppress warnings for missing translations during development
   // missingWarn: false,
   // fallbackWarn: false,

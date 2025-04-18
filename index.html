@@ -3,7 +3,29 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="referrer" content="no-referrer" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+    <!-- Critical CSS for above-the-fold content - will be replaced by Vite plugin -->
+    <style id="critical-css">
+      /* Basic styles to prevent layout shift while main CSS loads */
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+      #app {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+    </style>
+    
+    <!-- Preload critical fonts to prevent layout shift -->
+    <link rel="preload" href="/assets/fonts/materialdesignicons-webfont.woff2" as="font" type="font/woff2" crossorigin />
+
+    <!-- Preconnect to important domains -->
+    <link rel="preconnect" href="https://berntpopp.github.io" crossorigin />
+    
     <!-- SEO and Social Sharing Meta Tags -->
     <title>RequiForm</title>
     <meta name="description" content="RequiForm: A secure, client-side tool to easily create structured forms with PDF/QR code export. Data stays in your browser.">
@@ -25,17 +47,11 @@
     <meta property="twitter:image" content="https://berntpopp.github.io/RequiForm/requiform-social-preview.png">
 
     <!-- Favicon Links -->
-    <!-- Remove old Vite favicon and add new RequiForm links -->
-    <!-- <link rel="icon" type="image/svg+xml" href="/vite.svg" /> -->
     <link rel="icon" type="image/png" href="/RequiForm/favicon-96x96.png" sizes="96x96" />
     <link rel="icon" type="image/svg+xml" href="/RequiForm/favicon.svg" />
     <link rel="shortcut icon" href="/RequiForm/favicon.ico" />
     <link rel="apple-touch-icon" sizes="180x180" href="/RequiForm/apple-touch-icon.png" />
     <link rel="manifest" href="/RequiForm/site.webmanifest" />
-
-    <!-- Add meta theme color if desired/provided by generator -->
-    <!-- <meta name="theme-color" content="#ffffff"> --> 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">
@@ -61,26 +77,22 @@
     }
     </script>
 
-    <!-- Load local jQuery -->
-    <script src="/RequiForm/vendor/jquery-3.7.1.min.js"></script>
+    <!-- Defer non-critical third-party libraries to improve First Contentful Paint -->
+    <script src="/RequiForm/vendor/jquery-3.7.1.min.js" defer></script>
+    <link rel="stylesheet" href="/RequiForm/vendor/jquery-ui.min.css" media="print" onload="this.media='all'" />
+    <script src="/RequiForm/vendor/jquery-ui.min.js" defer></script>
+    <script src="/RequiForm/vendor/d3.v7.min.js" defer></script>
+    <script src="/src/vendor/pedigreejs.es.v3.0.0-rc8.js" defer></script>
 
-    <!-- Load local jQuery UI CSS and JS -->
-    <link rel="stylesheet" href="/RequiForm/vendor/jquery-ui.min.css" />
-    <script src="/RequiForm/vendor/jquery-ui.min.js"></script>
-
-    <!-- Load local d3 library -->
-    <script src="/RequiForm/vendor/d3.v7.min.js"></script>
-
-    <!-- Load pedigreejs (assumed to be built as an ES module) -->
-    <script src="/src/vendor/pedigreejs.es.v3.0.0-rc8.js"></script>
-
-    <script type="module" crossorigin src="/RequiForm/assets/index-BwisQh0J.js"></script>
-    <link rel="modulepreload" crossorigin href="/RequiForm/assets/vendor-vue-Fl_QoeoT.js">
-    <link rel="modulepreload" crossorigin href="/RequiForm/assets/vendor-vuetify-DOSUDjSu.js">
-    <link rel="modulepreload" crossorigin href="/RequiForm/assets/vendor-pdf-Ba5jYzjK.js">
-    <link rel="modulepreload" crossorigin href="/RequiForm/assets/vendor-utils-DUBrZhtk.js">
-    <link rel="stylesheet" crossorigin href="/RequiForm/assets/vendor-vuetify-siBcEUwy.css">
-    <link rel="stylesheet" crossorigin href="/RequiForm/assets/index-Ch81hfNg.css">
+    <script type="module" crossorigin src="/RequiForm/assets/js/index-DWMJqM44.js"></script>
+    <link rel="modulepreload" crossorigin href="/RequiForm/assets/js/critical-ftAwMebx.js">
+    <link rel="modulepreload" crossorigin href="/RequiForm/assets/js/vendor-vue-D_8YONGX.js">
+    <link rel="modulepreload" crossorigin href="/RequiForm/assets/js/vendor-vuetify-core-Ck3wKLlQ.js">
+    <link rel="modulepreload" crossorigin href="/RequiForm/assets/js/vendor-pdf-gu-W80S1.js">
+    <link rel="modulepreload" crossorigin href="/RequiForm/assets/js/vendor-utils-CnA5QHwe.js">
+    <link rel="stylesheet" crossorigin href="/RequiForm/assets/css/framework-bNP3uuC5.css">
+    <link rel="stylesheet" crossorigin href="/RequiForm/assets/css/index-CAwbAxa2.css">
+    <link rel="stylesheet" crossorigin href="/RequiForm/assets/css/vendor-fonts-CdG8iPLw.css">
   </head>
   <body>
     <!-- Required for the default pedigree editor -->

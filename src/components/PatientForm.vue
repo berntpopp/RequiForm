@@ -280,7 +280,8 @@ const props = defineProps({
 
 // Emits for two-way props and other state changes
 const emit = defineEmits([
-  'update:modelValue'
+  'update:modelValue',
+  'update:patientData'
 ])
 
 // Inject the unified patient data and update functions
@@ -459,7 +460,19 @@ const parentalConsanguinity = createLegacyField('parentalConsanguinity');
 // Diagnosis now uses the unified data model
 const diagnosis = createDualBindingField('diagnosis', 'diagnosis');
 const orderingDate = createLegacyField('orderingDate');
-const variantSegregationRequested = createLegacyField('variantSegregationRequested');
+// Ensure variant segregation is properly handled with defaults for missing values
+const variantSegregationRequested = computed({
+  get() {
+    const value = props.patientData.variantSegregationRequested;
+    return typeof value === 'boolean' ? value : false;
+  },
+  set(newValue) {
+    const newData = { ...props.patientData };
+    newData.variantSegregationRequested = newValue;
+    emit('update:patientData', newData);
+  }
+});
+
 const variantDetails = createLegacyField('variantDetails');
 
 // Functions were previously added here but caused errors - reverting to original state

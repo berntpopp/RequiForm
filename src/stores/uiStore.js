@@ -307,6 +307,8 @@ export const useUiStore = defineStore('ui', () => {
     localStorage.setItem(LOG_VIEWER_VISIBLE_KEY, 'false');
   }
   
+
+  
   return {
     // State
     isDark,

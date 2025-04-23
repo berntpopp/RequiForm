@@ -65,7 +65,8 @@
       "consentExtendedStorage": "Store results beyond 10 years (max. 30 years)?",
       "consentResearch": "Use for research/quality assurance purposes?",
       "requestVariantSegregation": "Request Variant Segregation",
-      "variantDetails": "Variant Details"
+      "variantDetails": "Variant Details",
+      "comments": "Comments / Notes"
     },
     "hints": {
       "variantDetails": "Provide details for the variant segregation request"

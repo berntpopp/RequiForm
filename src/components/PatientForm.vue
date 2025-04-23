@@ -121,6 +121,25 @@
     
     <v-divider class="my-1"></v-divider>
     
+    <!-- Comments Section -->
+    <v-row dense>
+      <v-col cols="12">
+        <v-textarea
+          density="compact"
+          outlined
+          :label="t('patientForm.labels.comments')" :key="`comments-input-${i18nKey}`"
+          v-model="comments"
+          rows="3"
+          auto-grow
+          prepend-inner-icon="mdi-comment-text-outline"
+          :error="!!commentsError"
+          :error-messages="commentsError"
+        />
+      </v-col>
+    </v-row>
+    
+    <v-divider class="my-1"></v-divider>
+    
     <!-- Group 4: Ordering Information and Consent Select -->
     <v-row dense>
       <v-col cols="12" sm="6">
@@ -326,6 +345,12 @@ const insuranceError = computed(() => {
   return errors && errors.insurance ? t(errors.insurance) : ''
 })
 
+// Comments error
+const commentsError = computed(() => {
+  const errors = getFieldErrors('personalInfo');
+  return errors && errors.comments ? t(errors.comments) : ''
+})
+
 // Referrer error (physician name)
 const referrerError = computed(() => {
   const errors = getFieldErrors('personalInfo');
@@ -459,6 +484,8 @@ const familyHistory = createLegacyField('familyHistory');
 const parentalConsanguinity = createLegacyField('parentalConsanguinity');
 // Diagnosis now uses the unified data model
 const diagnosis = createDualBindingField('diagnosis', 'diagnosis');
+// Comments field using the unified data model
+const comments = createDualBindingField('comments', 'comments');
 const orderingDate = createLegacyField('orderingDate');
 // Ensure variant segregation is properly handled with defaults for missing values
 const variantSegregationRequested = computed({

@@ -230,9 +230,37 @@ export function useUrlHandler() {
       // Get the current form data
       const fullData = formStore.exportFormData();
       
+      // Debug log to check if comments exist in the exported data
+      logService.debug('Comments in exported data:', fullData.patientData?.personalInfo?.comments);
+      
+      // Check if comments field exceeds maximum length (50 chars) and truncate if necessary
+      let commentsTruncated = false;
+      const MAX_COMMENT_LENGTH = 50;
+      let originalLength = 0; // Initialize this variable in the broader scope
+      
+      if (fullData.patientData?.personalInfo?.comments && 
+          fullData.patientData.personalInfo.comments.length > MAX_COMMENT_LENGTH) {
+        originalLength = fullData.patientData.personalInfo.comments.length;
+        fullData.patientData.personalInfo.comments = 
+          fullData.patientData.personalInfo.comments.substring(0, MAX_COMMENT_LENGTH) + '...';
+        commentsTruncated = true;
+        logService.debug(`Comments field truncated from ${originalLength} to ${MAX_COMMENT_LENGTH} characters for URL sharing`);
+      }
+      
       // Create a compact version by removing empty fields
       const compactData = removeEmptyValues(fullData);
       logService.debug('Creating URL with compact data format');
+      
+      // Debug log to check if comments exist after removing empty values
+      const commentsAfterProcessing = compactData.patientData?.personalInfo?.comments;
+      logService.debug('Comments after removeEmptyValues:', commentsAfterProcessing);
+      logService.debug('Comments preservation status:', {
+        originalExists: fullData.patientData?.personalInfo && Object.prototype.hasOwnProperty.call(fullData.patientData.personalInfo, 'comments'),
+        originalValue: fullData.patientData?.personalInfo?.comments,
+        afterProcessingExists: compactData.patientData?.personalInfo && Object.prototype.hasOwnProperty.call(compactData.patientData.personalInfo, 'comments'),
+        afterProcessingValue: commentsAfterProcessing,
+        isEmpty: commentsAfterProcessing === ''
+      });
       
       // Stringify the data
       const jsonData = JSON.stringify(compactData);
@@ -252,6 +280,16 @@ export function useUrlHandler() {
       if (shareableUrl.length > 2000) {
         logService.warn(`[URL Handler] Generated plain data URL length (${shareableUrl.length}) exceeds 2000 characters. This may cause issues in some browsers or tools.`);
         uiStore.showSnackbar('Warning: Generated URL is very long and might not work everywhere.', 'warning', { timeout: 7000 });
+      }
+      
+      // Show notification if comments were truncated
+      if (commentsTruncated) {
+        // Use a warning level snackbar with longer duration for better visibility
+        uiStore.showSnackbar(
+          `Comment text was shortened from ${originalLength} to ${MAX_COMMENT_LENGTH} characters for URL sharing.`, 
+          'warning', 
+          { timeout: 8000 }
+        );
       }
       
       return shareableUrl;
@@ -300,6 +338,11 @@ export function useUrlHandler() {
     for (const [key, value] of Object.entries(obj)) {
       // For primitive values
       if (value === null || value === undefined) continue;
+      // Special case: preserve comments field even when empty
+      if (key === 'comments' && value === '') {
+        result[key] = value;
+        continue;
+      }
       if (value === '') continue;
       if (Array.isArray(value) && value.length === 0) continue;
       
@@ -328,9 +371,28 @@ export function useUrlHandler() {
    */
   async function copyShareableUrl() {
     try {
+      // When calling createShareableUrl, we need to capture if comments were truncated
+      let commentsTruncated = false;
+      let originalLength = 0;
+      const MAX_COMMENT_LENGTH = 50;
+      
+      // Get the current form data to check comment length before calling createShareableUrl
+      const fullData = formStore.exportFormData();
+      if (fullData.patientData?.personalInfo?.comments && 
+          fullData.patientData.personalInfo.comments.length > MAX_COMMENT_LENGTH) {
+        commentsTruncated = true;
+        originalLength = fullData.patientData.personalInfo.comments.length;
+      }
+      
       const url = createShareableUrl();
       await navigator.clipboard.writeText(url);
-      uiStore.showSnackbar(t('app.toasts.urlCopied'));
+      
+      // Include comment shortening information in the success message if needed
+      if (commentsTruncated) {
+        uiStore.showSnackbar(`${t('app.toasts.urlCopied')} Comment text was shortened from ${originalLength} to ${MAX_COMMENT_LENGTH} characters.`);
+      } else {
+        uiStore.showSnackbar(t('app.toasts.urlCopied'));
+      }
       return true;
     } catch (error) {
       logService.error('Error copying URL to clipboard:', error);
@@ -351,6 +413,20 @@ export function useUrlHandler() {
     try {
       // Get the current form data
       const fullData = formStore.exportFormData();
+      
+      // Check if comments field exceeds maximum length (50 chars) and truncate if necessary
+      let commentsTruncated = false;
+      const MAX_COMMENT_LENGTH = 50;
+      let originalLength = 0; // Initialize this variable in the broader scope
+      
+      if (fullData.patientData?.personalInfo?.comments && 
+          fullData.patientData.personalInfo.comments.length > MAX_COMMENT_LENGTH) {
+        originalLength = fullData.patientData.personalInfo.comments.length;
+        fullData.patientData.personalInfo.comments = 
+          fullData.patientData.personalInfo.comments.substring(0, MAX_COMMENT_LENGTH) + '...';
+        commentsTruncated = true;
+        logService.debug(`Comments field truncated from ${originalLength} to ${MAX_COMMENT_LENGTH} characters for encrypted URL sharing`);
+      }
       
       // Compact the data if necessary, or decide which parts to include
       const compactData = {
@@ -381,6 +457,16 @@ export function useUrlHandler() {
         uiStore.showSnackbar('Warning: Generated encrypted URL is very long and might not work everywhere.', 'warning', { timeout: 7000 });
       }
       
+      // Show notification if comments were truncated in the encrypted URL
+      if (commentsTruncated) {
+        // Use a warning level snackbar with longer duration for better visibility
+        uiStore.showSnackbar(
+          `Comment text was shortened from ${originalLength} to ${MAX_COMMENT_LENGTH} characters for encrypted URL sharing.`, 
+          'warning', 
+          { timeout: 8000 }
+        );
+      }
+      
       return url;
     } catch (error) { // Catch errors from encryptData
       console.error('Error creating encrypted URL:', error);
@@ -399,11 +485,30 @@ export function useUrlHandler() {
    */
   async function copyEncryptedUrl(password) {
     try {
+      // Check if comments will be truncated before creating the URL
+      let commentsTruncated = false;
+      let originalLength = 0;
+      const MAX_COMMENT_LENGTH = 50;
+      
+      // Get the current form data to check comment length
+      const fullData = formStore.exportFormData();
+      if (fullData.patientData?.personalInfo?.comments && 
+          fullData.patientData.personalInfo.comments.length > MAX_COMMENT_LENGTH) {
+        commentsTruncated = true;
+        originalLength = fullData.patientData.personalInfo.comments.length;
+      }
+      
       const url = await createEncryptedUrl(password);
       if (!url) return false;
       
       await navigator.clipboard.writeText(url);
-      uiStore.showSnackbar(t('app.toasts.encryptedUrlCopied'));
+      
+      // Include comment shortening information in the success message if needed
+      if (commentsTruncated) {
+        uiStore.showSnackbar(`${t('app.toasts.encryptedUrlCopied')} Comment text was shortened from ${originalLength} to ${MAX_COMMENT_LENGTH} characters.`);
+      } else {
+        uiStore.showSnackbar(t('app.toasts.encryptedUrlCopied'));
+      }
       return true;
     } catch (error) {
       // Error is already logged and shown by createEncryptedUrl

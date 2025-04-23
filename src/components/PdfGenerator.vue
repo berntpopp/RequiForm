@@ -113,7 +113,8 @@ const patientQrData = computed(() => {
         insurance: personalInfo.insurance || '',
         insuranceId: personalInfo.insuranceId || '',
         referrer: personalInfo.referrer || '',
-        diagnosis: personalInfo.diagnosis || ''
+        diagnosis: personalInfo.diagnosis || '',
+        comments: personalInfo.comments || ''
       },
       selectedTests: panels // Use panels from unified source
     };
@@ -130,7 +131,8 @@ const patientQrData = computed(() => {
       insurance: props.patientData.insurance || '',
       insuranceId: props.patientData.insuranceId || '',
       referrer: props.patientData.referrer || '',
-      diagnosis: props.patientData.clinicalDiagnosis || ''
+      diagnosis: props.patientData.clinicalDiagnosis || '',
+      comments: props.patientData.comments || ''
     },
     selectedTests: [] // Default to empty array when unified data is missing
   };

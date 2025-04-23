@@ -100,7 +100,16 @@ export function parsePastedData(text) {
       'referring physician': { section: 'personalInfo', field: 'referrer' },
       
       'diagnosis': { section: 'personalInfo', field: 'diagnosis' },
+      'diagnose': { section: 'personalInfo', field: 'diagnosis' },
       'clinical diagnosis': { section: 'personalInfo', field: 'diagnosis' },
+      'clinical suspicion': { section: 'personalInfo', field: 'diagnosis' },
+      'suspected diagnosis': { section: 'personalInfo', field: 'diagnosis' },
+      'suspicion': { section: 'personalInfo', field: 'diagnosis' },
+      
+      'comments': { section: 'personalInfo', field: 'comments' },
+      'comment': { section: 'personalInfo', field: 'comments' },
+      'notes': { section: 'personalInfo', field: 'comments' },
+      'note': { section: 'personalInfo', field: 'comments' },
       
       // Panels and tests
       'panels': { section: 'special', field: 'panels' },
@@ -219,6 +228,7 @@ export function formatPatientData(patientData) {
     if (personalInfo.insuranceId) lines.push(`Insurance ID: ${personalInfo.insuranceId}`);
     if (personalInfo.referrer) lines.push(`Physician: ${personalInfo.referrer}`);
     if (personalInfo.diagnosis) lines.push(`Diagnosis: ${personalInfo.diagnosis}`);
+    if (personalInfo.comments) lines.push(`Comments: ${personalInfo.comments}`);
   }
   
   // Add selected panels
@@ -255,5 +265,6 @@ Sex: female
 Insurance: ABC Health
 Physician: Dr. Smith
 Diagnosis: Suspected Renal Disease
+Comments: Patient has a family history of kidney disease
 Panels: nephronophthise, alport_thin_basement, cystic_kidney_disease`;
 }

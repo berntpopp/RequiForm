@@ -82,7 +82,8 @@ export const useFormStore = defineStore('form', () => {
       sex: patientData.personalInfo.sex || '',
       insurance: patientData.personalInfo.insurance || '',
       referrer: patientData.personalInfo.physicianName || patientData.personalInfo.referrer || '',
-      diagnosis: patientData.personalInfo.diagnosis || ''
+      diagnosis: patientData.personalInfo.diagnosis || '',
+      comments: patientData.personalInfo.comments || patientData.personalInfo.notes || ''
     });
     
     // Update phenotype data
@@ -121,6 +122,7 @@ export const useFormStore = defineStore('form', () => {
     patientData.personalInfo.insurance = patientData.personalInfo.insurance || '';
     patientData.personalInfo.physicianName = patientData.personalInfo.referrer || '';
     patientData.personalInfo.diagnosis = patientData.personalInfo.diagnosis || '';
+    patientData.personalInfo.comments = patientData.personalInfo.comments || '';
     
     // Ensure category is synchronized in both places for maximum compatibility
     if (patientData.category) {
@@ -339,7 +341,7 @@ export const useFormStore = defineStore('form', () => {
       // 1. Personal Info
       const newPersonalInfo = {};
       const sourcePersonalInfo = sourcePatientData.personalInfo && typeof sourcePatientData.personalInfo === 'object' ? sourcePatientData.personalInfo : {};
-      const personalInfoFields = ['firstName', 'lastName', 'birthdate', 'sex', 'insurance', 'referrer', 'diagnosis'];
+      const personalInfoFields = ['firstName', 'lastName', 'birthdate', 'sex', 'insurance', 'referrer', 'diagnosis', 'comments'];
       
       // Handle legacy field names
       if (!sourcePersonalInfo.firstName && sourcePersonalInfo.givenName) sourcePersonalInfo.firstName = sourcePersonalInfo.givenName;

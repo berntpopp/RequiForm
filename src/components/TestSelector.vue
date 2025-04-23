@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h2 :key="`test-title-${i18nKey}`">{{ t('testSelector.title') }}</h2>
+    <h2 class="text-h5 mb-4" :key="`test-title-${i18nKey}`">{{ t('testSelector.title') }}</h2>
 
     <!-- Tabs: Category Selection and Search -->
     <v-tabs v-model="tab" bg-color="primary" :key="`tabs-${i18nKey}`">

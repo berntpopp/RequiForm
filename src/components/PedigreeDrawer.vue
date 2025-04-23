@@ -1,14 +1,9 @@
 <template>
-  <v-card class="mb-4">
-    <v-card-title>
-      {{ t('pedigreeDrawer.title') }}
-    </v-card-title>
-    <v-card-text>
-      <!-- The "pedigree" container is where pedigreejs will render the chart -->
-      <div id="pedigree" class="pedigree-container"></div>
-      <div id="pedigree_history"></div>
-    </v-card-text>
-  </v-card>
+  <div>
+    <!-- The "pedigree" container is where pedigreejs will render the chart -->
+    <div id="pedigree" class="pedigree-container"></div>
+    <div id="pedigree_history"></div>
+  </div>
 </template>
 
 <script setup>
@@ -21,9 +16,6 @@ import {
   pedigreejs_pedcache, 
   pedigreejs_io 
 } from '@/vendor/pedigreejs.es.v3.0.0-rc8.js'
-import { useI18n } from 'vue-i18n';
-
-const { t } = useI18n();
 
 function initPedigree() {
   if (!pedigreejs || !pedigreejs_pedcache || !pedigreejs_io) {
@@ -224,13 +216,23 @@ defineExpose({
 <style scoped>
 .pedigree-container {
   min-height: 300px; /* Ensure it has height even before rendering */
-  border: 1px solid #ccc;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 4px;
+  background-color: #f8f9fa;
   margin-bottom: 1em;
   position: relative; /* Needed if pedigreejs uses absolute positioning */
+  padding: 8px;
 }
 
 #pedigreejs {
   width: 100%;
   height: 100%;
+}
+
+#pedigree_history {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
 }
 </style>

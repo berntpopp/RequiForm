@@ -197,7 +197,19 @@ export const useFormStore = defineStore('form', () => {
    * @returns {void}
    */
   function setShowPedigree(value) {
+    logService.debug(`Setting showPedigree to: ${value}`);
     showPedigree.value = value;
+  }
+  
+  /**
+   * Toggles the pedigree visibility state
+   * This function flips the current pedigree visibility state
+   * 
+   * @returns {void}
+   */
+  function togglePedigree() {
+    logService.debug(`Toggling pedigree visibility from ${showPedigree.value} to ${!showPedigree.value}`);
+    showPedigree.value = !showPedigree.value;
   }
   
   /**
@@ -545,6 +557,7 @@ export const useFormStore = defineStore('form', () => {
     updatePedigreeDataUrl,
     updatePhenotypePanelState,
     setShowPedigree,
+    togglePedigree,
     resetValidation,
     setShowValidation,
     resetForm,

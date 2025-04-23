@@ -31,17 +31,13 @@
           />
         </div>
         
-        <!-- PatientForm now includes both the basic fields and the GenDG Consent select/form (if chosen) -->
+        <!-- PatientForm now includes only the basic fields and the GenDG Consent select/form -->
         <PatientForm 
           :patientData="formStore.patientData.personalInfo" 
           @update:patientData="formStore.updatePatientData"
           :pdfConfig="pdfConfig" 
           id="patient-form-component"
         />
-
-        <!-- Pedigree Option -->
-        <v-checkbox v-model="formStore.showPedigree" :label="t('app.includePedigreeChart')" class="mb-4" />
-        <PedigreeDrawer v-if="formStore.showPedigree" ref="pedigreeDrawerRef" @update:pedigreeDataUrl="formStore.updatePedigreeDataUrl" />
 
         <!-- Test Selector -->
         <TestSelector 
@@ -55,6 +51,25 @@
           id="phenotype-selector-component"
           @panel-state-change="handlePhenotypePanelStateChange"
         />
+        
+        <!-- Pedigree Button and Drawer with forced inline styling to ensure visibility -->
+        <div class="phenotype-selector" style="border: 1px solid #ddd; border-radius: 4px; padding: 0.25rem; margin-top: 0.5rem;">
+          <v-btn 
+            color="primary" 
+            small 
+            @click="formStore.togglePedigree"
+            :key="`pedigree-btn-${i18nLocaleKey}`"
+          >
+            {{ t(formStore.showPedigree ? 'app.hidePedigreeChart' : 'app.addPedigreeChart') }}
+          </v-btn>
+          
+          <!-- Pedigree Drawer - only shown when activated -->
+          <v-expand-transition>
+            <div v-if="formStore.showPedigree" class="phenotype-panel mt-2 mb-4">
+              <PedigreeDrawer ref="pedigreeDrawerRef" @update:pedigreeDataUrl="formStore.updatePedigreeDataUrl" />
+            </div>
+          </v-expand-transition>
+        </div>
 
         <!-- Hidden PDF Generator component -->
         <div style="display: none;">
@@ -149,8 +164,18 @@ import { useI18n } from 'vue-i18n';
 // Track phenotype panel visibility state
 const phenotypePanelVisible = ref(false);
 
+// Create a reactive key for i18n updates
+const i18nLocaleKey = ref(0);
+
 // Get i18n for translations
 const { t, locale } = useI18n();
+
+// Update the i18n key when language changes
+watch(() => locale.value, () => {
+  i18nLocaleKey.value++;
+});
+
+// The togglePedigree function is now directly imported from formStore
 
 // Critical components loaded eagerly - these are needed for initial render
 import TopBar from './components/TopBar.vue';
@@ -558,6 +583,8 @@ function handlePhenotypePanelStateChange(isVisible) {
   formStore.updatePhenotypePanelState(isVisible);
 }
 
+// Pedigree visibility is now handled directly by formStore.togglePedigree
+
 // ... rest of the code remains the same ...
 </script>
 
@@ -570,6 +597,18 @@ function handlePhenotypePanelStateChange(isVisible) {
   0% { box-shadow: 0 0 0 0 rgba(255, 87, 34, 0.7); }
   50% { box-shadow: 0 0 0 10px rgba(255, 87, 34, 0); }
   100% { box-shadow: 0 0 0 0 rgba(255, 87, 34, 0); }
+}
+
+/* Match the pedigree selector styling to phenotype selector */
+.pedigree-selector {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding: 0.25rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #ffffff;
+  width: 100%;
+  display: block;
 }
 
 .main-content-container {

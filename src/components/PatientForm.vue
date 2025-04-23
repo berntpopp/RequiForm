@@ -1,7 +1,5 @@
 <template>
   <div>
-    <h2 class="text-h5 mb-4" :key="`patient-title-${i18nKey}`">{{ t('patientForm.title') }}</h2>
-    
     <!-- Group 1: Basic Information -->
     <v-row dense>
       <v-col cols="12" sm="6">
@@ -209,7 +207,7 @@
     
     <v-divider class="my-1"></v-divider>
     
-    <!-- Group 5: Variant Segregation Request -->
+    <!-- Group 5: Variant Segregation Request Only -->
     <v-row dense>
       <v-col cols="12">
         <v-checkbox
@@ -273,10 +271,17 @@ const props = defineProps({
     type: Object,
     required: true,
   },
+  pdfConfig: {
+    type: Object,
+    required: false,
+    default: () => ({})
+  }
 })
 
-// Define the emit function for backward compatibility
-const emit = defineEmits(['update:patientData'])
+// Emits for two-way props and other state changes
+const emit = defineEmits([
+  'update:modelValue'
+])
 
 // Inject the unified patient data and update functions
 const unifiedPatientData = inject('patientData')
@@ -284,6 +289,8 @@ const updatePersonalInfo = inject('updatePersonalInfo')
 
 // Inject validation-related functions
 const getFieldErrors = inject('getFieldErrors', () => ({})) // Fallback to empty object if not provided
+
+// Pedigree functionality has been moved to App.vue with a dedicated button
 
 // Computed properties for field-level validation errors
 // Each one ensures proper type for Vuetify (string or empty string)

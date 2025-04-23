@@ -271,8 +271,11 @@
     "generateButton": "PDF Generieren"
   },
   "app": {
-    "includePedigreeChart": "Stammbaumdiagramm einschließen",
+    "includePedigreeChart": "Stammbaumdiagramm einbeziehen",
+    "addPedigreeChart": "STAMMBAUM HINZUFÜGEN",
+    "hidePedigreeChart": "STAMMBAUM AUSBLENDEN",
     "languageSwitched": "Sprache erfolgreich gewechselt",
+    "variantInputPlaceholder": "Geben Sie hier Varianteninformationen ein...",
     "toasts": {
       "urlCopied": "URL in die Zwischenablage kopiert!",
       "urlCopyError": "Fehler beim Kopieren der URL in die Zwischenablage.",

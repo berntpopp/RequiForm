@@ -273,6 +273,8 @@
   },
   "app": {
     "includePedigreeChart": "Include Pedigree Chart",
+    "addPedigreeChart": "ADD PEDIGREE",
+    "hidePedigreeChart": "HIDE PEDIGREE",
     "languageSwitched": "Language switched successfully",
     "toasts": {
       "urlCopied": "URL copied to clipboard!",

@@ -88,6 +88,8 @@
           outlined
           :label="t('patientForm.labels.familyHistory')" :key="`family-history-input-${i18nKey}`"
           :items="familyHistoryOptions"
+          item-title="text"
+          item-value="value"
           v-model="familyHistory"
           prepend-inner-icon="mdi-history"
         />
@@ -98,6 +100,8 @@
           outlined
           :label="t('patientForm.labels.parentalConsanguinity')" :key="`consanguinity-input-${i18nKey}`"
           :items="consanguinityOptions"
+          item-title="text"
+          item-value="value"
           v-model="parentalConsanguinity"
           prepend-inner-icon="mdi-human-male-female"
         />

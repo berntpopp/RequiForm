@@ -1,7 +1,7 @@
 <template>
-  <v-dialog v-model="isOpen" max-width="700" persistent>
+  <v-dialog v-model="isOpen" max-width="700" persistent :aria-labelledby="dialogTitleId">
     <v-card>
-      <v-card-title class="headline">
+      <v-card-title :id="dialogTitleId" class="headline">
         {{ t('pasteDataModal.title') }}
       </v-card-title>
       
@@ -124,6 +124,9 @@ import { parsePastedData, generateExampleData } from '../../utils/dataParser';
 import logService from '@/services/logService'; // Import logService
 
 const { t } = useI18n(); // Initialize translation function
+
+// Generate a unique ID for the dialog title for accessibility
+const dialogTitleId = computed(() => 'paste-data-modal-title');
 
 const props = defineProps({
   modelValue: {

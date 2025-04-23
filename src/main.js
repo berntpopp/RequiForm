@@ -58,7 +58,7 @@ async function startApp() {
     app.use(pinia);
     app.use(i18n); // Use the i18n plugin
     app.mount('#app');
-
+    
     logService.info("Application mounted.");
 
   } catch (error) {

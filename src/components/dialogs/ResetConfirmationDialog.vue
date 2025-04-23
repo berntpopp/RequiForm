@@ -1,7 +1,7 @@
 <template>
-  <v-dialog :model-value="modelValue" max-width="500" @update:model-value="$emit('update:modelValue', $event)">
+  <v-dialog :model-value="modelValue" max-width="500" @update:model-value="$emit('update:modelValue', $event)" :aria-labelledby="dialogTitleId">
     <v-card>
-      <v-card-title class="headline">{{ t('resetConfirmationDialog.title') }}</v-card-title>
+      <v-card-title :id="dialogTitleId" class="headline">{{ t('resetConfirmationDialog.title') }}</v-card-title>
       <v-card-text>
         <p>{{ t('resetConfirmationDialog.confirmationText') }}</p>
       </v-card-text>
@@ -20,9 +20,13 @@
  * @file ResetConfirmationDialog.vue - Dialog for confirming application reset
  * @module components/dialogs/ResetConfirmationDialog
  */
-import { useI18n } from 'vue-i18n'; 
+import { useI18n } from 'vue-i18n';
+import { computed } from 'vue';
 
-const { t } = useI18n(); 
+const { t } = useI18n();
+
+// Generate a unique ID for the dialog title for accessibility
+const dialogTitleId = computed(() => 'reset-confirmation-dialog-title');
 
 // eslint-disable-next-line no-unused-vars
 const props = defineProps({

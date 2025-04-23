@@ -1,7 +1,7 @@
 <template>
-  <v-dialog :model-value="modelValue" max-width="500" @update:model-value="$emit('update:modelValue', $event)">
+  <v-dialog :model-value="modelValue" max-width="500" @update:model-value="$emit('update:modelValue', $event)" :aria-labelledby="dialogTitleId">
     <v-card>
-      <v-card-title class="headline">{{ t('saveDataDialog.title') }}</v-card-title>
+      <v-card-title :id="dialogTitleId" class="headline">{{ t('saveDataDialog.title') }}</v-card-title>
       <v-card-text>
         <p>{{ t('saveDataDialog.instruction') }}</p>
         <v-text-field 
@@ -27,10 +27,13 @@
  * @file SaveDataDialog.vue - Dialog for exporting form data to a JSON file
  * @module components/dialogs/SaveDataDialog
  */
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
+
+// Generate a unique ID for the dialog title for accessibility
+const dialogTitleId = computed(() => 'save-data-dialog-title');
 
 const props = defineProps({
   /**

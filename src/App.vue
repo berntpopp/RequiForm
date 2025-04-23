@@ -402,6 +402,8 @@ onMounted(() => {
   urlHandler.initializeFromUrl();
 });
 
+
+
 // Watch for when the PDF generator reference is available
 watch(pdfGeneratorRef, (newRef) => {
   if (newRef) {

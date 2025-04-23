@@ -1,7 +1,7 @@
 <template>
-  <v-dialog :model-value="modelValue" max-width="800" scrollable @update:model-value="$emit('update:modelValue', $event)">
+  <v-dialog :model-value="modelValue" max-width="800" scrollable @update:model-value="$emit('update:modelValue', $event)" :aria-labelledby="dialogTitleId">
     <v-card>
-      <v-card-title class="headline">{{ t('faqDialog.title') }}</v-card-title>
+      <v-card-title :id="dialogTitleId" class="headline">{{ t('faqDialog.title') }}</v-card-title>
       <v-card-text class="pt-4">
         <!-- Search Filter -->
         <v-text-field
@@ -57,6 +57,9 @@ import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n'; // Import useI18n
 
 const { t } = useI18n(); // Initialize translation function
+
+// Generate a unique ID for the dialog title for accessibility
+const dialogTitleId = computed(() => 'faq-dialog-title');
 
 const props = defineProps({
   /**

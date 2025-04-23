@@ -1,7 +1,7 @@
 <template>
-  <v-dialog :model-value="modelValue" max-width="500" @update:model-value="$emit('update:modelValue', $event)">
+  <v-dialog :model-value="modelValue" max-width="500" @update:model-value="$emit('update:modelValue', $event)" :aria-labelledby="dialogTitleId">
     <v-card>
-      <v-card-title class="headline">{{ t('decryptionDialog.title') }}</v-card-title>
+      <v-card-title :id="dialogTitleId" class="headline">{{ t('decryptionDialog.title') }}</v-card-title>
       <v-card-text>
         <v-text-field 
           ref="passwordInputRef" 
@@ -30,10 +30,13 @@
  * @file DecryptionDialog.vue - Dialog for decrypting encrypted form data
  * @module components/dialogs/DecryptionDialog
  */
-import { ref, watch, nextTick } from 'vue';
+import { ref, watch, nextTick, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
+
+// Generate a unique ID for the dialog title for accessibility
+const dialogTitleId = computed(() => 'decryption-dialog-title');
 
 const props = defineProps({
   /**

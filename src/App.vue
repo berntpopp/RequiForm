@@ -24,33 +24,73 @@
       <v-container class="main-content-container">
         <!-- Validation Summary Component - shows all validation errors in one place -->
         <div class="mb-4" v-if="formStore.showValidation">
-          <ValidationSummary 
-            :showValidation="formStore.showValidation" 
-            :isValid="formStore.isValid" 
-            :validationErrors="formStore.validationErrors"
-          />
+          <Suspense>
+            <template #default>
+              <ValidationSummary 
+                :showValidation="formStore.showValidation" 
+                :isValid="formStore.isValid" 
+                :validationErrors="formStore.validationErrors"
+              />
+            </template>
+            <template #fallback>
+              <div style="min-height: 60px; display: flex; align-items: center; justify-content: center; opacity: 0.5; border: 1px solid #ddd; border-radius: 4px; padding: 1rem;">
+                <v-progress-circular indeterminate color="primary"></v-progress-circular>
+                <span class="ml-2">Loading Validation Summary...</span>
+              </div>
+            </template>
+          </Suspense>
         </div>
         
         <!-- PatientForm now includes only the basic fields and the GenDG Consent select/form -->
-        <PatientForm 
-          :patientData="formStore.patientData.personalInfo" 
-          @update:patientData="formStore.updatePatientData"
-          :pdfConfig="pdfConfig" 
-          id="patient-form-component"
-        />
+        <Suspense>
+          <template #default>
+            <PatientForm 
+              :patientData="formStore.patientData.personalInfo" 
+              @update:patientData="formStore.updatePatientData"
+              :pdfConfig="pdfConfig" 
+              id="patient-form-component"
+            />
+          </template>
+          <template #fallback>
+            <div style="min-height: 260px; display: flex; align-items: center; justify-content: center; opacity: 0.5; border: 1px solid #ddd; border-radius: 4px; padding: 1rem;">
+              <v-progress-circular indeterminate color="primary"></v-progress-circular>
+              <span class="ml-2">Loading Patient Form...</span>
+            </div>
+          </template>
+        </Suspense>
 
         <!-- Test Selector -->
-        <TestSelector 
-          id="test-selector-component"
-        />
+        <Suspense>
+          <template #default>
+            <TestSelector 
+              id="test-selector-component"
+            />
+          </template>
+          <template #fallback>
+            <div style="min-height: 100px; display: flex; align-items: center; justify-content: center; opacity: 0.5; border: 1px solid #ddd; border-radius: 4px; padding: 1rem; margin-top: 1rem;">
+              <v-progress-circular indeterminate color="primary"></v-progress-circular>
+              <span class="ml-2">Loading Test Selector...</span>
+            </div>
+          </template>
+        </Suspense>
 
         <!-- Phenotype Selector -->
-        <PhenotypeSelector 
-          :groupedPanelDetails="groupedPanelDetails" 
-          v-model="formStore.phenotypeDataObj"
-          id="phenotype-selector-component"
-          @panel-state-change="handlePhenotypePanelStateChange"
-        />
+        <Suspense>
+          <template #default>
+            <PhenotypeSelector 
+              :groupedPanelDetails="groupedPanelDetails" 
+              v-model="formStore.phenotypeDataObj"
+              id="phenotype-selector-component"
+              @panel-state-change="handlePhenotypePanelStateChange"
+            />
+          </template>
+          <template #fallback>
+            <div style="min-height: 120px; display: flex; align-items: center; justify-content: center; opacity: 0.5; border: 1px solid #ddd; border-radius: 4px; padding: 1rem; margin-top: 1rem;">
+              <v-progress-circular indeterminate color="primary"></v-progress-circular>
+              <span class="ml-2">Loading Phenotype Selector...</span>
+            </div>
+          </template>
+        </Suspense>
         
         <!-- Pedigree Button and Drawer with forced inline styling to ensure visibility -->
         <div class="phenotype-selector" style="border: 1px solid #ddd; border-radius: 4px; padding: 0.25rem; margin-top: 0.5rem;">
@@ -66,7 +106,17 @@
           <!-- Pedigree Drawer - only shown when activated -->
           <v-expand-transition>
             <div v-if="formStore.showPedigree" class="phenotype-panel mt-2 mb-4">
-              <PedigreeDrawer ref="pedigreeDrawerRef" @update:pedigreeDataUrl="formStore.updatePedigreeDataUrl" />
+              <Suspense>
+                <template #default>
+                  <PedigreeDrawer ref="pedigreeDrawerRef" @update:pedigreeDataUrl="formStore.updatePedigreeDataUrl" />
+                </template>
+                <template #fallback>
+                  <div style="min-height: 80px; display: flex; align-items: center; justify-content: center; opacity: 0.5;">
+                    <v-progress-circular indeterminate color="primary"></v-progress-circular>
+                    <span class="ml-2">Loading Pedigree Drawer...</span>
+                  </div>
+                </template>
+              </Suspense>
             </div>
           </v-expand-transition>
         </div>
@@ -83,7 +133,17 @@
         </div>
 
         <!-- Selected Panels Summary (extracted to its own component) -->
-        <SelectedPanelsSummary :groupedPanelDetails="groupedPanelDetails" />
+        <Suspense>
+          <template #default>
+            <SelectedPanelsSummary :groupedPanelDetails="groupedPanelDetails" />
+          </template>
+          <template #fallback>
+            <div style="min-height: 60px; display: flex; align-items: center; justify-content: center; opacity: 0.5; border: 1px solid #ddd; border-radius: 4px; padding: 1rem; margin-top: 1rem;">
+              <v-progress-circular indeterminate color="primary"></v-progress-circular>
+              <span class="ml-2">Loading Panels Summary...</span>
+            </div>
+          </template>
+        </Suspense>
       </v-container>
 
       <!-- Snackbar for notifications -->

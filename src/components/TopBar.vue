@@ -14,6 +14,8 @@
                 :src="brandingConfig.logoUrl"
                 alt="App Logo"
                 class="header-logo mr-2"
+                height="32"
+                width="100"
                 max-height="32"
                 contain
               ></v-img>

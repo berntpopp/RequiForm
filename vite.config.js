@@ -81,6 +81,9 @@ export default defineConfig(({ mode }) => {
 
     // Configure the build process with optimizations for perfect Lighthouse scores
     build: {
+      // Set target to modern browsers to reduce transpilation
+      target: 'es2020',
+      
       // Performance settings
       chunkSizeWarningLimit: 1500,
       
@@ -136,6 +139,8 @@ export default defineConfig(({ mode }) => {
           entryFileNames: 'assets/js/[name].[hash].js',
           
           // Improved code splitting strategy based on module size and usage patterns
+          // Temporarily disabled to test Vite's default chunking
+          /*
           manualChunks: (id) => {
             // Vue and related packages for deferred loading
             if (id.includes('node_modules/vue-i18n/')) {
@@ -179,11 +184,15 @@ export default defineConfig(({ mode }) => {
             
             // All other dependencies stay in vendor chunk
           }
+          */
         }
       },
       
-      // Advanced minification options
-      minify: 'terser',
+      // Use esbuild for faster builds with sufficient minification
+      minify: 'esbuild',
+      
+      // Terser options kept for reference but not used with esbuild
+      /* 
       terserOptions: {
         ecma: 2020,
         compress: {
@@ -196,6 +205,7 @@ export default defineConfig(({ mode }) => {
           comments: false // Remove comments
         }
       }
+      */
     },
     server: {
       watch: {

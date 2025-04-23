@@ -193,11 +193,31 @@ export function getUrlParameter(name) {
 }
 
 /**
- * Clears all URL parameters from the browser's address bar.
- * This is an alias for clearAllUrlParameters for backward compatibility.
+ * Clears all URL hash parameters from the browser's address bar without affecting the path or query parameters.
+ * This is optimized for privacy concerns, removing only hash fragments that might contain sensitive data.
+ * 
+ * IMPORTANT BROWSER HISTORY LIMITATION:
+ * This function only modifies the current history entry's URL - it cannot remove the URL from the browser's
+ * global history list that was already recorded during the initial page navigation. When users navigate to a URL
+ * with parameters, that full URL is recorded in history before any JavaScript code runs. This function can only
+ * clean the URL in the address bar for the current session.
  */
 export function clearUrlParameters() {
-  clearAllUrlParameters();
+  try {
+    // Keep pathname and query parameters, but remove hash
+    const cleanUrl = window.location.pathname + window.location.search;
+    window.history.replaceState(null, document.title, cleanUrl);
+    logService.debug('URL hash fragment cleared from current history entry using replaceState.');
+  } catch (error) {
+    logService.error('Error clearing URL hash fragment with replaceState:', error);
+    // Fallback approach if the primary method fails
+    try {
+      window.location.hash = '';
+      logService.debug('URL hash cleared using fallback method.');
+    } catch (fallbackError) {
+      logService.error('Fallback hash clearing also failed:', fallbackError);
+    }
+  }
 }
 
 /**
@@ -209,34 +229,42 @@ export function clearAllUrlParameters() {
     // Define the base URL (without any parameters)
     const baseUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;
     
-    // First approach: Use replaceState to set the URL to just the pathname
+    // Use replaceState to set the URL to just the pathname
     window.history.replaceState(null, document.title, baseUrl);
     
     // Verify that both types of parameters are gone
     if (window.location.search || window.location.hash) {
       logService.warn('First attempt to clear parameters failed, trying alternate method...');
       
-      // Second approach: Try handling hash and search separately
+      // Second approach: Try handling hash separately first
       if (window.location.hash) {
-        history.pushState("", document.title, window.location.pathname + window.location.search);
+        window.history.replaceState(null, document.title, window.location.pathname + window.location.search);
       }
       
+      // Then remove search parameters if any remain
       if (window.location.search) {
-        history.pushState("", document.title, window.location.pathname);
+        window.history.replaceState(null, document.title, window.location.pathname);
       }
       
       // Final verification - explicitly set to base URL
       window.history.replaceState(null, document.title, baseUrl);
     }
     
-    logService.debug('URL parameters cleared successfully');
+    logService.debug('All URL parameters cleared successfully');
   } catch (error) {
     logService.error('Error clearing URL parameters:', error);
     
-    // Fallback method
-    const baseUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;
-    if (window.location.href !== baseUrl) {
-      window.location.href = baseUrl;
+    // Fallback method as last resort
+    try {
+      const baseUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;
+      if (window.location.href !== baseUrl) {
+        // Note: This is a more aggressive approach that may reload the page
+        // Only used if the replaceState approaches fail
+        window.location.href = baseUrl;
+        logService.warn('Using fallback method to clear parameters - page may reload');
+      }
+    } catch (fallbackError) {
+      logService.error('All parameter clearing attempts failed:', fallbackError);
     }
   }
 }

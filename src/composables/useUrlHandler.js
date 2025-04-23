@@ -88,7 +88,7 @@ export function useUrlHandler() {
    * 
    * The function handles multiple data formats:
    * - Nested patientData structure from full form exports
-   * - Legacy flat structure from older URLs
+   * - Legacy flat structure from older URLs (including direct hash parameters like #givenName=Jane)
    * - Special case handling for specific panels like nephrology
    * 
    * @param {string} passwordParam - Optional password from URL parameter.
@@ -108,6 +108,13 @@ export function useUrlHandler() {
     // Parse data from URL (Handles both query and hash)
     const dataParam = getParameterFromHash('data');
     const encryptedParam = getParameterFromHash('encrypted');
+    
+    // Check if we have legacy hash parameters (like #givenName=Jane) - detect by looking for hash with parameters but no 'data' or 'encrypted' key
+    const hasLegacyHashParams = window.location.hash && 
+                                window.location.hash.length > 1 && 
+                                !dataParam && 
+                                !encryptedParam && 
+                                window.location.hash.includes('=');
 
     if (dataParam) {
       // Parameter Length Check
@@ -143,14 +150,16 @@ export function useUrlHandler() {
         // Import the sanitized data
         formStore.importFormData(parsedJsonData, true); // Pass true to indicate URL import
 
-        // Clear URL parameters after successful import
+        // Clear URL parameters after successful import for privacy enhancement
+        logService.debug('Cleaning URL after successful data load from hash.');
         clearUrlParameters();
         uiStore.showSnackbar('Data loaded successfully from URL!');
 
       } catch (error) {
         logService.error('Error processing "data" parameter from URL:', error);
         uiStore.showSnackbar('Error loading data from URL. The data might be corrupted.', 'error');
-        // Clear potentially corrupted params
+        // Clear potentially corrupted params for privacy and security
+        logService.debug('Cleaning URL after failed data processing attempt.');
         clearUrlParameters();
       }
     } else if (encryptedParam) {
@@ -158,6 +167,7 @@ export function useUrlHandler() {
       if (encryptedParam.length > MAX_PARAM_LENGTH) {
         logService.warn(`[URL Handler] Incoming 'encrypted' parameter length (${encryptedParam.length}) exceeds maximum allowed (${MAX_PARAM_LENGTH}). Aborting decryption.`);
         uiStore.showSnackbar("Error: Encrypted data is too large.", 'error');
+        logService.debug('Cleaning URL for excessive encrypted parameter size.');
         clearUrlParameters(); // Clear potentially harmful param
         return; // Stop processing before decryption
       }
@@ -178,15 +188,26 @@ export function useUrlHandler() {
       }
 
     } else {
-      // Fallback for legacy query parameters (optional, based on parsePatientDataFromUrl's capability)
-      const legacyData = parsePatientDataFromUrl(); // Ensure this doesn't re-parse hash
+      // Detect and handle legacy hash parameters first (like #givenName=Jane) 
+      if (hasLegacyHashParams) {
+        logService.debug('Found legacy hash parameters in URL format, processing...', window.location.hash);
+      }
+      
+      // Fallback for legacy query parameters or legacy hash parameters
+      const legacyData = parsePatientDataFromUrl(); // This handles both query params and hash params
       if (Object.keys(legacyData).length > 0) {
-        logService.debug('Found legacy query parameters. Importing...');
+        logService.debug('Found legacy parameters. Importing...');
         // NOTE: Legacy data might also need sanitization if it involves JSON parsing internally
         // Assuming parsePatientDataFromUrl returns a safe structure or we trust its source.
         // If parsePatientDataFromUrl uses JSON.parse, sanitization should be added there.
         formStore.importFormData(legacyData, true);
-        clearUrlParameters();
+        
+        // Always clean the URL if we found and processed any parameters, especially hash parameters
+        if (hasLegacyHashParams || window.location.search) {
+          logService.debug('Cleaning URL after successful legacy data load.');
+          clearUrlParameters(); // This removes the hash fragment
+        }
+        
         uiStore.showSnackbar('Legacy data loaded successfully from URL!');
       } else {
         logService.debug('No relevant data parameters found in URL.');
@@ -454,6 +475,7 @@ export function useUrlHandler() {
         
         // ---> CLEAR STATE/URL AFTER SUCCESS <--- 
         pendingEncryptedValue.value = null; // Clear pending data *after* successful import
+        logService.debug('Cleaning URL after successful data decryption.');
         clearUrlParameters(); // Clear URL params after successful load
         
         uiStore.cancelDecryption(); // Close dialog and clear error state
@@ -462,7 +484,12 @@ export function useUrlHandler() {
         // Decryption failed (decryptUrlData returned null and set error in uiStore)
         logService.warn('Decryption attempt failed with submitted password.');
         // The error message should already be set in uiStore by decryptUrlData
-        // Do not clear pendingEncryptedValue here, user might retry password
+        
+        // Still clean the URL for privacy even when decryption fails
+        logService.debug('Cleaning URL after failed decryption attempt for privacy.');
+        clearUrlParameters();
+        
+        // Do not clear pendingEncryptedValue here, user might retry password in the dialog
       }
     } else {
        // This log message indicates a problem - e.g. handler called twice?

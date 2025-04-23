@@ -46,7 +46,7 @@
                 close
                 @click:close="props.onClose"
               >
-                {{ item.title }}
+                {{ getFullTestName(item) }}
               </v-chip>
             </template>
           </v-select>
@@ -80,7 +80,7 @@
               close
               @click:close="props.onClose"
             >
-              {{ item.title }}
+              {{ getFullTestName(item) }}
             </v-chip>
           </template>
         </v-autocomplete>
@@ -176,7 +176,17 @@ const updateCategory = inject('updateCategory', null);
 const categories = ref([]);
 const selectedCategory = ref('');
 
-// Create computed properties to track changes in the unified data model
+// Track user-initiated category changes
+const userSelectedCategory = ref(false);
+
+// Watch for user-initiated category changes
+watch(selectedCategory, () => {
+  // Mark that the user has manually selected a category
+  userSelectedCategory.value = true;
+  logService.debug('TestSelector: User selected category:', selectedCategory.value);
+});
+
+// Sync with global data model
 const unifiedCategory = computed(() => unifiedPatientData?.category || '');
 const unifiedSelectedPanels = computed(() => unifiedPatientData?.selectedPanels || []);
 
@@ -253,7 +263,8 @@ onMounted(() => {
 
 // Special domain-specific handler for nephronophthise -> nephrology mapping
 watch(unifiedSelectedPanels, (newTests) => { // Watch unified store state
-  if (newTests && newTests.includes('nephronophthise') && (!selectedCategory.value || selectedCategory.value !== 'nephrology')) {
+  // Only auto-set category if user hasn't manually selected one
+  if (!userSelectedCategory.value && newTests && newTests.includes('nephronophthise') && (!selectedCategory.value || selectedCategory.value !== 'nephrology')) {
     logService.debug('TestSelector: Auto-setting category to nephrology based on nephronophthise panel');
     const categoryValue = 'nephrology';
     selectedCategory.value = categoryValue;
@@ -269,7 +280,8 @@ watch(unifiedSelectedPanels, (newTests) => { // Watch unified store state
 watch([unifiedSelectedPanels, categories], ([newTests, newCategories]) => { // Watch unified store state
   // If we have tests but no selected category yet,
   // find the category containing the selected test and set it
-  if (newTests && newTests.length > 0 && !selectedCategory.value && newCategories.length > 0) {
+  // Only do this if the user hasn't manually selected a category
+  if (!userSelectedCategory.value && newTests && newTests.length > 0 && !selectedCategory.value && newCategories.length > 0) {
     const testId = newTests[0];
     let foundCategory = null;
     
@@ -368,6 +380,31 @@ function getChipColor(item) {
 }
 
 /**
+ * Gets the full test name for a panel regardless of current category
+ * This ensures we always show the correct name even when switching categories
+ * 
+ * @param {Object} item - The item from the chip template
+ * @returns {string} The localized test name
+ */
+function getFullTestName(item) {
+  // Extract the ID from the item (which could be either the ID directly or a value property)
+  const testId = item.id || item.value;
+  
+  // Search for the test across all categories
+  for (const category of categories.value) {
+    const test = category.tests.find(test => test.id === testId);
+    if (test) {
+      return getTestName(test);
+    }
+  }
+  
+  // Fallback to showing the item title or ID if we can't find the test
+  return item.title || item.label || testId;
+}
+
+
+
+/**
  * Force UI update when panel selection changes
  * This helps ensure the visual representation matches the data model
  * 
@@ -380,8 +417,9 @@ function forceUiUpdate(newValue) {
   if (newValue && newValue.length > 0) {
     tab.value = 'Category Selection';
     
-    // If we don't have a category selected yet, try to find one based on the panel
-    if (!selectedCategory.value && categories.value.length > 0) {
+    // Only auto-select category if the user hasn't manually changed it yet
+    // and we don't have a category already selected
+    if (!userSelectedCategory.value && !selectedCategory.value && categories.value.length > 0) {
       const panelId = newValue[0];
       
       // Find which category contains this panel

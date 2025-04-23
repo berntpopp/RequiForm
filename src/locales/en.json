@@ -1,4 +1,5 @@
 {
+
   "topbar": {
     "appSubtitle": "Secure requisition form builder",
     "aria": {
@@ -96,7 +97,7 @@
   },
   "phenotypeSelector": {
     "toggleButton": {
-      "hide": "Hide Phenotype Options",
+      "hide": "Hide & Clear Phenotypes",
       "add": "Add Phenotypes"
     },
     "panelTitle": "Select Phenotype States",
@@ -104,6 +105,9 @@
       "noInput": "No Input",
       "present": "Present",
       "absent": "Absent"
+    },
+    "warnings": {
+      "noneSelected": "Please select at least one phenotype as Present or Absent, or close this panel to skip phenotype submission."
     },
     "noPhenotypesMessage": "No predefined phenotypes available for this category."
   },

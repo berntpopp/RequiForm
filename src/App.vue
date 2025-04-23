@@ -53,6 +53,7 @@
           :groupedPanelDetails="groupedPanelDetails" 
           v-model="formStore.phenotypeDataObj"
           id="phenotype-selector-component"
+          @panel-state-change="handlePhenotypePanelStateChange"
         />
 
         <!-- Hidden PDF Generator component -->
@@ -144,6 +145,9 @@
 <script setup>
 import { ref, computed, onMounted, provide, watch, defineAsyncComponent } from 'vue'; 
 import { useI18n } from 'vue-i18n';
+
+// Track phenotype panel visibility state
+const phenotypePanelVisible = ref(false);
 
 // Get i18n for translations
 const { t, locale } = useI18n();
@@ -416,6 +420,41 @@ watch(pdfGeneratorRef, (newRef) => {
  * Custom handler for PDF generation that validates form data and ensures pedigree data is updated first
  */
 async function handleGeneratePdf() {
+  // Check specifically for phenotype validation when panel is open
+  if (phenotypePanelVisible.value && formStore.showPhenotypePanel) {
+    // Check if any phenotype is selected (not 'no input')
+    let hasSelectedPhenotype = false;
+    const phenotypeData = formStore.phenotypeDataObj;
+    
+    if (phenotypeData && Object.keys(phenotypeData).length > 0) {
+      outer: for (const categoryId in phenotypeData) {
+        const phenotypes = phenotypeData[categoryId];
+        for (const phenotypeId in phenotypes) {
+          if (phenotypes[phenotypeId] === 'present' || phenotypes[phenotypeId] === 'absent') {
+            hasSelectedPhenotype = true;
+            break outer;
+          }
+        }
+      }
+    }
+    
+    if (!hasSelectedPhenotype) {
+      logService.debug('Phenotype panel is open but no phenotypes are selected'); 
+      uiStore.showSnackbar(t('phenotypeSelector.warnings.noneSelected'));
+      
+      // Scroll to the phenotype selector
+      const phenotypeSelector = document.getElementById('phenotype-selector-component');
+      if (phenotypeSelector) {
+        phenotypeSelector.scrollIntoView({ behavior: 'smooth' });
+        phenotypeSelector.setAttribute('tabindex', '-1');
+        phenotypeSelector.focus();
+      }
+      
+      return;
+    }
+  }
+  
+  // Continue with general form validation
   const isValid = formStore.validateForm(true);
   
   formStore.setShowValidation(true);
@@ -508,6 +547,15 @@ const toggleLanguage = () => {
 // Function to toggle the log viewer
 const toggleLogViewer = () => {
   uiStore.toggleLogViewer();
+}
+
+// Handler for phenotype panel visibility changes
+function handlePhenotypePanelStateChange(isVisible) {
+  logService.debug(`Phenotype panel visibility changed to: ${isVisible}`);
+  phenotypePanelVisible.value = isVisible;
+  
+  // Update validation model with panel state
+  formStore.updatePhenotypePanelState(isVisible);
 }
 
 // ... rest of the code remains the same ...

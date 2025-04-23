@@ -96,7 +96,7 @@
   },
   "phenotypeSelector": {
     "toggleButton": {
-      "hide": "Phänotyp-Optionen ausblenden",
+      "hide": "Phänotypen ausblenden & löschen",
       "add": "Phänotypen hinzufügen"
     },
     "panelTitle": "Phänotyp-Zustände auswählen",
@@ -104,6 +104,9 @@
       "noInput": "Keine Angabe",
       "present": "Vorhanden",
       "absent": "Fehlend"
+    },
+    "warnings": {
+      "noneSelected": "Bitte wählen Sie mindestens einen Phänotyp als Vorhanden oder Fehlend aus, oder schließen Sie dieses Panel, um die Phänotyp-Einreichung zu überspringen."
     },
     "noPhenotypesMessage": "Für diese Kategorie sind keine vordefinierten Phänotypen verfügbar."
   },

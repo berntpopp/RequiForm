@@ -321,7 +321,13 @@ export function validatePatientData(patientData) {
   const personalInfoValidation = validatePersonalInfo(patientData.personalInfo || {});
   const selectedPanelsValidation = validateSelectedPanels(); // No parameters needed as we've made panels optional
   const categoryValidation = validateCategory(patientData.category || '');
-  const phenotypeValidation = validatePhenotypeData(patientData.phenotypeData || []);
+  
+  // Skip phenotype validation if the phenotype panel is hidden
+  let phenotypeValidation = { valid: true, errors: {} };
+  if (patientData.showPhenotypePanel) {
+    phenotypeValidation = validatePhenotypeData(patientData.phenotypeData || []);
+  }
+  
   const consentValidation = validateConsent(patientData.consent || {});
   
   // Combine all errors

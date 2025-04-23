@@ -50,6 +50,7 @@ export const useFormStore = defineStore('form', () => {
   const showPedigree = ref(false);
   const pedigreeDataUrl = ref('');
   const showValidation = ref(false);
+  const showPhenotypePanel = ref(false); // Track if phenotype panel is visible
   
   // Save data dialog state
   const saveDataName = computed(() => {
@@ -468,6 +469,22 @@ export const useFormStore = defineStore('form', () => {
     return Object.values(phenotypeDataObj).filter(item => item && item.id);
   }
   
+  /**
+   * Updates the phenotype panel visibility state
+   * This function is called when the phenotype panel is shown or hidden,
+   * allowing validation to be skipped when the panel is hidden
+   * 
+   * @param {boolean} isVisible - Whether the phenotype panel is visible
+   * @returns {void}
+   */
+  function updatePhenotypePanelState(isVisible) {
+    logService.debug(`formStore: Updating phenotype panel visibility to: ${isVisible}`);
+    showPhenotypePanel.value = isVisible;
+    
+    // Add the visibility state to the patient data for validation
+    patientData.showPhenotypePanel = isVisible;
+  }
+  
   return {
     // State from usePatientData
     patientData,
@@ -480,6 +497,7 @@ export const useFormStore = defineStore('form', () => {
     showPedigree,
     pedigreeDataUrl,
     showValidation,
+    showPhenotypePanel,
     saveDataName,
     
     // Methods from usePatientData
@@ -525,6 +543,7 @@ export const useFormStore = defineStore('form', () => {
     updatePatientData,
     updatePhenotypeDataObj,
     updatePedigreeDataUrl,
+    updatePhenotypePanelState,
     setShowPedigree,
     resetValidation,
     setShowValidation,

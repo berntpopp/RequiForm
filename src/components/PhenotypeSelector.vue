@@ -6,7 +6,18 @@
 
     <v-expand-transition>
       <div v-if="showPanel" class="phenotype-panel">
-        <h2 class="title" :key="`phenotype-title-${i18nKey}`">{{ t('phenotypeSelector.panelTitle') }}</h2>
+        <!-- Warning message when no phenotypes are selected -->
+        <v-alert
+          v-if="hasNoPhenotypeSelected"
+          type="warning"
+          density="compact"
+          variant="tonal"
+          class="warning-alert"
+          :key="`warning-alert-${i18nKey}`"
+        >
+          {{ t('phenotypeSelector.warnings.noneSelected') }}
+        </v-alert>
+
         <!-- Loop through each category with at least one selected panel -->
         <div
           v-for="group in groupedPanelDetails"
@@ -26,10 +37,10 @@
                 <p class="description">{{ getPhenotypeDescription(phenotype) }}</p>
               </div>
               <v-radio-group
-                v-model="localPhenotypeData[group.id][phenotype.id]"
+                :model-value="getPhenotypeValue(group.id, phenotype.id)"
+                @update:model-value="updatePhenotypeValue(group.id, phenotype.id, $event)"
                 inline
                 density="compact"
-                @change="handlePhenotypeChange(group.id, phenotype.id)"
                 class="radio-group"
                 :key="`radio-group-${group.id}-${phenotype.id}-${i18nKey}`"
               >
@@ -94,8 +105,8 @@ const props = defineProps({
   }
 })
 
-// Emit for backward compatibility
-const emit = defineEmits(['update:modelValue'])
+// Emit for backward compatibility and panel state
+const emit = defineEmits(['update:modelValue', 'panel-state-change'])
 
 // Inject the unified patient data and update functions
 const unifiedPatientData = inject('patientData', null)
@@ -108,6 +119,30 @@ const showPanel = ref(false)
  * { categoryId: { phenotypeId: 'no input' | 'present' | 'absent', ... }, ... }
  */
 const localPhenotypeData = ref({})
+
+/**
+ * Computed property that checks if any phenotype has been selected as present/absent
+ * Returns true if all phenotypes are set to "no input" or if there are no phenotypes
+ */
+const hasNoPhenotypeSelected = computed(() => {
+  // If no phenotype data or empty object, return true
+  if (!localPhenotypeData.value || Object.keys(localPhenotypeData.value).length === 0) {
+    return true
+  }
+  
+  // Check if at least one phenotype is set to present or absent
+  for (const categoryId in localPhenotypeData.value) {
+    const phenotypes = localPhenotypeData.value[categoryId];
+    for (const phenotypeId in phenotypes) {
+      if (phenotypes[phenotypeId] === 'present' || phenotypes[phenotypeId] === 'absent') {
+        return false // Found at least one selected phenotype
+      }
+    }
+  }
+  
+  // All phenotypes are "no input"
+  return true
+})
 
 // Initialize from unified model if available
 if (unifiedPatientData && unifiedPatientData.phenotypeData && unifiedPatientData.phenotypeData.length > 0) {
@@ -218,7 +253,63 @@ watch(
 )
 
 function togglePanel() {
-  showPanel.value = !showPanel.value
+  const wasVisible = showPanel.value;
+  showPanel.value = !showPanel.value;
+  
+  // If panel is being hidden, clear all phenotype selections
+  if (wasVisible) {
+    // Clear the phenotype data
+    logService.debug('PhenotypeSelector: Clearing phenotype data as panel is being hidden');
+    clearPhenotypeData();
+  }
+  
+  // Emit the panel state change to parent components
+  emit('panel-state-change', showPanel.value);
+}
+
+/**
+ * Clears all phenotype selections by setting them all to "no input" or removing them
+ */
+function clearPhenotypeData() {
+  // If using the unified model, clear via that
+  if (updatePhenotypeData) {
+    updatePhenotypeData([]);
+  }
+  
+  // Clear the local data model
+  localPhenotypeData.value = {};
+  
+  // Update both models to ensure synchronization
+  updateBothModels();
+}
+
+/**
+ * Safely get the value of a phenotype, ensuring the category exists in localPhenotypeData
+ */
+function getPhenotypeValue(categoryId, phenotypeId) {
+  // Ensure the category exists in localPhenotypeData
+  if (!localPhenotypeData.value[categoryId]) {
+    localPhenotypeData.value[categoryId] = {}
+  }
+  
+  // Return the value or default to "no input"
+  return localPhenotypeData.value[categoryId][phenotypeId] || 'no input'
+}
+
+/**
+ * Safely update the value of a phenotype, ensuring the category exists in localPhenotypeData
+ */
+function updatePhenotypeValue(categoryId, phenotypeId, value) {
+  // Ensure the category exists in localPhenotypeData
+  if (!localPhenotypeData.value[categoryId]) {
+    localPhenotypeData.value[categoryId] = {}
+  }
+  
+  // Update the value
+  localPhenotypeData.value[categoryId][phenotypeId] = value
+  
+  // Call the original handler
+  handlePhenotypeChange(categoryId, phenotypeId)
 }
 
 function categoryPhenotypes(categoryId) {
@@ -288,6 +379,9 @@ function updateBothModels() {
       })
     })
     updatePhenotypeData(phenotypeArray)
+    
+    // Also emit the current panel state so parent components know if phenotypes should be validated
+    emit('panel-state-change', showPanel.value)
   }
 }
 
@@ -300,6 +394,10 @@ const groupedPanelDetails = computed(() => props.groupedPanelDetails)
   padding: 0.25rem;
   border: 1px solid #ddd;
   border-radius: 4px;
+}
+
+.warning-alert {
+  margin-bottom: 1rem;
 }
 .phenotype-panel {
   margin-top: 0.5rem;

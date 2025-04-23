@@ -212,6 +212,22 @@ const { t, locale } = useI18n(); // Initialize translation function and get loca
 // Create a reactivity trigger for forcing re-renders
 const reactivityKey = ref(0);
 
+// Define emit first for TypeScript safety and better code organization
+const emit = defineEmits([
+  'toggle-theme', 
+  'reset-form', 
+  'open-faq', 
+  'start-tour', 
+  'copy-url', 
+  'copy-encrypted-url', 
+  'generate-pdf', 
+  'save-data', 
+  'load-data', 
+  'open-paste-data', 
+  'toggle-language',
+  'toggle-log-viewer'
+]);
+
 // Listen for language changes and update the component
 const handleLocaleChange = () => {
   // Force component re-rendering
@@ -238,21 +254,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('i18n-locale-changed', handleLocaleChange);
 });
 
-// Define emit for TypeScript safety and better code organization
-const emit = defineEmits([
-  'toggle-theme', 
-  'reset-form', 
-  'open-faq', 
-  'start-tour', 
-  'copy-url', 
-  'copy-encrypted-url', 
-  'generate-pdf', 
-  'save-data', 
-  'load-data', 
-  'open-paste-data', 
-  'toggle-language',
-  'toggle-log-viewer'
-]);
+
 
 /**
  * TopBar component for RequiForm.

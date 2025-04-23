@@ -33,6 +33,41 @@ export default defineConfig(({ mode }) => {
         '@': fileURLToPath(new URL('./src', import.meta.url)),
       },
     },
+    css: {
+      postcss: {
+        plugins: [
+          {
+            // This is a placeholder - postcss-purgecss needs to be installed
+            // npm install --save-dev postcss-purgecss
+            postcssPlugin: 'postcss-purgecss',
+            options: {
+              // Scan all Vue files, JS files, and HTML templates for class usage
+              content: ['./index.html', './src/**/*.{vue,js,ts,jsx,tsx}'],
+              // Safelist patterns for dynamically generated classes
+              safelist: [
+                // Vuetify classes
+                /^v-/,
+                // Material Design Icons
+                /^mdi-/,
+                // FontAwesome Icons
+                /^fa-/,
+                // Critical utility classes that might be added dynamically
+                /^text-/,
+                /^bg-/,
+                // Animation classes
+                /^animate/,
+                // Dialog and other dynamic components
+                /dialog-transition/,
+                /tab-transition/,
+                /^theme--/
+              ],
+              // Don't remove unused CSS variables as they might be referenced dynamically
+              variables: true
+            }
+          }
+        ]
+      }
+    },
     define: {
       // App version
       'process.env.VUE_APP_VERSION': JSON.stringify(process.env.npm_package_version || '0.0.0'),
